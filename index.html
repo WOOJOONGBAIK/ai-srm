@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI SRM</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+  body { background: #f8f9fa; color: #1a1a1a; min-height: 100vh; }
+
+  /* 헤더 */
+  .header { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+  .logo span { color: #185FA5; }
+  .nav { display: flex; gap: 4px; }
+  .nav-btn { padding: 6px 14px; border-radius: 6px; border: none; background: none; font-size: 13px; color: #666; cursor: pointer; }
+  .nav-btn:hover { background: #f1f3f5; }
+  .nav-btn.active { background: #185FA5; color: #fff; }
+
+  /* 메인 랜딩 */
+  #landing { display: flex; flex-direction: column; align-items: center; padding: 4rem 2rem 2rem; }
+  .landing-title { font-size: 36px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .landing-title span { color: #185FA5; }
+  .landing-sub { font-size: 15px; color: #666; margin-bottom: 2.5rem; }
+
+  /* 프롬프트 박스 */
+  .prompt-wrap { width: 100%; max-width: 640px; background: #fff; border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .prompt-input { width: 100%; border: none; outline: none; padding: 16px; font-size: 14px; resize: none; font-family: inherit; color: #1a1a1a; }
+  .prompt-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid #f1f3f5; background: #fafafa; }
+  .prompt-hint { font-size: 12px; color: #adb5bd; }
+  .send-btn { background: #185FA5; color: #fff; border: none; border-radius: 6px; padding: 7px 16px; font-size: 13px; cursor: pointer; }
+  .send-btn:hover { background: #0C447C; }
+
+  /* 칩 */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; margin-bottom: 3rem; }
+  .chip { font-size: 12px; padding: 6px 14px; border-radius: 20px; border: 1px solid #dee2e6; background: #fff; color: #495057; cursor: pointer; }
+  .chip:hover { border-color: #185FA5; color: #185FA5; }
+
+  /* 모듈 카드 */
+  .module-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; width: 100%; max-width: 640px; }
+  .module-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 1.25rem 1rem; text-align: center; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+  .module-card:hover { border-color: #185FA5; box-shadow: 0 2px 8px rgba(24,95,165,0.1); }
+  .module-dot { width: 10px; height: 10px; border-radius: 50%; margin: 0 auto 10px; }
+  .module-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .module-desc { font-size: 11px; color: #868e96; }
+
+  /* 콘텐츠 영역 (모듈 로드 위치) */
+  #content { display: none; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+  /* 상태 표시 */
+  #db-status { font-size: 12px; padding: 4px 10px; border-radius: 20px; }
+  .status-ok { background: #ebfbee; color: #2f9e44; }
+  .status-err { background: #fff5f5; color: #c92a2a; }
+  .status-loading { background: #f1f3f5; color: #868e96; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">AI <span>SRM</span></div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="showLanding()">홈</button>
+    <button class="nav-btn" onclick="loadModule('supplier')">협력사</button>
+    <button class="nav-btn" onclick="loadModule('pr')">구매요청</button>
+    <button class="nav-btn" onclick="loadModule('contract')">계약</button>
+    <button class="nav-btn" onclick="loadModule('analysis')">분석</button>
+  </div>
+  <div id="db-status" class="status-loading">DB 연결중...</div>
+</div>
+
+<div id="landing">
+  <div class="landing-title">AI <span>SRM</span></div>
+  <div class="landing-sub">공급망 관계 관리 · AI 기반 구매 어시스턴트</div>
+
+  <div class="prompt-wrap">
+    <textarea class="prompt-input" id="prompt" rows="3"
+      placeholder='무엇을 도와드릴까요? 예: "1차 부품사 리스크 분석해줘", "이번달 납품 현황 보여줘"'></textarea>
+    <div class="prompt-footer">
+      <span class="prompt-hint">자동차 제조 · 구매팀 · Claude Sonnet 4.6</span>
+      <button class="send-btn" onclick="handlePrompt()">전송</button>
+    </div>
+  </div>
+
+  <div class="chips">
+    <div class="chip" onclick="setPrompt('1차 부품사 리스크 현황 보여줘')">1차 부품사 리스크 현황</div>
+    <div class="chip" onclick="setPrompt('이번달 구매요청 요약해줘')">이번달 구매요청 요약</div>
+    <div class="chip" onclick="setPrompt('만료 예정 계약 조회해줘')">만료 예정 계약 조회</div>
+    <div class="chip" onclick="setPrompt('납품 준수율 분석해줘')">납품 준수율 분석</div>
+    <div class="chip" onclick="setPrompt('신규 협력사 등록해줘')">신규 협력사 등록</div>
+    <div class="chip" onclick="setPrompt('단가 변동 이력 보여줘')">단가 변동 이력</div>
+  </div>
+
+  <div class="module-grid">
+    <div class="module-card" onclick="loadModule('supplier')">
+      <div class="module-dot" style="background:#185FA5;"></div>
+      <div class="module-name">협력사</div>
+      <div class="module-desc">등록·평가·리스크</div>
+    </div>
+    <div class="module-card" onclick="loadModule('pr')">
+      <div class="module-dot" style="background:#1D9E75;"></div>
+      <div class="module-name">구매요청</div>
+      <div class="module-desc">PR·PO·승인</div>
+    </div>
+    <div class="module-card" onclick="loadModule('contract')">
+      <div class="module-dot" style="background:#EF9F27;"></div>
+      <div class="module-name">계약</div>
+      <div class="module-desc">등록·만료알림</div>
+    </div>
+    <div class="module-card" onclick="loadModule('analysis')">
+      <div class="module-dot" style="background:#D85A30;"></div>
+      <div class="module-name">분석</div>
+      <div class="module-desc">KPI·AI인사이트</div>
+    </div>
+  </div>
+</div>
+
+<div id="content"></div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+  const SUPABASE_URL = 'https://zsgigvswnwudlpanpodl.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzZ2lndnN3bnd1ZGxwYW5wb2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjUxNTgsImV4cCI6MjA5MTMwMTE1OH0.cW0m3EyXXNcYHwPxCoBazYPbAuwCZgHdGarBMqEAM6k';
+
+  window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const status = document.getElementById('db-status');
+  try {
+    const { error } = await window.supabase.from('lfa1').select('count').limit(1).schema('sap_mm');
+    if (error) throw error;
+    status.textContent = 'DB 연결됨';
+    status.className = 'status-ok';
+  } catch(e) {
+    status.textContent = 'DB 오류';
+    status.className = 'status-err';
+    console.error(e);
+  }
+
+  window.showLanding = () => {
+    document.getElementById('landing').style.display = 'flex';
+    document.getElementById('content').style.display = 'none';
+    document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  };
+
+  window.loadModule = async (name) => {
+    document.getElementById('landing').style.display = 'none';
+    const content = document.getElementById('content');
+    content.style.display = 'block';
+    content.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const map = { supplier:1, pr:2, contract:3, analysis:4 };
+    document.querySelectorAll('.nav-btn')[map[name]]?.classList.add('active');
+    try {
+      const mod = await import(`./modules/${name}/index.js`);
+      mod.render(content, window.supabase);
+    } catch(e) {
+      content.innerHTML = `<p style="color:#c92a2a;font-size:14px;">모듈 준비중입니다.</p>`;
+    }
+  };
+
+  window.setPrompt = (text) => {
+    document.getElementById('prompt').value = text;
+  };
+
+  window.handlePrompt = () => {
+    const text = document.getElementById('prompt').value.trim();
+    if (!text) return;
+    alert(`준비중: "${text}"\nClaude API 연동 후 동작합니다.`);
+  };
+</script>
+</body>
+</html>
