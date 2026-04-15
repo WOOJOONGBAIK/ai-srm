@@ -15,6 +15,7 @@
   .nav-btn:hover { background: #f0f0f0; color: #005EB8; }
   .nav-btn.active { background: #005EB8; color: #fff; }
   .user-info { display: flex; align-items: center; gap: 12px; }
+  .time-location { font-size: 12px; color: #666; }
   .user-name { font-size: 13px; color: #666; font-weight: 500; }
   .lang-selector { display: flex; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden; }
   .lang-btn { padding: 6px 12px; border: none; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; color: #666; }
@@ -83,17 +84,21 @@
   <div class="nav">
     <button class="nav-btn active" onclick="showLanding()">대시보드</button>
     <button class="nav-btn" onclick="loadModule('master')">기준정보</button>
+    <button class="nav-btn" onclick="loadModule('supplier')">협력사관리</button>
     <button class="nav-btn" onclick="loadModule('pr')">구매요청</button>
     <button class="nav-btn" onclick="loadModule('contract')">계약관리</button>
     <button class="nav-btn" onclick="loadModule('po')">발주관리</button>
-    <button class="nav-btn" onclick="loadModule('supplier')">사급관리</button>
+    <button class="nav-btn" onclick="loadModule('delivery')">납기관리</button>
+    <button class="nav-btn" onclick="loadModule('vendor')">사급관리</button>
     <button class="nav-btn" onclick="loadModule('planning')">생산계획</button>
     <button class="nav-btn" onclick="loadModule('quality')">품질관리</button>
     <button class="nav-btn" onclick="loadModule('import')">수출입관리</button>
     <button class="nav-btn" onclick="loadModule('shipping')">선적관리</button>
-    <button class="nav-btn" onclick="loadModule('collaboration')">협업관리</button>
+    <button class="nav-btn" onclick="loadModule('project')">프로젝트관리</button>
+    <button class="nav-btn" onclick="loadModule('system')">시스템관리</button>
   </div>
   <div class="user-info">
+    <span class="time-location" id="time-location">서울, 14:30</span>
     <span class="user-name">구매인</span>
     <div class="lang-selector">
       <button class="lang-btn active" onclick="setLanguage(event, 'ko')">한</button>
@@ -171,7 +176,7 @@
     const workspace = document.getElementById('workspace');
     workspace.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    const map = { master:1, pr:2, contract:3, po:4, supplier:5, planning:6, quality:7, import:8, shipping:9, collaboration:10 };
+    const map = { master:1, supplier:2, pr:3, contract:4, po:5, delivery:6, vendor:7, planning:8, quality:9, import:10, shipping:11, project:12, system:13 };
     document.querySelectorAll('.nav-btn')[map[name]]?.classList.add('active');
     try {
       const mod = await import(`./modules/${name}/index.js`);
@@ -213,15 +218,18 @@
       nav: [
         "대시보드",
         "기준정보",
+        "협력사관리",
         "구매요청",
         "계약관리",
         "발주관리",
+        "납기관리",
         "사급관리",
         "생산계획",
         "품질관리",
         "수출입관리",
         "선적관리",
-        "협업관리"
+        "프로젝트관리",
+        "시스템관리"
       ]
     },
     en: {
@@ -229,16 +237,19 @@
       hint: "Procurement Team · Claude Sonnet 4.6",
       nav: [
         "Dashboard",
-        "Master Data",
-        "Purchase Request",
-        "Contract Management",
-        "Order Management",
-        "Supplier Management",
-        "Production Planning",
-        "Quality Management",
-        "Import/Export Management",
-        "Shipping Management",
-        "Collaboration Management"
+        "Master",
+        "Suppliers",
+        "PR",
+        "Contracts",
+        "Orders",
+        "Delivery",
+        "Vendor Mgmt",
+        "Planning",
+        "Quality",
+        "Import/Export",
+        "Shipping",
+        "Projects",
+        "System"
       ]
     },
     zh: {
@@ -247,15 +258,18 @@
       nav: [
         "仪表板",
         "基础信息",
+        "供应商管理",
         "采购请求",
         "合同管理",
         "订单管理",
+        "交付管理",
         "供应商管理",
         "生产计划",
         "质量管理",
         "进出口管理",
         "发货管理",
-        "协作管理"
+        "项目管理",
+        "系统管理"
       ]
     }
   };
@@ -320,6 +334,22 @@
   };
 
   // OCR 데이터 저장 (가상)
+  window.saveOCR = () => {
+    alert('OCR 검증 데이터가 저장되었습니다.');
+    showLanding(); // 대시보드로 돌아가기
+  };
+
+  // 현재 시간 업데이트
+  const updateTime = () => {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('time-location').textContent = `서울, ${timeString}`;
+  };
+
+  // 1분마다 시간 업데이트
+  setInterval(updateTime, 60000);
+  updateTime(); // 초기 실행
+
   // 위험 신호 동적 로딩 (가상 데이터)
   const loadRiskSignals = async () => {
     // 실제로는 Supabase에서 데이터 가져오기
