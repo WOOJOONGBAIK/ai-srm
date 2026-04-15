@@ -24,9 +24,9 @@
   .lang-btn:hover { background: #f0f0f0; }
   .lang-btn.active { background: var(--samsung-blue); color: #fff; }
 
-  .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 2rem; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 56px); }
+  .main-layout { display: grid; grid-template-columns: 0.4fr 0.6fr; gap: 2rem; padding: 2rem; max-width: 1400px; margin: 0 auto; min-height: calc(100vh - 56px); }
 
-  .login-section { background: #fff; padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  .login-section { background: #fff; padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05); max-width: 400px; }
   .login-title { font-size: 20px; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-main); }
   .form-group { margin-bottom: 1rem; }
   .form-group label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 4px; }
@@ -38,7 +38,7 @@
   .sso-btn:hover { background: #f0f8ff; }
   .error-msg { color: #ff6b6b; font-size: 12px; margin-top: 8px; display: none; }
 
-  .info-section { display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 1.5rem; }
+  .info-section { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1.5rem; }
 
   .section-card { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
   .section-title { font-size: 16px; font-weight: 700; margin-bottom: 1rem; color: var(--text-main); }
@@ -72,7 +72,7 @@
 
   @media (max-width: 768px) {
     .main-layout { grid-template-columns: 1fr; gap: 1rem; padding: 1rem; }
-    .info-section { grid-template-rows: auto; }
+    .info-section { grid-template-columns: 1fr; grid-template-rows: auto; }
   }
 </style>
 </head>
