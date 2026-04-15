@@ -24,55 +24,63 @@
   .lang-btn:hover { background: #f0f0f0; }
   .lang-btn.active { background: var(--samsung-blue); color: #fff; }
 
-  .main-layout { display: grid; grid-template-columns: 0.4fr 0.6fr; gap: 2rem; padding: 2rem; max-width: 1400px; margin: 0 auto; min-height: calc(100vh - 56px); }
+  .main-layout { display: grid; grid-template-columns: 350px 1fr 350px; gap: 2rem; padding: 2rem; max-width: 1600px; margin: 0 auto; min-height: calc(100vh - 56px); align-items: start; }
 
-  .login-section { background: #fff; padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05); max-width: 400px; }
-  .login-title { font-size: 20px; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-main); }
-  .form-group { margin-bottom: 1rem; }
-  .form-group label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 4px; }
-  .form-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; }
-  .form-group input:focus { border-color: var(--samsung-blue); outline: none; }
-  .login-btn { width: 100%; padding: 12px; background: var(--samsung-blue); color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 1rem; }
-  .login-btn:hover { background: #004a94; }
-  .sso-btn { width: 100%; padding: 12px; background: #fff; color: var(--samsung-blue); border: 1px solid var(--samsung-blue); border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .sso-btn:hover { background: #f0f8ff; }
-  .error-msg { color: #ff6b6b; font-size: 12px; margin-top: 8px; display: none; }
+  .login-section { background: linear-gradient(135deg, #005EB8 0%, #003d82 100%); color: #fff; padding: 2.5rem; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,94,184,0.3); position: sticky; top: 2rem; }
+  .login-title { font-size: 22px; font-weight: 700; margin-bottom: 2rem; text-align: center; }
+  .form-group { margin-bottom: 1.5rem; }
+  .form-group label { display: block; font-size: 14px; color: #e0e0e0; margin-bottom: 6px; font-weight: 500; }
+  .form-group input { width: 100%; padding: 12px 16px; border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; font-size: 14px; backdrop-filter: blur(10px); }
+  .form-group input::placeholder { color: rgba(255,255,255,0.7); }
+  .form-group input:focus { border-color: #fff; outline: none; background: rgba(255,255,255,0.2); }
+  .login-btn { width: 100%; padding: 14px; background: #fff; color: #005EB8; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 1rem; transition: all 0.3s; }
+  .login-btn:hover { background: #f0f0f0; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .sso-btn { width: 100%; padding: 14px; background: rgba(255,255,255,0.1); color: #fff; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.3s; }
+  .sso-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
+  .error-msg { color: #ffcccc; font-size: 13px; margin-top: 12px; text-align: center; display: none; }
 
-  .info-section { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1.5rem; }
+  .info-section { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
 
-  .section-card { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-  .section-title { font-size: 16px; font-weight: 700; margin-bottom: 1rem; color: var(--text-main); }
+  .section-card { background: #fff; border: 1px solid #e8e8e8; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s; }
+  .section-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+  .section-title { font-size: 18px; font-weight: 700; margin-bottom: 1.5rem; color: #005EB8; display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; width: 4px; height: 20px; background: #005EB8; border-radius: 2px; }
 
-  .notice-item { padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s; }
-  .notice-item:hover { background: #f9f9f9; }
-  .notice-item:last-child { border-bottom: none; }
-  .notice-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-  .notice-date { font-size: 12px; color: var(--text-sub); }
-  .notice-summary { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+  .notice-item { padding: 16px; border-bottom: 1px solid #f5f5f5; cursor: pointer; transition: all 0.2s; border-radius: 8px; margin-bottom: 8px; }
+  .notice-item:hover { background: #f8f9fa; transform: translateX(4px); }
+  .notice-item:last-child { border-bottom: none; margin-bottom: 0; }
+  .notice-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: #333; }
+  .notice-date { font-size: 12px; color: #666; font-weight: 500; }
+  .notice-summary { font-size: 13px; color: #777; margin-top: 8px; line-height: 1.4; }
 
-  .archive-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f0f0f0; }
-  .archive-item:last-child { border-bottom: none; }
+  .archive-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #f5f5f5; border-radius: 8px; margin-bottom: 8px; transition: all 0.2s; }
+  .archive-item:hover { background: #f8f9fa; transform: translateX(4px); }
+  .archive-item:last-child { border-bottom: none; margin-bottom: 0; }
   .archive-info { display: flex; align-items: center; gap: 12px; }
-  .archive-icon { font-size: 20px; }
-  .archive-details h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-  .archive-details span { font-size: 12px; color: var(--text-sub); }
-  .download-btn { padding: 6px 12px; background: var(--samsung-blue); color: #fff; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; }
-  .download-btn:hover { background: #004a94; }
+  .archive-icon { font-size: 24px; color: #005EB8; }
+  .archive-details h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: #333; }
+  .archive-details span { font-size: 12px; color: #666; }
+  .download-btn { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .download-btn:hover { background: #004a94; transform: translateY(-1px); }
 
-  .faq-container { max-height: 300px; overflow-y: auto; }
-  .faq-search { margin-bottom: 1rem; }
-  .faq-search input { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; }
-  .faq-category { margin-bottom: 1rem; }
-  .faq-category select { padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; }
-  .faq-item { border-bottom: 1px solid #f0f0f0; }
-  .faq-question { padding: 12px; cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-  .faq-answer { padding: 0 12px 12px; display: none; color: var(--text-sub); }
+  .faq-container { max-height: 400px; overflow-y: auto; }
+  .faq-search { margin-bottom: 1.5rem; }
+  .faq-search input { width: 100%; padding: 12px 16px; border: 2px solid #e8e8e8; border-radius: 8px; font-size: 14px; transition: all 0.2s; }
+  .faq-search input:focus { border-color: #005EB8; outline: none; box-shadow: 0 0 0 3px rgba(0,94,184,0.1); }
+  .faq-category { margin-bottom: 1.5rem; }
+  .faq-category select { padding: 8px 12px; border: 2px solid #e8e8e8; border-radius: 8px; font-size: 14px; background: #fff; transition: all 0.2s; }
+  .faq-category select:focus { border-color: #005EB8; outline: none; }
+  .faq-item { border-bottom: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+  .faq-question { padding: 16px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+  .faq-question:hover { background: #f8f9fa; }
+  .faq-answer { padding: 0 16px 16px; display: none; color: #666; font-size: 13px; line-height: 1.5; }
 
-  .footer { text-align: center; padding: 1rem; color: var(--text-sub); font-size: 12px; border-top: 1px solid var(--border-color); background: #fff; }
+  .footer { text-align: center; padding: 2rem; color: #666; font-size: 13px; border-top: 1px solid #e8e8e8; background: #f8f9fa; }
 
   @media (max-width: 768px) {
-    .main-layout { grid-template-columns: 1fr; gap: 1rem; padding: 1rem; }
-    .info-section { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .main-layout { grid-template-columns: 1fr; gap: 1.5rem; padding: 1.5rem; }
+    .info-section { grid-template-columns: 1fr; gap: 1.5rem; }
+    .login-section { position: static; padding: 2rem; }
   }
 </style>
 </head>
@@ -116,23 +124,23 @@
       <h3 class="section-title">📁 자료실</h3>
       <div id="archivesList"></div>
     </div>
+  </div>
 
-    <div class="section-card">
-      <h3 class="section-title">❓ FAQ</h3>
-      <div class="faq-container">
-        <div class="faq-search">
-          <input type="text" id="faqSearch" placeholder="질문 검색...">
-        </div>
-        <div class="faq-category">
-          <select id="faqCategory">
-            <option value="">전체 카테고리</option>
-            <option value="시스템 이용">시스템 이용</option>
-            <option value="인증 관련">인증 관련</option>
-            <option value="서류 제출">서류 제출</option>
-          </select>
-        </div>
-        <div id="faqList"></div>
+  <div class="section-card">
+    <h3 class="section-title">❓ FAQ</h3>
+    <div class="faq-container">
+      <div class="faq-search">
+        <input type="text" id="faqSearch" placeholder="질문 검색...">
       </div>
+      <div class="faq-category">
+        <select id="faqCategory">
+          <option value="">전체 카테고리</option>
+          <option value="시스템 이용">시스템 이용</option>
+          <option value="인증 관련">인증 관련</option>
+          <option value="서류 제출">서류 제출</option>
+        </select>
+      </div>
+      <div id="faqList"></div>
     </div>
   </div>
 </div>
