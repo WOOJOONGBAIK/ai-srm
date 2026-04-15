@@ -30,10 +30,11 @@
   .welcome-message p { font-size: 16px; color: #666; }
   .sidebar { width: 300px; background: #fafafa; border-left: 1px solid #e0e0e0; padding: 1.5rem; }
   .sidebar-title { font-size: 16px; font-weight: 600; margin-bottom: 1rem; color: #333; }
-  .sidebar-item { padding: 12px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
-  .sidebar-item.danger { border-color: #ff6b6b; background: #fff5f5; }
-  .sidebar-item.warning { border-color: #ffd43b; background: #fff9db; }
-  .sidebar-item.info { border-color: #74c0fc; background: #e7f5ff; }
+  .sidebar-item { padding: 12px 15px; background: #fff; border: 1px solid #eee; border-left: 4px solid #ddd; border-radius: 4px; margin-bottom: 10px; font-size: 13px; color: #444; transition: transform 0.2s; }
+  .sidebar-item:hover { transform: translateX(3px); border-color: #ccc; }
+  .sidebar-item.danger { border-left-color: #ff6b6b; }
+  .sidebar-item.warning { border-left-color: #ffd43b; }
+  .sidebar-item.info { border-left-color: #74c0fc; }
 
   /* 프롬프트 영역 (하단 고정) */
   .prompt-area { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e0e0e0; padding: 1rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
