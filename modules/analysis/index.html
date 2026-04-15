@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>분석</title>
+    <style>
+        .analysis-container { padding: 2rem; }
+        .analysis-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .analysis-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .analysis-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .analysis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .analysis-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .analysis-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .analysis-chart { height: 300px; background: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666; }
+
+        .analysis-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+
+        .analysis-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .analysis-table thead { background: #f8f9fa; }
+        .analysis-table th, .analysis-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .analysis-table th { font-weight: 600; color: #333; }
+        .analysis-table tbody tr:hover { background: #f8f9fa; }
+
+        .metric-value { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .metric-change { font-size: 12px; margin-top: 4px; }
+        .metric-change.positive { color: #2e7d32; }
+        .metric-change.negative { color: #c62828; }
+    </style>
+</head>
+<body>
+    <div class="analysis-container">
+        <div class="analysis-header">
+            <h1 class="analysis-title">📊 분석</h1>
+            <div class="analysis-actions">
+                <button class="btn-primary" onclick="exportAnalysis()">보고서 내보내기</button>
+            </div>
+        </div>
+
+        <div class="analysis-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="analysisPeriod">
+                    <option value="month">이번 달</option>
+                    <option value="quarter">이번 분기</option>
+                    <option value="year">올해</option>
+                </select>
+                <select class="filter-select" id="analysisCategory">
+                    <option value="all">전체</option>
+                    <option value="supplier">협력사별</option>
+                    <option value="item">품목별</option>
+                    <option value="department">부서별</option>
+                </select>
+                <button class="btn-primary" onclick="refreshAnalysis()">새로고침</button>
+            </div>
+        </div>
+
+        <div class="analysis-grid">
+            <div class="analysis-card">
+                <div class="analysis-card-title">구매 금액 추이</div>
+                <div class="analysis-chart">📈 차트 영역 (Chart.js 등으로 구현 예정)</div>
+            </div>
+            <div class="analysis-card">
+                <div class="analysis-card-title">주요 지표</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <div class="metric-value">₩1,250만원</div>
+                        <div style="font-size: 14px; color: #666;">총 구매금액</div>
+                        <div class="metric-change positive">+12.5% 전월대비</div>
+                    </div>
+                    <div>
+                        <div class="metric-value">98.2%</div>
+                        <div style="font-size: 14px; color: #666;">납기 준수율</div>
+                        <div class="metric-change positive">+2.1% 전월대비</div>
+                    </div>
+                    <div>
+                        <div class="metric-value">45건</div>
+                        <div style="font-size: 14px; color: #666;">활성 계약수</div>
+                        <div class="metric-change positive">+3건 전월대비</div>
+                    </div>
+                    <div>
+                        <div class="metric-value">23개</div>
+                        <div style="font-size: 14px; color: #666;">등록 협력사</div>
+                        <div class="metric-change positive">+2개 전월대비</div>
+                    </div>
+                </div>
+            </div>
+            <div class="analysis-card">
+                <div class="analysis-card-title">품목별 구매 현황</div>
+                <div class="analysis-chart">🥧 차트 영역 (Chart.js 등으로 구현 예정)</div>
+            </div>
+            <div class="analysis-card">
+                <div class="analysis-card-title">협력사별 실적</div>
+                <div class="analysis-chart">📊 차트 영역 (Chart.js 등으로 구현 예정)</div>
+            </div>
+        </div>
+
+        <div class="analysis-card">
+            <div class="analysis-card-title">상세 분석 데이터</div>
+            <table class="analysis-table">
+                <thead>
+                    <tr>
+                        <th>항목</th>
+                        <th>현재값</th>
+                        <th>전월대비</th>
+                        <th>전년동기대비</th>
+                        <th>Trend</th>
+                    </tr>
+                </thead>
+                <tbody id="analysisTableBody">
+                    <!-- 분석 데이터가 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { Notification } from '../../components/utils.js';
+
+        let analysisTable;
+
+        // 전역 모듈 객체 정의
+        window.analysisModule = {
+            init: async (container, supabase) => {
+                // 분석 테이블 초기화
+                analysisTable = new DataTable(
+                    container.querySelector('#analysisTableBody'),
+                    {
+                        columns: [
+                            { header: '항목', field: 'item' },
+                            {
+                                header: '현재값',
+                                field: 'currentValue',
+                                formatter: (value, row) => {
+                                    if (row.unit === '원') {
+                                        return new Intl.NumberFormat('ko-KR').format(value) + '원';
+                                    } else if (row.unit === '%') {
+                                        return value + '%';
+                                    } else if (row.unit === '건') {
+                                        return value + '건';
+                                    }
+                                    return value;
+                                }
+                            },
+                            {
+                                header: '전월대비',
+                                field: 'monthlyChange',
+                                formatter: (value) => {
+                                    const sign = value > 0 ? '+' : '';
+                                    const color = value > 0 ? 'positive' : value < 0 ? 'negative' : '';
+                                    return `<span class="metric-change ${color}">${sign}${value}%</span>`;
+                                }
+                            },
+                            {
+                                header: '전년동기대비',
+                                field: 'yearlyChange',
+                                formatter: (value) => {
+                                    const sign = value > 0 ? '+' : '';
+                                    const color = value > 0 ? 'positive' : value < 0 ? 'negative' : '';
+                                    return `<span class="metric-change ${color}">${sign}${value}%</span>`;
+                                }
+                            },
+                            {
+                                header: 'Trend',
+                                field: 'trend',
+                                formatter: (value) => {
+                                    const icons = {
+                                        up: '📈',
+                                        down: '📉',
+                                        stable: '➡️'
+                                    };
+                                    return icons[value] || value;
+                                }
+                            }
+                        ]
+                    }
+                );
+
+                await loadAnalysisData();
+            }
+        };
+
+        const loadAnalysisData = async () => {
+            // 가상 분석 데이터
+            const mockAnalysisData = [
+                {
+                    id: 1,
+                    item: '총 구매금액',
+                    currentValue: 12500000,
+                    unit: '원',
+                    monthlyChange: 12.5,
+                    yearlyChange: 8.3,
+                    trend: 'up'
+                },
+                {
+                    id: 2,
+                    item: '납기 준수율',
+                    currentValue: 98.2,
+                    unit: '%',
+                    monthlyChange: 2.1,
+                    yearlyChange: -1.2,
+                    trend: 'up'
+                },
+                {
+                    id: 3,
+                    item: '계약 건수',
+                    currentValue: 45,
+                    unit: '건',
+                    monthlyChange: 7.1,
+                    yearlyChange: 15.3,
+                    trend: 'up'
+                },
+                {
+                    id: 4,
+                    item: '협력사 수',
+                    currentValue: 23,
+                    unit: '건',
+                    monthlyChange: 9.5,
+                    yearlyChange: 4.2,
+                    trend: 'up'
+                },
+                {
+                    id: 5,
+                    item: '평균 리드타임',
+                    currentValue: 12.5,
+                    unit: '일',
+                    monthlyChange: -3.2,
+                    yearlyChange: -8.7,
+                    trend: 'down'
+                }
+            ];
+
+            analysisTable.setData(mockAnalysisData);
+        };
+
+        window.exportAnalysis = () => {
+            Notification.info('보고서 내보내기 기능 준비중입니다.');
+        };
+
+        window.refreshAnalysis = () => {
+            const period = document.getElementById('analysisPeriod').value;
+            const category = document.getElementById('analysisCategory').value;
+
+            Notification.success(`${period} ${category} 데이터로 분석을 새로고침했습니다.`);
+            loadAnalysisData(); // 데이터 새로고침
+        };
+    </script>
+</body>
+</html>

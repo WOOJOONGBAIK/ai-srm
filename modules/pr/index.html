@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구매요청</title>
+    <style>
+        .pr-container { padding: 2rem; }
+        .pr-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .pr-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .pr-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .pr-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .pr-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .pr-table thead { background: #f8f9fa; }
+        .pr-table th, .pr-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .pr-table th { font-weight: 600; color: #333; }
+        .pr-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-draft { background: #f5f5f5; color: #666; }
+        .status-pending { background: #fff3e0; color: #f57c00; }
+        .status-approved { background: #e8f5e8; color: #2e7d32; }
+        .status-rejected { background: #ffebee; color: #c62828; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-approve { padding: 4px 8px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-reject { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="pr-container">
+        <div class="pr-header">
+            <h1 class="pr-title">📋 구매요청</h1>
+            <div class="pr-actions">
+                <button class="btn-primary" onclick="addPR()">새 구매요청</button>
+            </div>
+        </div>
+
+        <div class="pr-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="prStatus">
+                    <option value="">전체 상태</option>
+                    <option value="draft">임시저장</option>
+                    <option value="pending">승인대기</option>
+                    <option value="approved">승인완료</option>
+                    <option value="rejected">반려</option>
+                </select>
+                <select class="filter-select" id="prCategory">
+                    <option value="">전체 분류</option>
+                    <option value="자재">자재</option>
+                    <option value="장비">장비</option>
+                    <option value="서비스">서비스</option>
+                    <option value="기타">기타</option>
+                </select>
+                <input type="text" class="filter-input" id="prSearch" placeholder="요청명 또는 요청자 검색...">
+                <button class="btn-primary" onclick="searchPRs()">검색</button>
+            </div>
+        </div>
+
+        <table class="pr-table">
+            <thead>
+                <tr>
+                    <th>요청번호</th>
+                    <th>요청명</th>
+                    <th>분류</th>
+                    <th>요청자</th>
+                    <th>예상금액</th>
+                    <th>요청일</th>
+                    <th>상태</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="prTableBody">
+                <!-- 구매요청 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.prModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.pr-filters'),
+                    {
+                        searchPlaceholder: '요청명 또는 요청자 검색...',
+                        categories: [
+                            { value: '자재', label: '자재' },
+                            { value: '장비', label: '장비' },
+                            { value: '서비스', label: '서비스' },
+                            { value: '기타', label: '기타' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#prTableBody'),
+                    {
+                        columns: [
+                            { header: '요청번호', field: 'prNo' },
+                            { header: '요청명', field: 'prName' },
+                            { header: '분류', field: 'category' },
+                            { header: '요청자', field: 'requester' },
+                            {
+                                header: '예상금액',
+                                field: 'estimatedAmount',
+                                formatter: (value) => new Intl.NumberFormat('ko-KR').format(value) + '원'
+                            },
+                            {
+                                header: '요청일',
+                                field: 'requestDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        draft: '<span class="status-badge status-draft">임시저장</span>',
+                                        pending: '<span class="status-badge status-pending">승인대기</span>',
+                                        approved: '<span class="status-badge status-approved">승인완료</span>',
+                                        rejected: '<span class="status-badge status-rejected">반려</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            }
+                        ],
+                        actions: [
+                            { label: '수정', handler: 'editPR', color: '#28a745' },
+                            { label: '승인', handler: 'approvePR', color: '#007bff' },
+                            { label: '반려', handler: 'rejectPR', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'category', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'category', categoryValue);
+                    }
+                );
+
+                await loadPRs();
+            }
+        };
+
+        const loadPRs = async () => {
+            // 가상 데이터로 구매요청 목록 표시
+            const mockPRs = [
+                {
+                    id: 1,
+                    prNo: 'PR-2024-001',
+                    prName: '사무용품 구매요청',
+                    category: '자재',
+                    requester: '김철수',
+                    estimatedAmount: 150000,
+                    requestDate: '2024-01-15',
+                    status: 'approved'
+                },
+                {
+                    id: 2,
+                    prNo: 'PR-2024-002',
+                    prName: '노트북 구매요청',
+                    category: '장비',
+                    requester: '이영희',
+                    estimatedAmount: 1200000,
+                    requestDate: '2024-01-14',
+                    status: 'pending'
+                },
+                {
+                    id: 3,
+                    prNo: 'PR-2024-003',
+                    prName: '컨설팅 서비스 요청',
+                    category: '서비스',
+                    requester: '박민수',
+                    estimatedAmount: 3000000,
+                    requestDate: '2024-01-13',
+                    status: 'draft'
+                }
+            ];
+
+            table.setData(mockPRs);
+        };
+
+        window.addPR = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('새 구매요청')
+                .setContent(`
+                    <form id="prForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">요청명</label>
+                            <input type="text" name="prName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">분류</label>
+                            <select name="category" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="자재">자재</option>
+                                <option value="장비">장비</option>
+                                <option value="서비스">서비스</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">상세내용</label>
+                            <textarea name="description" rows="4" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="구매요청 상세내용을 입력하세요"></textarea>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">예상금액</label>
+                            <input type="number" name="estimatedAmount" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">납기요청일</label>
+                            <input type="date" name="dueDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '임시저장' },
+                    { label: '취소' },
+                    { label: '승인요청', handler: () => savePR(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const savePR = async (modal) => {
+            const form = document.getElementById('prForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 구매요청 데이터:', data);
+
+            Notification.success('구매요청이 등록되었습니다.');
+            modal.close();
+            loadPRs(); // 목록 새로고침
+        };
+
+        window.editPR = (id) => {
+            Notification.info(`구매요청 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.approvePR = (id) => {
+            showConfirm(`구매요청 ${id}을(를) 승인하시겠습니까?`, () => {
+                Notification.success('승인되었습니다.');
+                loadPRs(); // 목록 새로고침
+            });
+        };
+
+        window.rejectPR = (id) => {
+            showConfirm(`구매요청 ${id}을(를) 반려하시겠습니까?`, () => {
+                Notification.success('반려되었습니다.');
+                loadPRs(); // 목록 새로고침
+            });
+        };
+
+        window.searchPRs = () => {
+            const searchTerm = document.getElementById('prSearch').value;
+            const statusValue = document.getElementById('prStatus').value;
+            const categoryValue = document.getElementById('prCategory').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'category', categoryValue);
+        };
+    </script>
+</body>
+</html>

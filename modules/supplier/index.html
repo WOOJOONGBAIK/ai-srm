@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>협력사관리</title>
+    <style>
+        .supplier-container { padding: 2rem; }
+        .supplier-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .supplier-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .supplier-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .supplier-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .supplier-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .supplier-table thead { background: #f8f9fa; }
+        .supplier-table th, .supplier-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .supplier-table th { font-weight: 600; color: #333; }
+        .supplier-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-active { background: #e8f5e8; color: #2e7d32; }
+        .status-inactive { background: #f5f5f5; color: #666; }
+        .status-suspended { background: #ffebee; color: #c62828; }
+
+        .rating-stars { color: #ffd43b; font-size: 14px; }
+        .rating-star { display: inline-block; width: 16px; text-align: center; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="supplier-container">
+        <div class="supplier-header">
+            <h1 class="supplier-title">🏢 협력사관리</h1>
+            <div class="supplier-actions">
+                <button class="btn-primary" onclick="addSupplier()">새 협력사 등록</button>
+            </div>
+        </div>
+
+        <div class="supplier-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="supplierStatus">
+                    <option value="">전체 상태</option>
+                    <option value="active">활성</option>
+                    <option value="inactive">비활성</option>
+                    <option value="suspended">정지</option>
+                </select>
+                <select class="filter-select" id="supplierType">
+                    <option value="">전체 유형</option>
+                    <option value="제조">제조사</option>
+                    <option value="도매">도매상</option>
+                    <option value="서비스">서비스업체</option>
+                    <option value="기타">기타</option>
+                </select>
+                <input type="text" class="filter-input" id="supplierSearch" placeholder="업체명 또는 담당자 검색...">
+                <button class="btn-primary" onclick="searchSuppliers()">검색</button>
+            </div>
+        </div>
+
+        <table class="supplier-table">
+            <thead>
+                <tr>
+                    <th>업체코드</th>
+                    <th>업체명</th>
+                    <th>유형</th>
+                    <th>담당자</th>
+                    <th>연락처</th>
+                    <th>평가등급</th>
+                    <th>상태</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="supplierTableBody">
+                <!-- 협력사 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.supplierModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.supplier-filters'),
+                    {
+                        searchPlaceholder: '업체명 또는 담당자 검색...',
+                        categories: [
+                            { value: '제조', label: '제조사' },
+                            { value: '도매', label: '도매상' },
+                            { value: '서비스', label: '서비스업체' },
+                            { value: '기타', label: '기타' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#supplierTableBody'),
+                    {
+                        columns: [
+                            { header: '업체코드', field: 'supplierCode' },
+                            { header: '업체명', field: 'supplierName' },
+                            { header: '유형', field: 'supplierType' },
+                            { header: '담당자', field: 'contactPerson' },
+                            { header: '연락처', field: 'contactInfo' },
+                            {
+                                header: '평가등급',
+                                field: 'rating',
+                                formatter: (value) => {
+                                    const stars = '★★★★★'.substring(0, value) + '☆☆☆☆☆'.substring(0, 5-value);
+                                    return `<span class="rating-stars">${stars}</span>`;
+                                }
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        active: '<span class="status-badge status-active">활성</span>',
+                                        inactive: '<span class="status-badge status-inactive">비활성</span>',
+                                        suspended: '<span class="status-badge status-suspended">정지</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewSupplier', color: '#17a2b8' },
+                            { label: '수정', handler: 'editSupplier', color: '#28a745' },
+                            { label: '삭제', handler: 'deleteSupplier', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'supplierType', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'supplierType', categoryValue);
+                    }
+                );
+
+                await loadSuppliers();
+            }
+        };
+
+        const loadSuppliers = async () => {
+            // 가상 데이터로 협력사 목록 표시
+            const mockSuppliers = [
+                {
+                    id: 1,
+                    supplierCode: 'SUP-001',
+                    supplierName: 'ABC전자',
+                    supplierType: '제조',
+                    contactPerson: '김철수',
+                    contactInfo: '010-1234-5678',
+                    rating: 4,
+                    status: 'active'
+                },
+                {
+                    id: 2,
+                    supplierCode: 'SUP-002',
+                    supplierName: '글로벌물산',
+                    supplierType: '도매',
+                    contactPerson: '이영희',
+                    contactInfo: '010-2345-6789',
+                    rating: 5,
+                    status: 'active'
+                },
+                {
+                    id: 3,
+                    supplierCode: 'SUP-003',
+                    supplierName: '테크서비스',
+                    supplierType: '서비스',
+                    contactPerson: '박민수',
+                    contactInfo: '010-3456-7890',
+                    rating: 3,
+                    status: 'inactive'
+                }
+            ];
+
+            table.setData(mockSuppliers);
+        };
+
+        window.addSupplier = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('새 협력사 등록')
+                .setContent(`
+                    <form id="supplierForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">업체명</label>
+                            <input type="text" name="supplierName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">업체유형</label>
+                            <select name="supplierType" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="제조">제조사</option>
+                                <option value="도매">도매상</option>
+                                <option value="서비스">서비스업체</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">담당자명</label>
+                            <input type="text" name="contactPerson" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">연락처</label>
+                            <input type="tel" name="contactInfo" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" placeholder="010-0000-0000" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">이메일</label>
+                            <input type="email" name="email" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">사업자등록번호</label>
+                            <input type="text" name="businessNumber" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" placeholder="000-00-00000">
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveSupplier(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveSupplier = async (modal) => {
+            const form = document.getElementById('supplierForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 협력사 데이터:', data);
+
+            Notification.success('협력사가 등록되었습니다.');
+            modal.close();
+            loadSuppliers(); // 목록 새로고침
+        };
+
+        window.viewSupplier = (id) => {
+            Notification.info(`협력사 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editSupplier = (id) => {
+            Notification.info(`협력사 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteSupplier = (id) => {
+            showConfirm(`협력사를 삭제하시겠습니까?`, () => {
+                Notification.success('협력사가 삭제되었습니다.');
+                loadSuppliers(); // 목록 새로고침
+            });
+        };
+
+        window.searchSuppliers = () => {
+            const searchTerm = document.getElementById('supplierSearch').value;
+            const statusValue = document.getElementById('supplierStatus').value;
+            const typeValue = document.getElementById('supplierType').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'supplierType', typeValue);
+        };
+    </script>
+</body>
+</html>

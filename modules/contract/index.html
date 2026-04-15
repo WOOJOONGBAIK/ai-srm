@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약관리</title>
+    <style>
+        .contract-container { padding: 2rem; }
+        .contract-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .contract-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .contract-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .contract-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .contract-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .contract-table thead { background: #f8f9fa; }
+        .contract-table th, .contract-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .contract-table th { font-weight: 600; color: #333; }
+        .contract-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-active { background: #e8f5e8; color: #2e7d32; }
+        .status-expiring { background: #fff3e0; color: #f57c00; }
+        .status-expired { background: #ffebee; color: #c62828; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="contract-container">
+        <div class="contract-header">
+            <h1 class="contract-title">📄 계약관리</h1>
+            <div class="contract-actions">
+                <button class="btn-primary" onclick="addContract()">새 계약 등록</button>
+            </div>
+        </div>
+
+        <div class="contract-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="contractStatus">
+                    <option value="">전체 상태</option>
+                    <option value="active">유효</option>
+                    <option value="expiring">만료임박</option>
+                    <option value="expired">만료</option>
+                </select>
+                <select class="filter-select" id="contractType">
+                    <option value="">전체 유형</option>
+                    <option value="구매">구매계약</option>
+                    <option value="공급">공급계약</option>
+                    <option value="서비스">서비스계약</option>
+                </select>
+                <input type="text" class="filter-input" id="contractSearch" placeholder="계약명 또는 업체명 검색...">
+                <button class="btn-primary" onclick="searchContracts()">검색</button>
+            </div>
+        </div>
+
+        <table class="contract-table">
+            <thead>
+                <tr>
+                    <th>계약번호</th>
+                    <th>계약명</th>
+                    <th>업체명</th>
+                    <th>계약유형</th>
+                    <th>계약금액</th>
+                    <th>계약기간</th>
+                    <th>상태</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="contractTableBody">
+                <!-- 계약 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.contractModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.contract-filters'),
+                    {
+                        searchPlaceholder: '계약명 또는 업체명 검색...',
+                        categories: [
+                            { value: '구매', label: '구매계약' },
+                            { value: '공급', label: '공급계약' },
+                            { value: '서비스', label: '서비스계약' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#contractTableBody'),
+                    {
+                        columns: [
+                            { header: '계약번호', field: 'contractNo' },
+                            { header: '계약명', field: 'contractName' },
+                            { header: '업체명', field: 'supplierName' },
+                            { header: '계약유형', field: 'contractType' },
+                            {
+                                header: '계약금액',
+                                field: 'amount',
+                                formatter: (value) => new Intl.NumberFormat('ko-KR').format(value) + '원'
+                            },
+                            {
+                                header: '계약기간',
+                                field: 'period',
+                                formatter: (value) => `${value.start} ~ ${value.end}`
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        active: '<span class="status-badge status-active">유효</span>',
+                                        expiring: '<span class="status-badge status-expiring">만료임박</span>',
+                                        expired: '<span class="status-badge status-expired">만료</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewContract', color: '#17a2b8' },
+                            { label: '수정', handler: 'editContract', color: '#28a745' },
+                            { label: '삭제', handler: 'deleteContract', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'contractType', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'contractType', categoryValue);
+                    }
+                );
+
+                await loadContracts();
+            }
+        };
+
+        const loadContracts = async () => {
+            // 가상 데이터로 계약 목록 표시
+            const mockContracts = [
+                {
+                    id: 1,
+                    contractNo: 'CT-2024-001',
+                    contractName: '사무용품 구매계약',
+                    supplierName: 'ABC스테이셔너리',
+                    contractType: '구매',
+                    amount: 5000000,
+                    period: { start: '2024-01-01', end: '2024-12-31' },
+                    status: 'active'
+                },
+                {
+                    id: 2,
+                    contractNo: 'CT-2024-002',
+                    contractName: 'IT 유지보수 서비스',
+                    supplierName: '테크솔루션즈',
+                    contractType: '서비스',
+                    amount: 12000000,
+                    period: { start: '2024-02-01', end: '2025-01-31' },
+                    status: 'active'
+                },
+                {
+                    id: 3,
+                    contractNo: 'CT-2023-045',
+                    contractName: '원자재 공급계약',
+                    supplierName: '글로벌머티리얼',
+                    contractType: '공급',
+                    amount: 50000000,
+                    period: { start: '2023-06-01', end: '2024-05-31' },
+                    status: 'expiring'
+                }
+            ];
+
+            table.setData(mockContracts);
+        };
+
+        window.addContract = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('새 계약 등록')
+                .setContent(`
+                    <form id="contractForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">계약명</label>
+                            <input type="text" name="contractName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">업체명</label>
+                            <input type="text" name="supplierName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">계약유형</label>
+                            <select name="contractType" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="구매">구매계약</option>
+                                <option value="공급">공급계약</option>
+                                <option value="서비스">서비스계약</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">계약금액</label>
+                            <input type="number" name="amount" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">계약기간</label>
+                            <div style="display: flex; gap: 1rem;">
+                                <input type="date" name="startDate" style="flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                                <span style="align-self: center;">~</span>
+                                <input type="date" name="endDate" style="flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                            </div>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveContract(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveContract = async (modal) => {
+            const form = document.getElementById('contractForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 계약 데이터:', data);
+
+            Notification.success('계약이 등록되었습니다.');
+            modal.close();
+            loadContracts(); // 목록 새로고침
+        };
+
+        window.viewContract = (id) => {
+            Notification.info(`계약 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editContract = (id) => {
+            Notification.info(`계약 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteContract = (id) => {
+            showConfirm(`계약을 삭제하시겠습니까?`, () => {
+                Notification.success('계약이 삭제되었습니다.');
+                loadContracts(); // 목록 새로고침
+            });
+        };
+
+        window.searchContracts = () => {
+            const searchTerm = document.getElementById('contractSearch').value;
+            const statusValue = document.getElementById('contractStatus').value;
+            const typeValue = document.getElementById('contractType').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'contractType', typeValue);
+        };
+    </script>
+</body>
+</html>
