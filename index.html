@@ -8,13 +8,17 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
   body { background: #f8f9fa; color: #333; min-height: 100vh; line-height: 1.5; }
 
-  /* 헤더 */
   .header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
   .logo { font-size: 18px; font-weight: 600; color: #005EB8; }
-  .nav { display: flex; gap: 2px; }
-  .nav-btn { padding: 8px 16px; border-radius: 4px; border: none; background: none; font-size: 14px; color: #666; cursor: pointer; transition: all 0.2s; }
+  .nav { display: flex; gap: 2px; flex: 1; justify-content: center; overflow-x: auto; }
+  .nav-btn { padding: 8px 12px; border-radius: 4px; border: none; background: none; font-size: 13px; color: #666; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .nav-btn:hover { background: #f0f0f0; color: #005EB8; }
   .nav-btn.active { background: #005EB8; color: #fff; }
+  .user-info { display: flex; align-items: center; gap: 12px; }
+  .user-name { font-size: 13px; color: #666; }
+  .lang-btn { padding: 4px 8px; border: 1px solid #e0e0e0; border-radius: 4px; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .lang-btn:hover { background: #f0f0f0; }
+  .lang-btn.active { background: #005EB8; color: #fff; border-color: #005EB8; }
 
   /* 메인 랜딩 */
   #landing { display: flex; flex-direction: column; align-items: center; padding: 3rem 1.5rem 2rem; }
@@ -55,20 +59,30 @@
 <body>
 
 <div class="header">
-  <div class="logo">HD 현대 <span>SRM</span></div>
+  <div class="logo">AI <span>SRM</span></div>
   <div class="nav">
     <button class="nav-btn active" onclick="showLanding()">대시보드</button>
-    <button class="nav-btn" onclick="loadModule('supplier')">공급망 관리</button>
-    <button class="nav-btn" onclick="loadModule('pr')">구매 관리</button>
-    <button class="nav-btn" onclick="loadModule('contract')">계약 관리</button>
-    <button class="nav-btn" onclick="loadModule('quality')">품질 관리</button>
-    <button class="nav-btn" onclick="loadModule('analysis')">분석 리포트</button>
+    <button class="nav-btn" onclick="loadModule('master')">기준정보</button>
+    <button class="nav-btn" onclick="loadModule('pr')">구매요청</button>
+    <button class="nav-btn" onclick="loadModule('contract')">계약관리</button>
+    <button class="nav-btn" onclick="loadModule('po')">발주관리</button>
+    <button class="nav-btn" onclick="loadModule('supplier')">사급관리</button>
+    <button class="nav-btn" onclick="loadModule('planning')">생산계획</button>
+    <button class="nav-btn" onclick="loadModule('quality')">품질관리</button>
+    <button class="nav-btn" onclick="loadModule('import')">수출입관리</button>
+    <button class="nav-btn" onclick="loadModule('shipping')">선적관리</button>
+    <button class="nav-btn" onclick="loadModule('collaboration')">협업관리</button>
   </div>
-  <div id="db-status" class="status-loading">DB 연결중...</div>
+  <div class="user-info">
+    <span class="user-name">김철수님</span>
+    <button class="lang-btn active" onclick="setLanguage('ko')">한</button>
+    <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+    <button class="lang-btn" onclick="setLanguage('zh')">中</button>
+  </div>
 </div>
 
 <div id="landing">
-  <div class="landing-title">HD 현대 <span>SRM</span></div>
+  <div class="landing-title">AI <span>SRM</span></div>
   <div class="landing-sub">공급망 관계 관리 · AI 기반 구매 포털</div>
 
   <div class="prompt-wrap">
@@ -89,34 +103,7 @@
     <div class="chip" onclick="setPrompt('KPI 대시보드 보여줘')">KPI 대시보드</div>
   </div>
 
-  <div class="module-grid">
-    <div class="module-card" onclick="loadModule('supplier')">
-      <div class="module-dot" style="background:#005EB8;"></div>
-      <div class="module-name">공급망 관리</div>
-      <div class="module-desc">협력사 등록·평가·리스크</div>
-    </div>
-    <div class="module-card" onclick="loadModule('pr')">
-      <div class="module-dot" style="background:#1D9E75;"></div>
-      <div class="module-name">구매 관리</div>
-      <div class="module-desc">PR·PO·승인 프로세스</div>
-    </div>
-    <div class="module-card" onclick="loadModule('contract')">
-      <div class="module-dot" style="background:#EF9F27;"></div>
-      <div class="module-name">계약 관리</div>
-      <div class="module-desc">계약 등록·만료 알림</div>
-    </div>
-    <div class="module-card" onclick="loadModule('quality')">
-      <div class="module-dot" style="background:#D85A30;"></div>
-      <div class="module-name">품질 관리</div>
-      <div class="module-desc">품질 검사·이슈 추적</div>
-    </div>
-    <div class="module-card" onclick="loadModule('analysis')">
-      <div class="module-dot" style="background:#6B46C1;"></div>
-      <div class="module-name">분석 리포트</div>
-      <div class="module-desc">KPI·AI 인사이트</div>
-    </div>
-  </div>
-</div>
+<div id="content"></div>
 
 <div id="content"></div>
 
@@ -152,7 +139,7 @@
     content.style.display = 'block';
     content.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    const map = { supplier:1, pr:2, contract:3, quality:4, analysis:5 };
+    const map = { master:1, pr:2, contract:3, po:4, supplier:5, planning:6, quality:7, import:8, shipping:9, collaboration:10 };
     document.querySelectorAll('.nav-btn')[map[name]]?.classList.add('active');
     try {
       const mod = await import(`./modules/${name}/index.js`);
@@ -170,6 +157,124 @@
     const text = document.getElementById('prompt').value.trim();
     if (!text) return;
     alert(`준비중: "${text}"\nClaude API 연동 후 동작합니다.`);
+  };
+
+  // 언어 데이터
+  const translations = {
+    ko: {
+      title: "AI SRM",
+      subtitle: "공급망 관계 관리 · AI 기반 구매 포털",
+      placeholder: '무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"',
+      hint: "현대자동차 제조 · 구매팀 · Claude Sonnet 4.6",
+      chips: [
+        "공급망 리스크 현황",
+        "구매요청 요약",
+        "계약 만료 알림",
+        "품질 이슈 조회",
+        "납품 준수율 분석",
+        "KPI 대시보드"
+      ],
+      nav: [
+        "대시보드",
+        "기준정보",
+        "구매요청",
+        "계약관리",
+        "발주관리",
+        "사급관리",
+        "생산계획",
+        "품질관리",
+        "수출입관리",
+        "선적관리",
+        "협업관리"
+      ]
+    },
+    en: {
+      title: "AI SRM",
+      subtitle: "Supply Chain Relationship Management · AI-powered Procurement Portal",
+      placeholder: 'What can I help you with? e.g., "Show supply chain risk status", "Show purchase request summary"',
+      hint: "Hyundai Motor Manufacturing · Procurement Team · Claude Sonnet 4.6",
+      chips: [
+        "Supply Chain Risk Status",
+        "Purchase Request Summary",
+        "Contract Expiration Notice",
+        "Quality Issue Inquiry",
+        "Delivery Compliance Analysis",
+        "KPI Dashboard"
+      ],
+      nav: [
+        "Dashboard",
+        "Master Data",
+        "Purchase Request",
+        "Contract Management",
+        "Order Management",
+        "Supplier Management",
+        "Production Planning",
+        "Quality Management",
+        "Import/Export Management",
+        "Shipping Management",
+        "Collaboration Management"
+      ]
+    },
+    zh: {
+      title: "AI SRM",
+      subtitle: "供应链关系管理 · AI驱动采购门户",
+      placeholder: '我能帮您什么？例如："显示供应链风险状态"、"显示采购请求摘要"',
+      hint: "现代汽车制造 · 采购团队 · Claude Sonnet 4.6",
+      chips: [
+        "供应链风险状态",
+        "采购请求摘要",
+        "合同到期通知",
+        "质量问题查询",
+        "交付合规性分析",
+        "KPI仪表板"
+      ],
+      nav: [
+        "仪表板",
+        "基础信息",
+        "采购请求",
+        "合同管理",
+        "订单管理",
+        "供应商管理",
+        "生产计划",
+        "质量管理",
+        "进出口管理",
+        "发货管理",
+        "协作管理"
+      ]
+    }
+  };
+
+  let currentLang = 'ko';
+
+  window.setLanguage = (lang) => {
+    currentLang = lang;
+    const t = translations[lang];
+    
+    // 언어 버튼 활성화
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // 타이틀 변경
+    document.querySelector('.landing-title').innerHTML = `${t.title.split(' ')[0]} <span>${t.title.split(' ')[1]}</span>`;
+    document.querySelector('.landing-sub').textContent = t.subtitle;
+    
+    // 프롬프트 변경
+    document.getElementById('prompt').placeholder = t.placeholder;
+    document.querySelector('.prompt-hint').textContent = t.hint;
+    
+    // 칩 변경
+    const chips = document.querySelectorAll('.chip');
+    chips.forEach((chip, i) => {
+      if (t.chips[i]) chip.textContent = t.chips[i];
+    });
+    
+    // 네비게이션 변경
+    const navBtns = document.querySelectorAll('.nav-btn');
+    navBtns.forEach((btn, i) => {
+      if (t.nav[i]) btn.textContent = t.nav[i];
+    });
   };
 </script>
 </body>
