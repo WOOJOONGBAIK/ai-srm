@@ -9,6 +9,16 @@
   body { background: #f8f9fa; color: #333; min-height: 100vh; line-height: 1.5; }
 
   .header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+
+  /* 탭 시스템 */
+  .tab-bar { background: #f8f9fa; border-bottom: 1px solid #e0e0e0; display: flex; overflow-x: auto; position: sticky; top: 56px; z-index: 99; }
+  .tab { display: flex; align-items: center; padding: 8px 16px; background: #fff; border-right: 1px solid #e0e0e0; cursor: pointer; font-size: 13px; color: #666; min-width: 120px; max-width: 200px; position: relative; }
+  .tab.active { background: #005EB8; color: #fff; }
+  .tab:hover:not(.active) { background: #f0f0f0; }
+  .tab-close { margin-left: 8px; padding: 2px 6px; border-radius: 50%; background: rgba(255,255,255,0.3); color: inherit; border: none; cursor: pointer; font-size: 12px; line-height: 1; }
+  .tab-close:hover { background: rgba(255,255,255,0.5); }
+  .tab-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   .logo { font-size: 18px; font-weight: 600; color: #005EB8; }
   .nav { display: flex; gap: 2px; flex: 1; justify-content: center; overflow-x: auto; }
   .nav-btn { padding: 8px 12px; border-radius: 4px; border: none; background: none; font-size: 13px; color: #666; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
@@ -22,8 +32,12 @@
   .lang-btn:hover { background: #f0f0f0; }
   .lang-btn.active { background: #005EB8; color: #fff; }
 
+  /* 시스템 서브메뉴 */
+  .system-submenu { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; margin-top: 4px; padding: 4px; }
+  .submenu-btn { padding: 6px 12px; font-size: 12px; margin: 2px 0; width: 100%; justify-content: flex-start; }
+
   /* 메인 레이아웃 */
-  .main-layout { display: flex; min-height: calc(100vh - 56px); }
+  .main-layout { display: flex; min-height: calc(100vh - 56px - 40px); } /* 헤더 + 탭바 높이 제외 */
   .workspace { flex: 1; padding: 2rem; display: flex; flex-direction: column; }
   .welcome-message { text-align: center; padding: 4rem 2rem; }
   .welcome-message h2 { font-size: 24px; color: #005EB8; margin-bottom: 1rem; }
@@ -55,6 +69,10 @@
   .module-dot { width: 12px; height: 12px; border-radius: 50%; margin: 0 auto 12px; }
   .module-name { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
   .module-desc { font-size: 13px; color: #999; }
+
+  /* 탭 콘텐츠 */
+  .tab-content { display: none; padding: 2rem 1.5rem; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 56px - 40px - 4rem); }
+  .tab-content.active { display: block; }
 
   /* 콘텐츠 영역 */
   #content { display: none; padding: 2rem 1.5rem; max-width: 1200px; margin: 0 auto; }
@@ -96,7 +114,13 @@
     <button class="nav-btn" onclick="loadModule('import')" data-role="internal">수출입관리</button>
     <button class="nav-btn" onclick="loadModule('shipping')" data-role="internal">선적관리</button>
     <button class="nav-btn" onclick="loadModule('project')" data-role="internal">프로젝트관리</button>
-    <button class="nav-btn" onclick="loadModule('system')" data-role="internal">시스템관리</button>
+    <button class="nav-btn" onclick="toggleSystemMenu()" data-role="internal">시스템관리</button>
+    <div id="system-submenu" class="system-submenu" style="display: none;">
+      <button class="nav-btn submenu-btn" onclick="loadModule('board')">게시판관리</button>
+      <button class="nav-btn submenu-btn" onclick="loadModule('archive')">자료실관리</button>
+      <button class="nav-btn submenu-btn" onclick="loadModule('faq')">FAQ관리</button>
+      <button class="nav-btn submenu-btn" onclick="loadModule('notice')">공지사항관리</button>
+    </div>
   </div>
   <div class="user-info">
     <span class="time-location" id="time-location">서울, 14:30</span>
@@ -110,7 +134,9 @@
   </div>
 </div>
 
-<div id="content"></div>
+<div class="tab-bar" id="tab-bar"></div>
+
+<div id="tab-contents"></div>
 
 <div class="main-layout">
   <div class="workspace" id="workspace">
@@ -148,6 +174,79 @@
     window.location.href = 'portal.html';
   }
 
+  // 탭 관리 시스템
+  let tabs = [];
+  let activeTabId = null;
+  const MAX_TABS = 10;
+
+  const createTab = (id, title) => {
+    if (tabs.length >= MAX_TABS) {
+      alert('최대 10개의 탭만 열 수 있습니다.');
+      return false;
+    }
+
+    const tabBar = document.getElementById('tab-bar');
+    const tabContents = document.getElementById('tab-contents');
+
+    // 탭 버튼 생성
+    const tab = document.createElement('div');
+    tab.className = 'tab';
+    tab.dataset.tabId = id;
+    tab.innerHTML = `
+      <span class="tab-title">${title}</span>
+      <button class="tab-close" onclick="closeTab('${id}')">×</button>
+    `;
+    tab.onclick = () => switchTab(id);
+    tabBar.appendChild(tab);
+
+    // 탭 콘텐츠 생성
+    const content = document.createElement('div');
+    content.className = 'tab-content';
+    content.id = `tab-${id}`;
+    tabContents.appendChild(content);
+
+    tabs.push({ id, title, element: content });
+    return content;
+  };
+
+  const switchTab = (id) => {
+    // 기존 활성 탭 비활성화
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+    // 새 탭 활성화
+    const tab = document.querySelector(`[data-tab-id="${id}"]`);
+    const content = document.getElementById(`tab-${id}`);
+    if (tab && content) {
+      tab.classList.add('active');
+      content.classList.add('active');
+      activeTabId = id;
+    }
+  };
+
+  const closeTab = (id) => {
+    const tabIndex = tabs.findIndex(t => t.id === id);
+    if (tabIndex === -1) return;
+
+    const tab = document.querySelector(`[data-tab-id="${id}"]`);
+    const content = document.getElementById(`tab-${id}`);
+
+    // 탭과 콘텐츠 제거
+    if (tab) tab.remove();
+    if (content) content.remove();
+
+    tabs.splice(tabIndex, 1);
+
+    // 활성 탭이 닫힌 경우 다른 탭으로 전환
+    if (activeTabId === id && tabs.length > 0) {
+      const nextTab = tabs[Math.min(tabIndex, tabs.length - 1)];
+      switchTab(nextTab.id);
+    } else if (tabs.length === 0) {
+      // 모든 탭이 닫힌 경우 대시보드 표시
+      showLanding();
+    }
+  };
+
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
   const SUPABASE_URL = 'https://zsgigvswnwudlpanpodl.supabase.co';
@@ -168,13 +267,16 @@
   }
 
   window.showLanding = () => {
-    document.getElementById('content').style.display = 'none';
-    document.getElementById('workspace').innerHTML = `
-      <div class="welcome-message">
-        <h2>AI SRM 대시보드에 오신 것을 환영합니다</h2>
-        <p>왼쪽 메뉴에서 원하는 모듈을 선택하거나, 아래 프롬프트로 AI 어시스턴트와 대화해보세요.</p>
-      </div>
-    `;
+    // 모든 탭 닫기
+    tabs.forEach(tab => {
+      document.querySelector(`[data-tab-id="${tab.id}"]`)?.remove();
+      document.getElementById(`tab-${tab.id}`)?.remove();
+    });
+    tabs = [];
+    activeTabId = null;
+
+    // 대시보드 표시
+    document.getElementById('workspace').style.display = 'block';
     document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   };
 
@@ -193,21 +295,38 @@
   filterMenusByRole();
 
   window.loadModule = async (name) => {
-    const workspace = document.getElementById('workspace');
-    workspace.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    const map = { master:1, supplier:2, pr:3, contract:4, po:5, delivery:6, vendor:7, planning:8, quality:9, import:10, shipping:11, project:12, system:13 };
-    document.querySelectorAll('.nav-btn')[map[name]]?.classList.add('active');
+    // 기존 탭이 있는지 확인
+    const existingTab = tabs.find(t => t.id === name);
+    if (existingTab) {
+      switchTab(name);
+      return;
+    }
+
+    // 탭 생성
+    const tabTitles = {
+      master: '기준정보', supplier: '협력사관리', pr: '구매요청', contract: '계약관리',
+      po: '발주관리', delivery: '납기관리', vendor: '사급관리', planning: '생산계획',
+      quality: '품질관리', import: '수출입관리', shipping: '선적관리', project: '프로젝트관리',
+      system: '시스템관리'
+    };
+
+    const content = createTab(name, tabTitles[name] || name);
+    if (!content) return; // 최대 탭 수 초과
+
+    content.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
+
     try {
       const mod = await import(`./modules/${name}/index.js`);
-      mod.render(workspace, window.supabase);
+      mod.render(content, window.supabase);
+      switchTab(name);
     } catch(e) {
-      workspace.innerHTML = `<p style="color:#c92a2a;font-size:14px;">모듈 준비중입니다.</p>`;
+      content.innerHTML = `<p style="color:#c92a2a;font-size:14px;">모듈 준비중입니다.</p>`;
     }
   };
 
-  window.setPrompt = (text) => {
-    document.getElementById('prompt').value = text;
+  window.toggleSystemMenu = () => {
+    const submenu = document.getElementById('system-submenu');
+    submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
   };
 
   window.handlePrompt = () => {
@@ -319,8 +438,15 @@
 
   // OCR 검증 UI 렌더링
   window.renderOCRVerify = () => {
-    const workspace = document.getElementById('workspace');
-    workspace.innerHTML = `
+    const tabId = 'ocr-verify';
+    let content = document.getElementById(`tab-${tabId}`);
+
+    if (!content) {
+      content = createTab(tabId, 'OCR 검증');
+      if (!content) return;
+    }
+
+    content.innerHTML = `
       <div style="margin-bottom: 20px; display:flex; justify-content: space-between; align-items:center;">
         <h3>📦 선적 서류 AI 인식 결과 검증</h3>
         <button class="nav-btn active" onclick="saveOCR()">최종 승인 및 DB 저장</button>
@@ -351,6 +477,7 @@
         </div>
       </div>
     `;
+    switchTab(tabId);
   };
 
   // OCR 데이터 저장 (가상)
