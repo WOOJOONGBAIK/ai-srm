@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>품질관리</title>
+    <style>
+        .quality-container { padding: 2rem; }
+        .quality-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .quality-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .quality-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .quality-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .quality-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .quality-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .quality-metric { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .metric-label { font-size: 14px; color: #666; }
+        .metric-value { font-size: 20px; font-weight: 600; }
+        .metric-good { color: #2e7d32; }
+        .metric-warning { color: #f57c00; }
+        .metric-danger { color: #c62828; }
+
+        .quality-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .quality-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .quality-table thead { background: #f8f9fa; }
+        .quality-table th, .quality-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .quality-table th { font-weight: 600; color: #333; }
+        .quality-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-pass { background: #e8f5e8; color: #2e7d32; }
+        .status-fail { background: #ffebee; color: #c62828; }
+        .status-pending { background: #fff3e0; color: #f57c00; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="quality-container">
+        <div class="quality-header">
+            <h1 class="quality-title">🔍 품질관리</h1>
+            <div class="quality-actions">
+                <button class="btn-primary" onclick="addQualityInspection()">품질검사 등록</button>
+            </div>
+        </div>
+
+        <div class="quality-grid">
+            <div class="quality-card">
+                <div class="quality-card-title">품질 지표</div>
+                <div class="quality-metric">
+                    <span class="metric-label">합격률</span>
+                    <span class="metric-value metric-good">96.8%</span>
+                </div>
+                <div class="quality-metric">
+                    <span class="metric-label">불량률</span>
+                    <span class="metric-value metric-warning">3.2%</span>
+                </div>
+                <div class="quality-metric">
+                    <span class="metric-label">검사 대기</span>
+                    <span class="metric-value">12건</span>
+                </div>
+                <div class="quality-metric">
+                    <span class="metric-label">금월 검사</span>
+                    <span class="metric-value">245건</span>
+                </div>
+            </div>
+            <div class="quality-card">
+                <div class="quality-card-title">품질 이슈 현황</div>
+                <div class="quality-metric">
+                    <span class="metric-label">Critical</span>
+                    <span class="metric-value metric-danger">2건</span>
+                </div>
+                <div class="quality-metric">
+                    <span class="metric-label">Major</span>
+                    <span class="metric-value metric-warning">8건</span>
+                </div>
+                <div class="quality-metric">
+                    <span class="metric-label">Minor</span>
+                    <span class="metric-value">15건</span>
+                </div>
+                <div class="quality-metric">
+                    <span class="metric-label">개선 진행률</span>
+                    <span class="metric-value metric-good">78%</span>
+                </div>
+            </div>
+            <div class="quality-card">
+                <div class="quality-card-title">협력사별 품질</div>
+                <div style="height: 200px; background: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666;">
+                    📊 차트 영역 (Chart.js 등으로 구현 예정)
+                </div>
+            </div>
+            <div class="quality-card">
+                <div class="quality-card-title">품목별 불량률</div>
+                <div style="height: 200px; background: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666;">
+                    📈 차트 영역 (Chart.js 등으로 구현 예정)
+                </div>
+            </div>
+        </div>
+
+        <div class="quality-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="qualityStatus">
+                    <option value="">전체 상태</option>
+                    <option value="pass">합격</option>
+                    <option value="fail">불합격</option>
+                    <option value="pending">검사대기</option>
+                </select>
+                <select class="filter-select" id="qualityType">
+                    <option value="">전체 유형</option>
+                    <option value="incoming">수입검사</option>
+                    <option value="process">공정검사</option>
+                    <option value="final">최종검사</option>
+                </select>
+                <input type="text" class="filter-input" id="qualitySearch" placeholder="품목명 또는 협력사 검색...">
+                <button class="btn-primary" onclick="searchQuality()">검색</button>
+            </div>
+        </div>
+
+        <table class="quality-table">
+            <thead>
+                <tr>
+                    <th>검사번호</th>
+                    <th>품목명</th>
+                    <th>협력사</th>
+                    <th>검사유형</th>
+                    <th>검사일</th>
+                    <th>결과</th>
+                    <th>불량수량</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="qualityTableBody">
+                <!-- 품질검사 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.qualityModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.quality-filters'),
+                    {
+                        searchPlaceholder: '품목명 또는 협력사 검색...',
+                        categories: [
+                            { value: 'incoming', label: '수입검사' },
+                            { value: 'process', label: '공정검사' },
+                            { value: 'final', label: '최종검사' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#qualityTableBody'),
+                    {
+                        columns: [
+                            { header: '검사번호', field: 'inspectionNo' },
+                            { header: '품목명', field: 'itemName' },
+                            { header: '협력사', field: 'supplierName' },
+                            { header: '검사유형', field: 'inspectionType' },
+                            {
+                                header: '검사일',
+                                field: 'inspectionDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '결과',
+                                field: 'result',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        pass: '<span class="status-badge status-pass">합격</span>',
+                                        fail: '<span class="status-badge status-fail">불합격</span>',
+                                        pending: '<span class="status-badge status-pending">검사대기</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            },
+                            { header: '불량수량', field: 'defectQuantity' },
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewQualityInspection', color: '#17a2b8' },
+                            { label: '수정', handler: 'editQualityInspection', color: '#28a745' },
+                            { label: '삭제', handler: 'deleteQualityInspection', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'inspectionType', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'inspectionType', categoryValue);
+                    }
+                );
+
+                await loadQualityInspections();
+            }
+        };
+
+        const loadQualityInspections = async () => {
+            // 가상 품질검사 데이터
+            const mockQualityData = [
+                {
+                    id: 1,
+                    inspectionNo: 'QI-2024-001',
+                    itemName: '베어링 6205',
+                    supplierName: 'ABC베어링',
+                    inspectionType: 'incoming',
+                    inspectionDate: '2024-01-15',
+                    result: 'pass',
+                    defectQuantity: 0
+                },
+                {
+                    id: 2,
+                    inspectionNo: 'QI-2024-002',
+                    itemName: '모터 M-100',
+                    supplierName: '테크모터',
+                    inspectionType: 'final',
+                    inspectionDate: '2024-01-14',
+                    result: 'fail',
+                    defectQuantity: 3
+                },
+                {
+                    id: 3,
+                    inspectionNo: 'QI-2024-003',
+                    itemName: '케이블 C-50',
+                    supplierName: '케이블코리아',
+                    inspectionType: 'process',
+                    inspectionDate: '2024-01-13',
+                    result: 'pending',
+                    defectQuantity: 0
+                },
+                {
+                    id: 4,
+                    inspectionNo: 'QI-2024-004',
+                    itemName: '센서 S-200',
+                    supplierName: '센서텍',
+                    inspectionType: 'incoming',
+                    inspectionDate: '2024-01-12',
+                    result: 'pass',
+                    defectQuantity: 0
+                }
+            ];
+
+            table.setData(mockQualityData);
+        };
+
+        window.addQualityInspection = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('품질검사 등록')
+                .setContent(`
+                    <form id="qualityForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">품목명</label>
+                            <input type="text" name="itemName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">협력사</label>
+                            <input type="text" name="supplierName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">검사유형</label>
+                            <select name="inspectionType" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="incoming">수입검사</option>
+                                <option value="process">공정검사</option>
+                                <option value="final">최종검사</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">검사수량</label>
+                            <input type="number" name="inspectionQuantity" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">불량수량</label>
+                            <input type="number" name="defectQuantity" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" value="0">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">검사결과</label>
+                            <select name="result" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="pass">합격</option>
+                                <option value="fail">불합격</option>
+                                <option value="pending">검사대기</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">검사 메모</label>
+                            <textarea name="notes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="검사 결과 및 특이사항을 기록하세요"></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveQualityInspection(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveQualityInspection = async (modal) => {
+            const form = document.getElementById('qualityForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 품질검사 데이터:', data);
+
+            Notification.success('품질검사 결과가 등록되었습니다.');
+            modal.close();
+            loadQualityInspections(); // 목록 새로고침
+        };
+
+        window.viewQualityInspection = (id) => {
+            Notification.info(`품질검사 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editQualityInspection = (id) => {
+            Notification.info(`품질검사 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteQualityInspection = (id) => {
+            showConfirm(`품질검사 결과를 삭제하시겠습니까?`, () => {
+                Notification.success('품질검사 결과가 삭제되었습니다.');
+                loadQualityInspections(); // 목록 새로고침
+            });
+        };
+
+        window.searchQuality = () => {
+            const searchTerm = document.getElementById('qualitySearch').value;
+            const statusValue = document.getElementById('qualityStatus').value;
+            const typeValue = document.getElementById('qualityType').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'inspectionType', typeValue);
+        };
+    </script>
+</body>
+</html>
