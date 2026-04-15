@@ -24,6 +24,9 @@
   /* 메인 레이아웃 */
   .main-layout { display: flex; min-height: calc(100vh - 56px); }
   .workspace { flex: 1; padding: 2rem; display: flex; flex-direction: column; }
+  .welcome-message { text-align: center; padding: 4rem 2rem; }
+  .welcome-message h2 { font-size: 24px; color: #005EB8; margin-bottom: 1rem; }
+  .welcome-message p { font-size: 16px; color: #666; }
   .sidebar { width: 300px; background: #fafafa; border-left: 1px solid #e0e0e0; padding: 1.5rem; }
   .sidebar-title { font-size: 16px; font-weight: 600; margin-bottom: 1rem; color: #333; }
   .sidebar-item { padding: 12px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
@@ -36,6 +39,7 @@
   .prompt-container { max-width: 800px; margin: 0 auto; }
   .prompt-input { width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 16px; font-size: 14px; resize: none; font-family: inherit; outline: none; }
   .prompt-input:focus { border-color: #005EB8; box-shadow: 0 0 0 2px rgba(0,94,184,0.1); }
+  .prompt-hint { font-size: 12px; color: #999; margin-top: 8px; text-align: center; }
 
   /* 칩 */
   .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 600px; margin-bottom: 2.5rem; }
@@ -80,31 +84,25 @@
   <div class="user-info">
     <span class="user-name">구매인</span>
     <div class="lang-selector">
-      <button class="lang-btn active" onclick="setLanguage('ko')">한</button>
-      <button class="lang-btn" onclick="setLanguage('en')">EN</button>
-      <button class="lang-btn" onclick="setLanguage('zh')">中</button>
+      <button class="lang-btn active" onclick="setLanguage(event, 'ko')">한</button>
+      <button class="lang-btn" onclick="setLanguage(event, 'en')">EN</button>
+      <button class="lang-btn" onclick="setLanguage(event, 'zh')">中</button>
     </div>
   </div>
 </div>
 
 <div id="landing">
-  <div class="landing-title">AI <span>SRM</span></div>
-  <div class="landing-sub">공급망 관계 관리 · AI 기반 구매 포털</div>
-
-  <div class="chips">
-    <div class="chip" onclick="setPrompt('공급망 리스크 현황 보여줘')">공급망 리스크 현황</div>
-    <div class="chip" onclick="setPrompt('이번달 구매요청 요약해줘')">구매요청 요약</div>
-    <div class="chip" onclick="setPrompt('만료 예정 계약 조회해줘')">계약 만료 알림</div>
-    <div class="chip" onclick="setPrompt('품질 이슈 현황 보여줘')">품질 이슈 조회</div>
-    <div class="chip" onclick="setPrompt('납품 준수율 분석해줘')">납품 준수율 분석</div>
-    <div class="chip" onclick="setPrompt('KPI 대시보드 보여줘')">KPI 대시보드</div>
-  </div>
+  <!-- Landing content removed -->
+</div>
 
 <div id="content"></div>
 
 <div class="main-layout">
-  <div class="workspace">
-    <!-- 워크스페이스 콘텐츠 -->
+  <div class="workspace" id="workspace">
+    <div class="welcome-message">
+      <h2>AI SRM 대시보드에 오신 것을 환영합니다</h2>
+      <p>왼쪽 메뉴에서 원하는 모듈을 선택하거나, 아래 프롬프트로 AI 어시스턴트와 대화해보세요.</p>
+    </div>
   </div>
 
   <div class="sidebar">
@@ -125,6 +123,7 @@
   <div class="prompt-container">
     <textarea class="prompt-input" id="prompt" rows="2"
       placeholder='무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"'></textarea>
+    <div class="prompt-hint">구매팀 · Claude Sonnet 4.6</div>
   </div>
 </div>
 
@@ -149,24 +148,27 @@
   }
 
   window.showLanding = () => {
-    document.getElementById('landing').style.display = 'flex';
     document.getElementById('content').style.display = 'none';
+    document.getElementById('workspace').innerHTML = `
+      <div class="welcome-message">
+        <h2>AI SRM 대시보드에 오신 것을 환영합니다</h2>
+        <p>왼쪽 메뉴에서 원하는 모듈을 선택하거나, 아래 프롬프트로 AI 어시스턴트와 대화해보세요.</p>
+      </div>
+    `;
     document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   };
 
   window.loadModule = async (name) => {
-    document.getElementById('landing').style.display = 'none';
-    const content = document.getElementById('content');
-    content.style.display = 'block';
-    content.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
+    const workspace = document.getElementById('workspace');
+    workspace.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     const map = { master:1, pr:2, contract:3, po:4, supplier:5, planning:6, quality:7, import:8, shipping:9, collaboration:10 };
     document.querySelectorAll('.nav-btn')[map[name]]?.classList.add('active');
     try {
       const mod = await import(`./modules/${name}/index.js`);
-      mod.render(content, window.supabase);
+      mod.render(workspace, window.supabase);
     } catch(e) {
-      content.innerHTML = `<p style="color:#c92a2a;font-size:14px;">모듈 준비중입니다.</p>`;
+      workspace.innerHTML = `<p style="color:#c92a2a;font-size:14px;">모듈 준비중입니다.</p>`;
     }
   };
 
@@ -180,21 +182,19 @@
     alert(`준비중: "${text}"\nClaude API 연동 후 동작합니다.`);
   };
 
+  // Enter 키로 프롬프트 실행
+  document.getElementById('prompt').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handlePrompt();
+    }
+  });
+
   // 언어 데이터
   const translations = {
     ko: {
-      title: "AI SRM",
-      subtitle: "공급망 관계 관리 · AI 기반 구매 포털",
       placeholder: '무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"',
       hint: "구매팀 · Claude Sonnet 4.6",
-      chips: [
-        "공급망 리스크 현황",
-        "구매요청 요약",
-        "계약 만료 알림",
-        "품질 이슈 조회",
-        "납품 준수율 분석",
-        "KPI 대시보드"
-      ],
       nav: [
         "대시보드",
         "기준정보",
@@ -210,18 +210,8 @@
       ]
     },
     en: {
-      title: "AI SRM",
-      subtitle: "Supply Chain Relationship Management · AI-powered Procurement Portal",
       placeholder: 'What can I help you with? e.g., "Show supply chain risk status", "Show purchase request summary"',
       hint: "Procurement Team · Claude Sonnet 4.6",
-      chips: [
-        "Supply Chain Risk Status",
-        "Purchase Request Summary",
-        "Contract Expiration Notice",
-        "Quality Issue Inquiry",
-        "Delivery Compliance Analysis",
-        "KPI Dashboard"
-      ],
       nav: [
         "Dashboard",
         "Master Data",
@@ -237,18 +227,8 @@
       ]
     },
     zh: {
-      title: "AI SRM",
-      subtitle: "供应链关系管理 · AI驱动采购门户",
       placeholder: '我能帮您什么？例如："显示供应链风险状态"、"显示采购请求摘要"',
       hint: "采购团队 · Claude Sonnet 4.6",
-      chips: [
-        "供应链风险状态",
-        "采购请求摘要",
-        "合同到期通知",
-        "质量问题查询",
-        "交付合规性分析",
-        "KPI仪表板"
-      ],
       nav: [
         "仪表板",
         "基础信息",
@@ -267,7 +247,7 @@
 
   let currentLang = 'ko';
 
-  window.setLanguage = (lang) => {
+  window.setLanguage = (e, lang) => {
     currentLang = lang;
     const t = translations[lang];
     
@@ -275,21 +255,11 @@
     document.querySelectorAll('.lang-btn').forEach(btn => {
       btn.classList.remove('active');
     });
-    event.target.classList.add('active');
-    
-    // 타이틀 변경
-    document.querySelector('.landing-title').innerHTML = `${t.title.split(' ')[0]} <span>${t.title.split(' ')[1]}</span>`;
-    document.querySelector('.landing-sub').textContent = t.subtitle;
+    e.currentTarget.classList.add('active');
     
     // 프롬프트 변경
     document.getElementById('prompt').placeholder = t.placeholder;
     document.querySelector('.prompt-hint').textContent = t.hint;
-    
-    // 칩 변경
-    const chips = document.querySelectorAll('.chip');
-    chips.forEach((chip, i) => {
-      if (t.chips[i]) chip.textContent = t.chips[i];
-    });
     
     // 네비게이션 변경
     const navBtns = document.querySelectorAll('.nav-btn');
