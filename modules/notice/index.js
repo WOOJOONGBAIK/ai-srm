@@ -1,33 +1,24 @@
 export const render = async (container, supabase) => {
-  container.innerHTML = `
-    <div style="padding: 2rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h2>📢 공지사항 관리</h2>
-        <button class="nav-btn active" onclick="addNotice()">새 공지 작성</button>
-      </div>
+  try {
+    // HTML 템플릿 로드
+    const response = await fetch('./modules/notice/index.html');
+    const html = await response.text();
 
-      <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="padding: 1rem; border-bottom: 1px solid #e0e0e0; display: flex; gap: 1rem;">
-          <select id="noticeType" style="padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
-            <option value="">전체 유형</option>
-            <option value="긴급">긴급</option>
-            <option value="일반">일반</option>
-            <option value="시스템">시스템</option>
-          </select>
-          <input type="text" id="noticeSearch" placeholder="제목 검색..." style="flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
-          <button onclick="searchNotices()" style="padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer;">검색</button>
-        </div>
+    // HTML 파싱 및 body 내용 추출
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const bodyContent = doc.body.innerHTML;
 
-        <div style="padding: 1rem;">
-          <div id="noticeList">
-            <!-- 공지사항 목록이 여기에 표시됩니다 -->
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+    container.innerHTML = bodyContent;
 
-  loadNotices();
+    // 모듈 초기화 함수 호출
+    if (window.noticeModule && window.noticeModule.init) {
+      await window.noticeModule.init(container, supabase);
+    }
+  } catch (error) {
+    console.error('Failed to load notice module:', error);
+    container.innerHTML = '<p style="color:#c92a2a;">모듈 로드에 실패했습니다.</p>';
+  }
 };
 
 const loadNotices = async () => {

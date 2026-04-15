@@ -1,34 +1,24 @@
 export const render = async (container, supabase) => {
-  container.innerHTML = `
-    <div style="padding: 2rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h2>❓ FAQ 관리</h2>
-        <button class="nav-btn active" onclick="addFAQ()">새 FAQ 추가</button>
-      </div>
+  try {
+    // HTML 템플릿 로드
+    const response = await fetch('./modules/faq/index.html');
+    const html = await response.text();
 
-      <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="padding: 1rem; border-bottom: 1px solid #e0e0e0; display: flex; gap: 1rem;">
-          <select id="faqCategory" style="padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
-            <option value="">전체 카테고리</option>
-            <option value="시스템 이용">시스템 이용</option>
-            <option value="인증 관련">인증 관련</option>
-            <option value="서류 제출">서류 제출</option>
-            <option value="기타">기타</option>
-          </select>
-          <input type="text" id="faqSearch" placeholder="질문 검색..." style="flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
-          <button onclick="searchFAQs()" style="padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer;">검색</button>
-        </div>
+    // HTML 파싱 및 body 내용 추출
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const bodyContent = doc.body.innerHTML;
 
-        <div style="padding: 1rem;">
-          <div id="faqList" style="max-height: 600px; overflow-y: auto;">
-            <!-- FAQ 목록이 여기에 표시됩니다 -->
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+    container.innerHTML = bodyContent;
 
-  loadFAQs();
+    // 모듈 초기화 함수 호출
+    if (window.faqModule && window.faqModule.init) {
+      await window.faqModule.init(container, supabase);
+    }
+  } catch (error) {
+    console.error('Failed to load faq module:', error);
+    container.innerHTML = '<p style="color:#c92a2a;">모듈 로드에 실패했습니다.</p>';
+  }
 };
 
 const loadFAQs = async () => {

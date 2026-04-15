@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ 관리</title>
+    <style>
+        .faq-container { padding: 2rem; }
+        .faq-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .faq-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .faq-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .faq-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; }
+        .filter-input { flex: 1; }
+
+        .faq-list { max-height: 600px; overflow-y: auto; }
+        .faq-item { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 1rem; background: #fff; overflow: hidden; }
+        .faq-question { padding: 1rem; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .faq-question:hover { background: #e9ecef; }
+        .faq-q-text { font-weight: 600; color: #005EB8; flex: 1; }
+        .faq-toggle { font-size: 18px; color: #666; transition: transform 0.2s; }
+        .faq-toggle.expanded { transform: rotate(180deg); }
+        .faq-category { font-size: 12px; color: #666; margin-left: 8px; }
+        .faq-answer { padding: 1rem; display: none; background: #fff; }
+        .faq-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0; }
+        .faq-date { font-size: 12px; color: #999; }
+        .faq-actions { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="faq-container">
+        <div class="faq-header">
+            <h1 class="faq-title">❓ FAQ 관리</h1>
+            <div class="faq-actions">
+                <button class="btn-primary" onclick="addFAQ()">새 FAQ 추가</button>
+            </div>
+        </div>
+
+        <div class="faq-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="faqCategory">
+                    <option value="">전체 카테고리</option>
+                    <option value="시스템 이용">시스템 이용</option>
+                    <option value="인증 관련">인증 관련</option>
+                    <option value="서류 제출">서류 제출</option>
+                    <option value="기타">기타</option>
+                </select>
+                <input type="text" class="filter-input" id="faqSearch" placeholder="질문 검색...">
+                <button class="btn-primary" onclick="searchFAQs()">검색</button>
+            </div>
+        </div>
+
+        <div id="faqList" class="faq-list">
+            <!-- FAQ 목록이 동적으로 추가됩니다 -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        // 전역 모듈 객체 정의
+        window.faqModule = {
+            init: async (container, supabase) => {
+                await loadFAQs();
+            }
+        };
+
+        const loadFAQs = async () => {
+            // 가상 데이터로 FAQ 목록 표시
+            const mockFAQs = [
+                {
+                    id: 1,
+                    category: '시스템 이용',
+                    question: '로그인 비밀번호를 잊어버렸어요. 어떻게 해야 하나요?',
+                    answer: '로그인 화면에서 "비밀번호 찾기" 버튼을 클릭하시면 등록된 이메일로 임시 비밀번호가 발송됩니다. 임시 비밀번호로 로그인하신 후, 마이페이지에서 비밀번호를 변경해주세요.',
+                    created: '2024-01-15',
+                    updated: '2024-01-15'
+                },
+                {
+                    id: 2,
+                    category: '인증 관련',
+                    question: 'SSO 로그인은 어떻게 사용하나요?',
+                    answer: '로그인 화면에서 "SSO 로그인" 버튼을 클릭하시면 회사 포털 인증을 통해 자동으로 로그인됩니다. 별도의 아이디/비밀번호 입력이 필요하지 않습니다.',
+                    created: '2024-01-14',
+                    updated: '2024-01-14'
+                },
+                {
+                    id: 3,
+                    category: '서류 제출',
+                    question: '구매요청 시 필요한 서류는 무엇인가요?',
+                    answer: '구매요청 시에는 품목 사양서, 예상 가격, 납기 일정 등의 기본 정보가 필요합니다. 고가 품목의 경우 추가 승인 절차가 있을 수 있습니다.',
+                    created: '2024-01-13',
+                    updated: '2024-01-13'
+                }
+            ];
+
+            const list = document.getElementById('faqList');
+            list.innerHTML = mockFAQs.map(faq => `
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFAQ(${faq.id})">
+                        <span class="faq-q-text">${faq.question}</span>
+                        <span class="faq-category">${faq.category}</span>
+                        <span class="faq-toggle" id="toggle-${faq.id}">▼</span>
+                    </div>
+                    <div class="faq-answer" id="answer-${faq.id}">
+                        <div style="margin-bottom: 1rem;">${faq.answer}</div>
+                        <div class="faq-meta">
+                            <div class="faq-date">작성일: ${faq.created} | 수정일: ${faq.updated}</div>
+                            <div class="faq-actions">
+                                <button class="btn-edit" onclick="editFAQ(${faq.id})">수정</button>
+                                <button class="btn-delete" onclick="deleteFAQ(${faq.id})">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.toggleFAQ = (id) => {
+            const answer = document.getElementById(`answer-${id}`);
+            const toggle = document.getElementById(`toggle-${id}`);
+
+            if (answer.style.display === 'block') {
+                answer.style.display = 'none';
+                toggle.classList.remove('expanded');
+            } else {
+                answer.style.display = 'block';
+                toggle.classList.add('expanded');
+            }
+        };
+
+        window.addFAQ = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('새 FAQ 추가')
+                .setContent(`
+                    <form id="faqForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">카테고리</label>
+                            <select name="category" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="시스템 이용">시스템 이용</option>
+                                <option value="인증 관련">인증 관련</option>
+                                <option value="서류 제출">서류 제출</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">질문</label>
+                            <input type="text" name="question" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">답변</label>
+                            <textarea name="answer" rows="8" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" required></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveFAQ(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveFAQ = async (modal) => {
+            const form = document.getElementById('faqForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 FAQ 데이터:', data);
+
+            Notification.success('FAQ가 저장되었습니다.');
+            modal.close();
+            loadFAQs(); // 목록 새로고침
+        };
+
+        window.editFAQ = (id) => {
+            Notification.info(`FAQ ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteFAQ = (id) => {
+            showConfirm(`FAQ를 삭제하시겠습니까?`, () => {
+                Notification.success('FAQ가 삭제되었습니다.');
+                loadFAQs(); // 목록 새로고침
+            });
+        };
+
+        window.searchFAQs = () => {
+            const category = document.getElementById('faqCategory').value;
+            const searchTerm = document.getElementById('faqSearch').value.toLowerCase();
+
+            // 간단한 필터링 로직
+            const items = document.querySelectorAll('.faq-item');
+            items.forEach(item => {
+                const question = item.querySelector('.faq-q-text').textContent.toLowerCase();
+                const cat = item.querySelector('.faq-category').textContent.toLowerCase();
+
+                const categoryMatch = !category || cat.includes(category.toLowerCase());
+                const searchMatch = !searchTerm || question.includes(searchTerm);
+
+                item.style.display = categoryMatch && searchMatch ? 'block' : 'none';
+            });
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자료실 관리</title>
+    <style>
+        .archive-container { padding: 2rem; }
+        .archive-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .archive-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .archive-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .archive-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; }
+        .filter-input { flex: 1; }
+
+        .archive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+        .archive-item { border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; background: #fff; transition: all 0.2s; }
+        .archive-item:hover { border-color: #005EB8; box-shadow: 0 2px 8px rgba(0,94,184,0.1); }
+        .archive-item-header { display: flex; align-items: center; margin-bottom: 8px; }
+        .archive-icon { font-size: 24px; margin-right: 8px; }
+        .archive-info { flex: 1; overflow: hidden; }
+        .archive-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .archive-meta { font-size: 12px; color: #666; }
+        .archive-details { font-size: 12px; color: #999; margin-top: 8px; }
+        .archive-actions { display: flex; gap: 4px; margin-top: 12px; }
+        .btn-download { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="archive-container">
+        <div class="archive-header">
+            <h1 class="archive-title">📁 자료실 관리</h1>
+            <div class="archive-actions">
+                <button class="btn-primary" onclick="uploadArchiveFile()">파일 업로드</button>
+            </div>
+        </div>
+
+        <div class="archive-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="archiveCategory">
+                    <option value="">전체 카테고리</option>
+                    <option value="매뉴얼">매뉴얼</option>
+                    <option value="양식">양식</option>
+                    <option value="보고서">보고서</option>
+                    <option value="기타">기타</option>
+                </select>
+                <input type="text" class="filter-input" id="archiveSearch" placeholder="파일명 검색...">
+                <button class="btn-primary" onclick="searchArchiveFiles()">검색</button>
+            </div>
+        </div>
+
+        <div id="archiveGrid" class="archive-grid">
+            <!-- 파일 목록이 동적으로 추가됩니다 -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+        import { FileUploader } from '../../components/crud.js';
+
+        // 전역 모듈 객체 정의
+        window.archiveModule = {
+            init: async (container, supabase) => {
+                await loadArchiveFiles();
+            }
+        };
+
+        const loadArchiveFiles = async () => {
+            // 가상 데이터로 파일 목록 표시
+            const mockFiles = [
+                { id: 1, name: '구매요청_매뉴얼.pdf', category: '매뉴얼', size: '2.3MB', uploader: '관리자', date: '2024-01-15', downloads: 45 },
+                { id: 2, name: '계약서_양식.docx', category: '양식', size: '156KB', uploader: '김철수', date: '2024-01-14', downloads: 23 },
+                { id: 3, name: '월간_보고서.xlsx', category: '보고서', size: '890KB', uploader: '이영희', date: '2024-01-13', downloads: 12 },
+                { id: 4, name: '시스템_사용법.pptx', category: '매뉴얼', size: '5.2MB', uploader: '관리자', date: '2024-01-12', downloads: 78 },
+            ];
+
+            const grid = document.getElementById('archiveGrid');
+            grid.innerHTML = mockFiles.map(file => `
+                <div class="archive-item">
+                    <div class="archive-item-header">
+                        <span class="archive-icon">📄</span>
+                        <div class="archive-info">
+                            <div class="archive-name">${file.name}</div>
+                            <div class="archive-meta">${file.category} · ${file.size}</div>
+                        </div>
+                    </div>
+                    <div class="archive-details">
+                        업로더: ${file.uploader} | 업로드일: ${file.date} | 다운로드: ${file.downloads}회
+                    </div>
+                    <div class="archive-actions">
+                        <button class="btn-download" onclick="downloadArchiveFile(${file.id})">다운로드</button>
+                        <button class="btn-delete" onclick="deleteArchiveFile(${file.id})">삭제</button>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.uploadArchiveFile = () => {
+            const uploader = new FileUploader({
+                accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar',
+                maxSize: 50 * 1024 * 1024, // 50MB
+                multiple: true
+            });
+
+            uploader.upload().then(files => {
+                Notification.success(`${files.length}개 파일이 업로드되었습니다.`);
+                loadArchiveFiles(); // 목록 새로고침
+            }).catch(error => {
+                Notification.error('파일 업로드에 실패했습니다.');
+            });
+        };
+
+        window.downloadArchiveFile = (id) => {
+            // 실제 다운로드 로직 구현
+            Notification.info(`파일 ${id} 다운로드 중...`);
+        };
+
+        window.deleteArchiveFile = (id) => {
+            showConfirm(`파일을 삭제하시겠습니까?`, () => {
+                Notification.success('파일이 삭제되었습니다.');
+                loadArchiveFiles(); // 목록 새로고침
+            });
+        };
+
+        window.searchArchiveFiles = () => {
+            const category = document.getElementById('archiveCategory').value;
+            const searchTerm = document.getElementById('archiveSearch').value.toLowerCase();
+
+            // 간단한 필터링 로직
+            const items = document.querySelectorAll('.archive-item');
+            items.forEach(item => {
+                const name = item.querySelector('.archive-name').textContent.toLowerCase();
+                const meta = item.querySelector('.archive-meta').textContent.toLowerCase();
+
+                const categoryMatch = !category || meta.includes(category.toLowerCase());
+                const searchMatch = !searchTerm || name.includes(searchTerm);
+
+                item.style.display = categoryMatch && searchMatch ? 'block' : 'none';
+            });
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공지사항 관리</title>
+    <style>
+        .notice-container { padding: 2rem; }
+        .notice-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .notice-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .notice-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .notice-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; }
+        .filter-input { flex: 1; }
+
+        .notice-list { }
+        .notice-item { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 1rem; background: #fff; overflow: hidden; transition: all 0.2s; }
+        .notice-item:hover { border-color: #005EB8; box-shadow: 0 2px 8px rgba(0,94,184,0.1); }
+        .notice-item.important { border-left: 4px solid #dc3545; }
+        .notice-header { padding: 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .notice-header:hover { background: #f8f9fa; }
+        .notice-title-text { font-weight: 600; color: #005EB8; flex: 1; }
+        .notice-meta { display: flex; align-items: center; gap: 1rem; font-size: 12px; color: #666; }
+        .notice-type { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .notice-type.긴급 { background: #ffebee; color: #c62828; }
+        .notice-type.일반 { background: #e8f5e8; color: #2e7d32; }
+        .notice-type.시스템 { background: #e3f2fd; color: #1565c0; }
+        .notice-toggle { font-size: 18px; color: #666; transition: transform 0.2s; }
+        .notice-toggle.expanded { transform: rotate(180deg); }
+        .notice-content { padding: 1rem; display: none; background: #fff; border-top: 1px solid #e0e0e0; }
+        .notice-body { margin-bottom: 1rem; line-height: 1.6; }
+        .notice-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #e0e0e0; }
+        .notice-info { font-size: 12px; color: #999; }
+        .notice-actions { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="notice-container">
+        <div class="notice-header">
+            <h1 class="notice-title">📢 공지사항 관리</h1>
+            <div class="notice-actions">
+                <button class="btn-primary" onclick="addNotice()">새 공지 작성</button>
+            </div>
+        </div>
+
+        <div class="notice-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="noticeType">
+                    <option value="">전체 유형</option>
+                    <option value="긴급">긴급</option>
+                    <option value="일반">일반</option>
+                    <option value="시스템">시스템</option>
+                </select>
+                <input type="text" class="filter-input" id="noticeSearch" placeholder="제목 검색...">
+                <button class="btn-primary" onclick="searchNotices()">검색</button>
+            </div>
+        </div>
+
+        <div id="noticeList" class="notice-list">
+            <!-- 공지사항 목록이 동적으로 추가됩니다 -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        // 전역 모듈 객체 정의
+        window.noticeModule = {
+            init: async (container, supabase) => {
+                await loadNotices();
+            }
+        };
+
+        const loadNotices = async () => {
+            // 가상 데이터로 공지사항 목록 표시
+            const mockNotices = [
+                {
+                    id: 1,
+                    type: '긴급',
+                    title: '시스템 정기 점검 안내 (1/20 02:00-04:00)',
+                    content: '2024년 1월 20일 새벽 2시부터 4시까지 시스템 정기 점검이 진행됩니다. 해당 시간 동안 서비스 이용이 제한될 수 있으니 양해바랍니다.',
+                    author: '시스템관리자',
+                    created: '2024-01-15 09:00',
+                    updated: '2024-01-15 09:00',
+                    views: 245,
+                    important: true
+                },
+                {
+                    id: 2,
+                    type: '일반',
+                    title: '2024년 구매 프로세스 변경 안내',
+                    content: '2024년부터 구매요청 승인 프로세스가 일부 변경됩니다. 변경된 프로세스에 대해서는 별도 교육을 진행할 예정입니다.',
+                    author: '구매팀장',
+                    created: '2024-01-14 14:30',
+                    updated: '2024-01-14 14:30',
+                    views: 156,
+                    important: false
+                },
+                {
+                    id: 3,
+                    type: '시스템',
+                    title: '보안 업데이트 완료',
+                    content: '시스템 보안 업데이트가 완료되었습니다. 새로운 보안 정책이 적용되어 로그인 시 추가 인증이 요구될 수 있습니다.',
+                    author: '시스템관리자',
+                    created: '2024-01-13 11:00',
+                    updated: '2024-01-13 11:00',
+                    views: 89,
+                    important: false
+                }
+            ];
+
+            const list = document.getElementById('noticeList');
+            list.innerHTML = mockNotices.map(notice => `
+                <div class="notice-item ${notice.important ? 'important' : ''}">
+                    <div class="notice-header" onclick="toggleNotice(${notice.id})">
+                        <span class="notice-title-text">${notice.title}</span>
+                        <div class="notice-meta">
+                            <span class="notice-type ${notice.type}">${notice.type}</span>
+                            <span>조회 ${notice.views}</span>
+                            <span class="notice-toggle" id="toggle-${notice.id}">▼</span>
+                        </div>
+                    </div>
+                    <div class="notice-content" id="content-${notice.id}">
+                        <div class="notice-body">${notice.content}</div>
+                        <div class="notice-footer">
+                            <div class="notice-info">
+                                작성자: ${notice.author} | 작성일: ${notice.created} | 수정일: ${notice.updated}
+                            </div>
+                            <div class="notice-actions">
+                                <button class="btn-edit" onclick="editNotice(${notice.id})">수정</button>
+                                <button class="btn-delete" onclick="deleteNotice(${notice.id})">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.toggleNotice = (id) => {
+            const content = document.getElementById(`content-${id}`);
+            const toggle = document.getElementById(`toggle-${id}`);
+
+            if (content.style.display === 'block') {
+                content.style.display = 'none';
+                toggle.classList.remove('expanded');
+            } else {
+                content.style.display = 'block';
+                toggle.classList.add('expanded');
+            }
+        };
+
+        window.addNotice = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('새 공지 작성')
+                .setContent(`
+                    <form id="noticeForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">유형</label>
+                            <select name="type" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="일반">일반</option>
+                                <option value="긴급">긴급</option>
+                                <option value="시스템">시스템</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">제목</label>
+                            <input type="text" name="title" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">내용</label>
+                            <textarea name="content" rows="10" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" required></textarea>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: inline-block; margin-right: 1rem; font-weight: 500;">
+                                <input type="checkbox" name="important" style="margin-right: 4px;"> 중요 공지
+                            </label>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveNotice(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveNotice = async (modal) => {
+            const form = document.getElementById('noticeForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 공지사항 데이터:', data);
+
+            Notification.success('공지사항이 저장되었습니다.');
+            modal.close();
+            loadNotices(); // 목록 새로고침
+        };
+
+        window.editNotice = (id) => {
+            Notification.info(`공지사항 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteNotice = (id) => {
+            showConfirm(`공지사항을 삭제하시겠습니까?`, () => {
+                Notification.success('공지사항이 삭제되었습니다.');
+                loadNotices(); // 목록 새로고침
+            });
+        };
+
+        window.searchNotices = () => {
+            const type = document.getElementById('noticeType').value;
+            const searchTerm = document.getElementById('noticeSearch').value.toLowerCase();
+
+            // 간단한 필터링 로직
+            const items = document.querySelectorAll('.notice-item');
+            items.forEach(item => {
+                const title = item.querySelector('.notice-title-text').textContent.toLowerCase();
+                const typeSpan = item.querySelector('.notice-type').textContent.toLowerCase();
+
+                const typeMatch = !type || typeSpan.includes(type.toLowerCase());
+                const searchMatch = !searchTerm || title.includes(searchTerm);
+
+                item.style.display = typeMatch && searchMatch ? 'block' : 'none';
+            });
+        };
+    </script>
+</body>
+</html>
