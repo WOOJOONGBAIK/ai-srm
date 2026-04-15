@@ -5,111 +5,115 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI SRM</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-  body { background: #f8f9fa; color: #1a1a1a; min-height: 100vh; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: #f8f9fa; color: #333; min-height: 100vh; line-height: 1.5; }
 
   /* 헤더 */
-  .header { background: #fff; border-bottom: 1px solid #e9ecef; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-  .logo { font-size: 20px; font-weight: 600; color: #1a1a1a; }
-  .logo span { color: #185FA5; }
-  .nav { display: flex; gap: 4px; }
-  .nav-btn { padding: 6px 14px; border-radius: 6px; border: none; background: none; font-size: 13px; color: #666; cursor: pointer; }
-  .nav-btn:hover { background: #f1f3f5; }
-  .nav-btn.active { background: #185FA5; color: #fff; }
+  .header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 18px; font-weight: 600; color: #005EB8; }
+  .nav { display: flex; gap: 2px; }
+  .nav-btn { padding: 8px 16px; border-radius: 4px; border: none; background: none; font-size: 14px; color: #666; cursor: pointer; transition: all 0.2s; }
+  .nav-btn:hover { background: #f0f0f0; color: #005EB8; }
+  .nav-btn.active { background: #005EB8; color: #fff; }
 
   /* 메인 랜딩 */
-  #landing { display: flex; flex-direction: column; align-items: center; padding: 4rem 2rem 2rem; }
-  .landing-title { font-size: 36px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 8px; }
-  .landing-title span { color: #185FA5; }
-  .landing-sub { font-size: 15px; color: #666; margin-bottom: 2.5rem; }
+  #landing { display: flex; flex-direction: column; align-items: center; padding: 3rem 1.5rem 2rem; }
+  .landing-title { font-size: 32px; font-weight: 600; color: #005EB8; margin-bottom: 8px; }
+  .landing-sub { font-size: 16px; color: #666; margin-bottom: 2rem; text-align: center; }
 
   /* 프롬프트 박스 */
-  .prompt-wrap { width: 100%; max-width: 640px; background: #fff; border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-  .prompt-input { width: 100%; border: none; outline: none; padding: 16px; font-size: 14px; resize: none; font-family: inherit; color: #1a1a1a; }
-  .prompt-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid #f1f3f5; background: #fafafa; }
-  .prompt-hint { font-size: 12px; color: #adb5bd; }
-  .send-btn { background: #185FA5; color: #fff; border: none; border-radius: 6px; padding: 7px 16px; font-size: 13px; cursor: pointer; }
-  .send-btn:hover { background: #0C447C; }
+  .prompt-wrap { width: 100%; max-width: 600px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin-bottom: 1.5rem; }
+  .prompt-input { width: 100%; border: none; outline: none; padding: 16px; font-size: 14px; resize: none; font-family: inherit; color: #333; }
+  .prompt-footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #f0f0f0; background: #fafafa; }
+  .prompt-hint { font-size: 12px; color: #999; }
+  .send-btn { background: #005EB8; color: #fff; border: none; border-radius: 4px; padding: 8px 16px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+  .send-btn:hover { background: #004080; }
 
   /* 칩 */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; margin-bottom: 3rem; }
-  .chip { font-size: 12px; padding: 6px 14px; border-radius: 20px; border: 1px solid #dee2e6; background: #fff; color: #495057; cursor: pointer; }
-  .chip:hover { border-color: #185FA5; color: #185FA5; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 600px; margin-bottom: 2.5rem; }
+  .chip { font-size: 13px; padding: 8px 16px; border-radius: 20px; border: 1px solid #e0e0e0; background: #fff; color: #666; cursor: pointer; transition: all 0.2s; }
+  .chip:hover { border-color: #005EB8; color: #005EB8; }
 
   /* 모듈 카드 */
-  .module-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; width: 100%; max-width: 640px; }
-  .module-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 1.25rem 1rem; text-align: center; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
-  .module-card:hover { border-color: #185FA5; box-shadow: 0 2px 8px rgba(24,95,165,0.1); }
-  .module-dot { width: 10px; height: 10px; border-radius: 50%; margin: 0 auto 10px; }
-  .module-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
-  .module-desc { font-size: 11px; color: #868e96; }
+  .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; width: 100%; max-width: 800px; }
+  .module-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .module-card:hover { border-color: #005EB8; box-shadow: 0 2px 8px rgba(0,94,184,0.1); }
+  .module-dot { width: 12px; height: 12px; border-radius: 50%; margin: 0 auto 12px; }
+  .module-name { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+  .module-desc { font-size: 13px; color: #999; }
 
-  /* 콘텐츠 영역 (모듈 로드 위치) */
-  #content { display: none; padding: 2rem; max-width: 1200px; margin: 0 auto; }
+  /* 콘텐츠 영역 */
+  #content { display: none; padding: 2rem 1.5rem; max-width: 1200px; margin: 0 auto; }
 
   /* 상태 표시 */
-  #db-status { font-size: 12px; padding: 4px 10px; border-radius: 20px; }
-  .status-ok { background: #ebfbee; color: #2f9e44; }
-  .status-err { background: #fff5f5; color: #c92a2a; }
-  .status-loading { background: #f1f3f5; color: #868e96; }
+  #db-status { font-size: 12px; padding: 4px 12px; border-radius: 12px; }
+  .status-ok { background: #e8f5e8; color: #2e7d32; }
+  .status-err { background: #ffebee; color: #c62828; }
+  .status-loading { background: #f5f5f5; color: #9e9e9e; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="logo">AI <span>SRM</span></div>
+  <div class="logo">HD 현대 <span>SRM</span></div>
   <div class="nav">
-    <button class="nav-btn active" onclick="showLanding()">홈</button>
-    <button class="nav-btn" onclick="loadModule('supplier')">협력사</button>
-    <button class="nav-btn" onclick="loadModule('pr')">구매요청</button>
-    <button class="nav-btn" onclick="loadModule('contract')">계약</button>
-    <button class="nav-btn" onclick="loadModule('analysis')">분석</button>
+    <button class="nav-btn active" onclick="showLanding()">대시보드</button>
+    <button class="nav-btn" onclick="loadModule('supplier')">공급망 관리</button>
+    <button class="nav-btn" onclick="loadModule('pr')">구매 관리</button>
+    <button class="nav-btn" onclick="loadModule('contract')">계약 관리</button>
+    <button class="nav-btn" onclick="loadModule('quality')">품질 관리</button>
+    <button class="nav-btn" onclick="loadModule('analysis')">분석 리포트</button>
   </div>
   <div id="db-status" class="status-loading">DB 연결중...</div>
 </div>
 
 <div id="landing">
-  <div class="landing-title">AI <span>SRM</span></div>
-  <div class="landing-sub">공급망 관계 관리 · AI 기반 구매 어시스턴트</div>
+  <div class="landing-title">HD 현대 <span>SRM</span></div>
+  <div class="landing-sub">공급망 관계 관리 · AI 기반 구매 포털</div>
 
   <div class="prompt-wrap">
     <textarea class="prompt-input" id="prompt" rows="3"
-      placeholder='무엇을 도와드릴까요? 예: "1차 부품사 리스크 분석해줘", "이번달 납품 현황 보여줘"'></textarea>
+      placeholder='무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"'></textarea>
     <div class="prompt-footer">
-      <span class="prompt-hint">자동차 제조 · 구매팀 · Claude Sonnet 4.6</span>
+      <span class="prompt-hint">현대자동차 제조 · 구매팀 · Claude Sonnet 4.6</span>
       <button class="send-btn" onclick="handlePrompt()">전송</button>
     </div>
   </div>
 
   <div class="chips">
-    <div class="chip" onclick="setPrompt('1차 부품사 리스크 현황 보여줘')">1차 부품사 리스크 현황</div>
-    <div class="chip" onclick="setPrompt('이번달 구매요청 요약해줘')">이번달 구매요청 요약</div>
-    <div class="chip" onclick="setPrompt('만료 예정 계약 조회해줘')">만료 예정 계약 조회</div>
+    <div class="chip" onclick="setPrompt('공급망 리스크 현황 보여줘')">공급망 리스크 현황</div>
+    <div class="chip" onclick="setPrompt('이번달 구매요청 요약해줘')">구매요청 요약</div>
+    <div class="chip" onclick="setPrompt('만료 예정 계약 조회해줘')">계약 만료 알림</div>
+    <div class="chip" onclick="setPrompt('품질 이슈 현황 보여줘')">품질 이슈 조회</div>
     <div class="chip" onclick="setPrompt('납품 준수율 분석해줘')">납품 준수율 분석</div>
-    <div class="chip" onclick="setPrompt('신규 협력사 등록해줘')">신규 협력사 등록</div>
-    <div class="chip" onclick="setPrompt('단가 변동 이력 보여줘')">단가 변동 이력</div>
+    <div class="chip" onclick="setPrompt('KPI 대시보드 보여줘')">KPI 대시보드</div>
   </div>
 
   <div class="module-grid">
     <div class="module-card" onclick="loadModule('supplier')">
-      <div class="module-dot" style="background:#185FA5;"></div>
-      <div class="module-name">협력사</div>
-      <div class="module-desc">등록·평가·리스크</div>
+      <div class="module-dot" style="background:#005EB8;"></div>
+      <div class="module-name">공급망 관리</div>
+      <div class="module-desc">협력사 등록·평가·리스크</div>
     </div>
     <div class="module-card" onclick="loadModule('pr')">
       <div class="module-dot" style="background:#1D9E75;"></div>
-      <div class="module-name">구매요청</div>
-      <div class="module-desc">PR·PO·승인</div>
+      <div class="module-name">구매 관리</div>
+      <div class="module-desc">PR·PO·승인 프로세스</div>
     </div>
     <div class="module-card" onclick="loadModule('contract')">
       <div class="module-dot" style="background:#EF9F27;"></div>
-      <div class="module-name">계약</div>
-      <div class="module-desc">등록·만료알림</div>
+      <div class="module-name">계약 관리</div>
+      <div class="module-desc">계약 등록·만료 알림</div>
+    </div>
+    <div class="module-card" onclick="loadModule('quality')">
+      <div class="module-dot" style="background:#D85A30;"></div>
+      <div class="module-name">품질 관리</div>
+      <div class="module-desc">품질 검사·이슈 추적</div>
     </div>
     <div class="module-card" onclick="loadModule('analysis')">
-      <div class="module-dot" style="background:#D85A30;"></div>
-      <div class="module-name">분석</div>
-      <div class="module-desc">KPI·AI인사이트</div>
+      <div class="module-dot" style="background:#6B46C1;"></div>
+      <div class="module-name">분석 리포트</div>
+      <div class="module-desc">KPI·AI 인사이트</div>
     </div>
   </div>
 </div>
@@ -148,7 +152,7 @@
     content.style.display = 'block';
     content.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    const map = { supplier:1, pr:2, contract:3, analysis:4 };
+    const map = { supplier:1, pr:2, contract:3, quality:4, analysis:5 };
     document.querySelectorAll('.nav-btn')[map[name]]?.classList.add('active');
     try {
       const mod = await import(`./modules/${name}/index.js`);
