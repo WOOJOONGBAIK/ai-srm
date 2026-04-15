@@ -15,23 +15,27 @@
   .nav-btn:hover { background: #f0f0f0; color: #005EB8; }
   .nav-btn.active { background: #005EB8; color: #fff; }
   .user-info { display: flex; align-items: center; gap: 12px; }
-  .user-name { font-size: 13px; color: #666; }
-  .lang-btn { padding: 4px 8px; border: 1px solid #e0e0e0; border-radius: 4px; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+  .user-name { font-size: 13px; color: #666; font-weight: 500; }
+  .lang-selector { display: flex; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden; }
+  .lang-btn { padding: 6px 12px; border: none; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; color: #666; }
   .lang-btn:hover { background: #f0f0f0; }
-  .lang-btn.active { background: #005EB8; color: #fff; border-color: #005EB8; }
+  .lang-btn.active { background: #005EB8; color: #fff; }
 
-  /* 메인 랜딩 */
-  #landing { display: flex; flex-direction: column; align-items: center; padding: 3rem 1.5rem 2rem; }
-  .landing-title { font-size: 32px; font-weight: 600; color: #005EB8; margin-bottom: 8px; }
-  .landing-sub { font-size: 16px; color: #666; margin-bottom: 2rem; text-align: center; }
+  /* 메인 레이아웃 */
+  .main-layout { display: flex; min-height: calc(100vh - 56px); }
+  .workspace { flex: 1; padding: 2rem; display: flex; flex-direction: column; }
+  .sidebar { width: 300px; background: #fafafa; border-left: 1px solid #e0e0e0; padding: 1.5rem; }
+  .sidebar-title { font-size: 16px; font-weight: 600; margin-bottom: 1rem; color: #333; }
+  .sidebar-item { padding: 12px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
+  .sidebar-item.danger { border-color: #ff6b6b; background: #fff5f5; }
+  .sidebar-item.warning { border-color: #ffd43b; background: #fff9db; }
+  .sidebar-item.info { border-color: #74c0fc; background: #e7f5ff; }
 
-  /* 프롬프트 박스 */
-  .prompt-wrap { width: 100%; max-width: 600px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin-bottom: 1.5rem; }
-  .prompt-input { width: 100%; border: none; outline: none; padding: 16px; font-size: 14px; resize: none; font-family: inherit; color: #333; }
-  .prompt-footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #f0f0f0; background: #fafafa; }
-  .prompt-hint { font-size: 12px; color: #999; }
-  .send-btn { background: #005EB8; color: #fff; border: none; border-radius: 4px; padding: 8px 16px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
-  .send-btn:hover { background: #004080; }
+  /* 프롬프트 영역 (하단 고정) */
+  .prompt-area { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e0e0e0; padding: 1rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+  .prompt-container { max-width: 800px; margin: 0 auto; }
+  .prompt-input { width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 16px; font-size: 14px; resize: none; font-family: inherit; outline: none; }
+  .prompt-input:focus { border-color: #005EB8; box-shadow: 0 0 0 2px rgba(0,94,184,0.1); }
 
   /* 칩 */
   .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 600px; margin-bottom: 2.5rem; }
@@ -74,25 +78,18 @@
     <button class="nav-btn" onclick="loadModule('collaboration')">협업관리</button>
   </div>
   <div class="user-info">
-    <span class="user-name">김철수님</span>
-    <button class="lang-btn active" onclick="setLanguage('ko')">한</button>
-    <button class="lang-btn" onclick="setLanguage('en')">EN</button>
-    <button class="lang-btn" onclick="setLanguage('zh')">中</button>
+    <span class="user-name">구매인</span>
+    <div class="lang-selector">
+      <button class="lang-btn active" onclick="setLanguage('ko')">한</button>
+      <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+      <button class="lang-btn" onclick="setLanguage('zh')">中</button>
+    </div>
   </div>
 </div>
 
 <div id="landing">
   <div class="landing-title">AI <span>SRM</span></div>
   <div class="landing-sub">공급망 관계 관리 · AI 기반 구매 포털</div>
-
-  <div class="prompt-wrap">
-    <textarea class="prompt-input" id="prompt" rows="3"
-      placeholder='무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"'></textarea>
-    <div class="prompt-footer">
-      <span class="prompt-hint">현대자동차 제조 · 구매팀 · Claude Sonnet 4.6</span>
-      <button class="send-btn" onclick="handlePrompt()">전송</button>
-    </div>
-  </div>
 
   <div class="chips">
     <div class="chip" onclick="setPrompt('공급망 리스크 현황 보여줘')">공급망 리스크 현황</div>
@@ -105,7 +102,31 @@
 
 <div id="content"></div>
 
-<div id="content"></div>
+<div class="main-layout">
+  <div class="workspace">
+    <!-- 워크스페이스 콘텐츠 -->
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-title">해야할 일</div>
+    <div class="sidebar-item info">📋 계약 갱신 검토 (3건)</div>
+    <div class="sidebar-item warning">⚠️ 공급업체 리스크 점검</div>
+    <div class="sidebar-item danger">🚨 품질 이슈 대응 필요</div>
+    <div class="sidebar-item info">📊 월간 보고서 작성</div>
+
+    <div class="sidebar-title" style="margin-top: 2rem;">위험 신호</div>
+    <div class="sidebar-item danger">🔴 공급업체 A 납기 지연</div>
+    <div class="sidebar-item warning">🟡 원자재 가격 상승</div>
+    <div class="sidebar-item info">🔵 신규 협력사 검토</div>
+  </div>
+</div>
+
+<div class="prompt-area">
+  <div class="prompt-container">
+    <textarea class="prompt-input" id="prompt" rows="2"
+      placeholder='무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"'></textarea>
+  </div>
+</div>
 
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -165,7 +186,7 @@
       title: "AI SRM",
       subtitle: "공급망 관계 관리 · AI 기반 구매 포털",
       placeholder: '무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"',
-      hint: "현대자동차 제조 · 구매팀 · Claude Sonnet 4.6",
+      hint: "구매팀 · Claude Sonnet 4.6",
       chips: [
         "공급망 리스크 현황",
         "구매요청 요약",
@@ -192,7 +213,7 @@
       title: "AI SRM",
       subtitle: "Supply Chain Relationship Management · AI-powered Procurement Portal",
       placeholder: 'What can I help you with? e.g., "Show supply chain risk status", "Show purchase request summary"',
-      hint: "Hyundai Motor Manufacturing · Procurement Team · Claude Sonnet 4.6",
+      hint: "Procurement Team · Claude Sonnet 4.6",
       chips: [
         "Supply Chain Risk Status",
         "Purchase Request Summary",
@@ -219,7 +240,7 @@
       title: "AI SRM",
       subtitle: "供应链关系管理 · AI驱动采购门户",
       placeholder: '我能帮您什么？例如："显示供应链风险状态"、"显示采购请求摘要"',
-      hint: "现代汽车制造 · 采购团队 · Claude Sonnet 4.6",
+      hint: "采购团队 · Claude Sonnet 4.6",
       chips: [
         "供应链风险状态",
         "采购请求摘要",
