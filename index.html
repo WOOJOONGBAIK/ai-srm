@@ -84,23 +84,23 @@
   <div class="logo">AI <span>SRM</span></div>
   <div class="nav">
     <button class="nav-btn active" onclick="showLanding()">대시보드</button>
-    <button class="nav-btn" onclick="loadModule('master')">기준정보</button>
+    <button class="nav-btn" onclick="loadModule('master')" data-role="internal">기준정보</button>
     <button class="nav-btn" onclick="loadModule('supplier')">협력사관리</button>
     <button class="nav-btn" onclick="loadModule('pr')">구매요청</button>
     <button class="nav-btn" onclick="loadModule('contract')">계약관리</button>
     <button class="nav-btn" onclick="loadModule('po')">발주관리</button>
     <button class="nav-btn" onclick="loadModule('delivery')">납기관리</button>
     <button class="nav-btn" onclick="loadModule('vendor')">사급관리</button>
-    <button class="nav-btn" onclick="loadModule('planning')">생산계획</button>
-    <button class="nav-btn" onclick="loadModule('quality')">품질관리</button>
-    <button class="nav-btn" onclick="loadModule('import')">수출입관리</button>
-    <button class="nav-btn" onclick="loadModule('shipping')">선적관리</button>
-    <button class="nav-btn" onclick="loadModule('project')">프로젝트관리</button>
-    <button class="nav-btn" onclick="loadModule('system')">시스템관리</button>
+    <button class="nav-btn" onclick="loadModule('planning')" data-role="internal">생산계획</button>
+    <button class="nav-btn" onclick="loadModule('quality')" data-role="internal">품질관리</button>
+    <button class="nav-btn" onclick="loadModule('import')" data-role="internal">수출입관리</button>
+    <button class="nav-btn" onclick="loadModule('shipping')" data-role="internal">선적관리</button>
+    <button class="nav-btn" onclick="loadModule('project')" data-role="internal">프로젝트관리</button>
+    <button class="nav-btn" onclick="loadModule('system')" data-role="internal">시스템관리</button>
   </div>
   <div class="user-info">
     <span class="time-location" id="time-location">서울, 14:30</span>
-    <span class="user-name">구매인</span>
+    <span class="user-name">${localStorage.getItem('username') || '사용자'} 님</span>
     <div class="lang-selector">
       <button class="lang-btn active" onclick="setLanguage(event, 'ko')">한</button>
       <button class="lang-btn" onclick="setLanguage(event, 'en')">EN</button>
@@ -143,6 +143,11 @@
 </div>
 
 <script type="module">
+  // 세션 체크: 로그인하지 않은 경우 포털로 리다이렉트
+  if (!localStorage.getItem('isLoggedIn')) {
+    window.location.href = 'portal.html';
+  }
+
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
   const SUPABASE_URL = 'https://zsgigvswnwudlpanpodl.supabase.co';
@@ -172,6 +177,20 @@
     `;
     document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   };
+
+  // 사용자 역할에 따른 메뉴 필터링
+  const filterMenusByRole = () => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole === 'external') {
+      // 외부 협력사: 내부 전용 메뉴 숨김
+      document.querySelectorAll('.nav-btn[data-role="internal"]').forEach(btn => {
+        btn.style.display = 'none';
+      });
+    }
+  };
+
+  // 페이지 로드 시 메뉴 필터링 실행
+  filterMenusByRole();
 
   window.loadModule = async (name) => {
     const workspace = document.getElementById('workspace');

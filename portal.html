@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI SRM Portal</title>
+<style>
+  :root {
+    --samsung-blue: #005EB8;
+    --border-color: #e0e0e0;
+    --bg-gray: #f8f9fa;
+    --text-main: #333;
+    --text-sub: #666;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, -apple-system, sans-serif; }
+  body { background: var(--bg-gray); color: var(--text-main); min-height: 100vh; line-height: 1.5; }
+
+  .header { background: #fff; border-bottom: 1px solid var(--border-color); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 18px; font-weight: 700; color: var(--samsung-blue); letter-spacing: -0.5px; }
+  .logo span { font-weight: 300; color: #555; margin-left: 2px; }
+  .lang-selector { display: flex; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+  .lang-btn { padding: 6px 12px; border: none; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; color: var(--text-sub); }
+  .lang-btn:hover { background: #f0f0f0; }
+  .lang-btn.active { background: var(--samsung-blue); color: #fff; }
+
+  .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; padding: 2rem; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 56px); }
+
+  .login-section { background: #fff; padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  .login-title { font-size: 20px; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-main); }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 4px; }
+  .form-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; }
+  .form-group input:focus { border-color: var(--samsung-blue); outline: none; }
+  .login-btn { width: 100%; padding: 12px; background: var(--samsung-blue); color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 1rem; }
+  .login-btn:hover { background: #004a94; }
+  .sso-btn { width: 100%; padding: 12px; background: #fff; color: var(--samsung-blue); border: 1px solid var(--samsung-blue); border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .sso-btn:hover { background: #f0f8ff; }
+  .error-msg { color: #ff6b6b; font-size: 12px; margin-top: 8px; display: none; }
+
+  .info-section { display: grid; grid-template-rows: 1fr 1fr 1fr; gap: 1.5rem; }
+
+  .section-card { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+  .section-title { font-size: 16px; font-weight: 700; margin-bottom: 1rem; color: var(--text-main); }
+
+  .notice-item { padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s; }
+  .notice-item:hover { background: #f9f9f9; }
+  .notice-item:last-child { border-bottom: none; }
+  .notice-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .notice-date { font-size: 12px; color: var(--text-sub); }
+  .notice-summary { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+
+  .archive-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f0f0f0; }
+  .archive-item:last-child { border-bottom: none; }
+  .archive-info { display: flex; align-items: center; gap: 12px; }
+  .archive-icon { font-size: 20px; }
+  .archive-details h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .archive-details span { font-size: 12px; color: var(--text-sub); }
+  .download-btn { padding: 6px 12px; background: var(--samsung-blue); color: #fff; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; }
+  .download-btn:hover { background: #004a94; }
+
+  .faq-container { max-height: 300px; overflow-y: auto; }
+  .faq-search { margin-bottom: 1rem; }
+  .faq-search input { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; }
+  .faq-category { margin-bottom: 1rem; }
+  .faq-category select { padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; }
+  .faq-item { border-bottom: 1px solid #f0f0f0; }
+  .faq-question { padding: 12px; cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .faq-answer { padding: 0 12px 12px; display: none; color: var(--text-sub); }
+
+  .footer { text-align: center; padding: 1rem; color: var(--text-sub); font-size: 12px; border-top: 1px solid var(--border-color); background: #fff; }
+
+  @media (max-width: 768px) {
+    .main-layout { grid-template-columns: 1fr; gap: 1rem; padding: 1rem; }
+    .info-section { grid-template-rows: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">AI <span>SRM Portal</span></div>
+  <div class="lang-selector">
+    <button class="lang-btn active" onclick="setLanguage('ko')">한</button>
+    <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+    <button class="lang-btn" onclick="setLanguage('zh')">中</button>
+  </div>
+</div>
+
+<div class="main-layout">
+  <div class="login-section">
+    <h2 class="login-title">AI SRM Portal 로그인</h2>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">아이디</label>
+        <input type="text" id="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" required>
+      </div>
+      <button type="submit" class="login-btn">LDAP 로그인</button>
+      <button type="button" class="sso-btn" onclick="handleSSOLogin()">SSO 로그인</button>
+      <div id="errorMsg" class="error-msg">아이디 또는 비밀번호가 잘못되었습니다.</div>
+    </form>
+  </div>
+
+  <div class="info-section">
+    <div class="section-card">
+      <h3 class="section-title">📢 공지사항</h3>
+      <div id="noticesList"></div>
+    </div>
+
+    <div class="section-card">
+      <h3 class="section-title">📁 자료실</h3>
+      <div id="archivesList"></div>
+    </div>
+
+    <div class="section-card">
+      <h3 class="section-title">❓ FAQ</h3>
+      <div class="faq-container">
+        <div class="faq-search">
+          <input type="text" id="faqSearch" placeholder="질문 검색...">
+        </div>
+        <div class="faq-category">
+          <select id="faqCategory">
+            <option value="">전체 카테고리</option>
+            <option value="시스템 이용">시스템 이용</option>
+            <option value="인증 관련">인증 관련</option>
+            <option value="서류 제출">서류 제출</option>
+          </select>
+        </div>
+        <div id="faqList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  © 2026 AI SRM Portal | 문의: it-support@company.com
+</div>
+
+<script type="module">
+  import { portalData } from './data.js';
+
+  let currentLang = 'ko';
+
+  // 언어 설정 (간단 버전)
+  window.setLanguage = (lang) => {
+    currentLang = lang;
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.textContent.toLowerCase() === lang);
+    });
+    // 실제로는 다국어 데이터 적용
+  };
+
+  // 공지사항 렌더링
+  const renderNotices = () => {
+    const container = document.getElementById('noticesList');
+    container.innerHTML = portalData.notices.slice(0, 3).map(notice => `
+      <div class="notice-item" onclick="showNoticeDetail(${notice.id})">
+        <div class="notice-title">${notice.title}</div>
+        <div class="notice-date">${notice.date}</div>
+        <div class="notice-summary">${notice.summary}</div>
+      </div>
+    `).join('');
+  };
+
+  // 공지사항 상세 모달
+  window.showNoticeDetail = (id) => {
+    const notice = portalData.notices.find(n => n.id === id);
+    if (notice) {
+      alert(`${notice.title}\n\n${notice.content}`);
+    }
+  };
+
+  // 자료실 렌더링 (공용 자료만)
+  const renderArchives = () => {
+    const container = document.getElementById('archivesList');
+    container.innerHTML = portalData.archives.public.map(archive => `
+      <div class="archive-item">
+        <div class="archive-info">
+          <div class="archive-icon">${getFileIcon(archive.type)}</div>
+          <div class="archive-details">
+            <h4>${archive.title}</h4>
+            <span>${archive.type} · ${archive.size}</span>
+          </div>
+        </div>
+        <button class="download-btn" onclick="downloadFile(${archive.id})">다운로드</button>
+      </div>
+    `).join('');
+  };
+
+  const getFileIcon = (type) => {
+    switch(type) {
+      case 'PDF': return '📄';
+      case 'Excel': return '📊';
+      case 'Word': return '📝';
+      default: return '📁';
+    }
+  };
+
+  window.downloadFile = (id) => {
+    alert('파일 다운로드 기능은 실제 운영 시 구현됩니다.');
+  };
+
+  // FAQ 렌더링
+  const renderFAQ = (searchTerm = '', category = '') => {
+    const container = document.getElementById('faqList');
+    let filtered = portalData.faq;
+
+    if (searchTerm) {
+      filtered = filtered.filter(faq =>
+        faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (category) {
+      filtered = filtered.filter(faq => faq.category === category);
+    }
+
+    container.innerHTML = filtered.map(faq => `
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(${faq.id})">
+          <span>${faq.question}</span>
+          <span>▼</span>
+        </div>
+        <div class="faq-answer" id="faq-${faq.id}">${faq.answer}</div>
+      </div>
+    `).join('');
+  };
+
+  window.toggleFAQ = (id) => {
+    const answer = document.getElementById(`faq-${id}`);
+    answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+  };
+
+  // 로그인 핸들러
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorMsg = document.getElementById('errorMsg');
+
+    // 가상 인증 (실제로는 LDAP/SSO 서버 연동)
+    if (username && password) {
+      // 내부 직원 vs 외부 협력사 구분 (가상 로직)
+      const userRole = username.includes('external') ? 'external' : 'internal';
+
+      // 세션 저장
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userRole', userRole);
+      localStorage.setItem('username', username);
+
+      // index.html로 리다이렉트
+      window.location.href = 'index.html';
+    } else {
+      errorMsg.style.display = 'block';
+    }
+  };
+
+  // SSO 로그인 핸들러
+  window.handleSSOLogin = () => {
+    // 가상 SSO 인증
+    const userRole = 'internal'; // SSO는 내부 직원으로 가정
+
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userRole', userRole);
+    localStorage.setItem('username', 'sso-user');
+
+    window.location.href = 'index.html';
+  };
+
+  // 이벤트 리스너
+  document.getElementById('loginForm').addEventListener('submit', handleLogin);
+  document.getElementById('faqSearch').addEventListener('input', (e) => {
+    renderFAQ(e.target.value, document.getElementById('faqCategory').value);
+  });
+  document.getElementById('faqCategory').addEventListener('change', (e) => {
+    renderFAQ(document.getElementById('faqSearch').value, e.target.value);
+  });
+
+  // 초기 렌더링
+  renderNotices();
+  renderArchives();
+  renderFAQ();
+</script>
+</body>
+</html>
