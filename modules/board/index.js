@@ -1,3 +1,8 @@
+import { DataTable } from '../../components/table.js';
+import { SearchFilter } from '../../components/table.js';
+import { Modal, showConfirm } from '../../components/modal.js';
+import { Notification } from '../../components/utils.js';
+
 export const render = async (container, supabase) => {
   container.innerHTML = `
     <div style="padding: 2rem;">
@@ -6,42 +11,63 @@ export const render = async (container, supabase) => {
         <button class="nav-btn active" onclick="addBoardPost()">새 글 작성</button>
       </div>
 
-      <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="padding: 1rem; border-bottom: 1px solid #e0e0e0; display: flex; gap: 1rem;">
-          <select id="boardCategory" style="padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
-            <option value="">전체 카테고리</option>
-            <option value="공지">공지</option>
-            <option value="질문">질문</option>
-            <option value="자유">자유</option>
-          </select>
-          <input type="text" id="boardSearch" placeholder="제목 검색..." style="flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
-          <button onclick="searchBoardPosts()" style="padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer;">검색</button>
-        </div>
+      <div id="searchFilterContainer"></div>
 
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead style="background: #f8f9fa;">
-            <tr>
-              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0;">번호</th>
-              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0;">카테고리</th>
-              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0;">제목</th>
-              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0;">작성자</th>
-              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0;">작성일</th>
-              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0;">조회</th>
-              <th style="padding: 12px; text-align: center; border-bottom: 1px solid #e0e0e0;">관리</th>
-            </tr>
-          </thead>
-          <tbody id="boardTableBody">
-            <!-- 게시글 목록이 여기에 표시됩니다 -->
-          </tbody>
-        </table>
+      <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div id="tableContainer"></div>
       </div>
     </div>
   `;
 
-  loadBoardPosts();
+  // 컴포넌트 초기화
+  const searchFilter = new SearchFilter(
+    document.getElementById('searchFilterContainer'),
+    {
+      searchPlaceholder: '제목 검색...',
+      categories: [
+        { value: '공지', label: '공지' },
+        { value: '질문', label: '질문' },
+        { value: '자유', label: '자유' }
+      ]
+    }
+  );
+
+  const table = new DataTable(
+    document.getElementById('tableContainer'),
+    {
+      columns: [
+        { header: '번호', field: 'id' },
+        { header: '카테고리', field: 'category' },
+        { header: '제목', field: 'title' },
+        { header: '작성자', field: 'author' },
+        {
+          header: '작성일',
+          field: 'date',
+          formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+        },
+        { header: '조회', field: 'views' }
+      ],
+      actions: [
+        { label: '수정', handler: 'editBoardPost', color: '#28a745' },
+        { label: '삭제', handler: 'deleteBoardPost', color: '#dc3545' }
+      ]
+    }
+  );
+
+  // 검색 필터 이벤트
+  searchFilter.render(
+    (searchTerm, categoryValue) => {
+      table.filter(searchTerm, 'category', categoryValue);
+    },
+    (categoryValue) => {
+      table.filter('', 'category', categoryValue);
+    }
+  );
+
+  loadBoardPosts(table);
 };
 
-const loadBoardPosts = async () => {
+const loadBoardPosts = async (table) => {
   // 가상 데이터로 게시글 목록 표시
   const mockPosts = [
     { id: 1, category: '공지', title: '시스템 점검 안내', author: '관리자', date: '2024-01-15', views: 125 },
@@ -49,40 +75,61 @@ const loadBoardPosts = async () => {
     { id: 3, category: '자유', title: '신년 인사', author: '이영희', date: '2024-01-13', views: 78 },
   ];
 
-  const tbody = document.getElementById('boardTableBody');
-  tbody.innerHTML = mockPosts.map(post => `
-    <tr style="border-bottom: 1px solid #f0f0f0;">
-      <td style="padding: 12px;">${post.id}</td>
-      <td style="padding: 12px;">${post.category}</td>
-      <td style="padding: 12px;">${post.title}</td>
-      <td style="padding: 12px;">${post.author}</td>
-      <td style="padding: 12px;">${post.date}</td>
-      <td style="padding: 12px;">${post.views}</td>
-      <td style="padding: 12px; text-align: center;">
-        <button onclick="editBoardPost(${post.id})" style="padding: 4px 8px; margin-right: 4px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer;">수정</button>
-        <button onclick="deleteBoardPost(${post.id})" style="padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer;">삭제</button>
-      </td>
-    </tr>
-  `).join('');
+  table.setData(mockPosts);
 };
 
 window.addBoardPost = () => {
-  alert('새 글 작성 기능 준비중입니다.');
+  const modal = new Modal({ size: 'large' })
+    .setTitle('새 글 작성')
+    .setContent(`
+      <form id="boardForm">
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">카테고리</label>
+          <select name="category" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+            <option value="공지">공지</option>
+            <option value="질문">질문</option>
+            <option value="자유">자유</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">제목</label>
+          <input type="text" name="title" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">내용</label>
+          <textarea name="content" rows="10" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" required></textarea>
+        </div>
+      </form>
+    `)
+    .setFooter([
+      { label: '취소' },
+      { label: '저장', handler: () => saveBoardPost(modal), primary: true }
+    ])
+    .open();
+};
+
+const saveBoardPost = async (modal) => {
+  const form = document.getElementById('boardForm');
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData);
+
+  // 여기서 실제 저장 로직 구현
+  console.log('저장할 데이터:', data);
+
+  Notification.success('게시글이 저장되었습니다.');
+  modal.close();
+  // 테이블 리프레시
+  location.reload();
 };
 
 window.editBoardPost = (id) => {
-  alert(`게시글 ${id} 수정 기능 준비중입니다.`);
+  Notification.info(`게시글 ${id} 수정 기능 준비중입니다.`);
 };
 
 window.deleteBoardPost = (id) => {
-  if (confirm(`게시글 ${id}을(를) 삭제하시겠습니까?`)) {
-    alert('삭제되었습니다.');
-    loadBoardPosts();
-  }
-};
-
-window.searchBoardPosts = () => {
-  const category = document.getElementById('boardCategory').value;
-  const search = document.getElementById('boardSearch').value;
-  alert(`카테고리: ${category}, 검색어: ${search} - 검색 기능 준비중입니다.`);
+  showConfirm(`게시글 ${id}을(를) 삭제하시겠습니까?`, () => {
+    Notification.success('삭제되었습니다.');
+    // 실제 삭제 로직과 테이블 리프레시
+    location.reload();
+  });
 };
