@@ -7,80 +7,99 @@
 <style>
   :root {
     --samsung-blue: #005EB8;
+    --samsung-dark: #003d82;
     --border-color: #e0e0e0;
-    --bg-gray: #f8f9fa;
+    --bg-gray: #f4f7f9;
     --text-main: #333;
     --text-sub: #666;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, -apple-system, sans-serif; }
-  body { background: var(--bg-gray); color: var(--text-main); min-height: 100vh; line-height: 1.5; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, 'Malgun Gothic', sans-serif; }
+  body { background: var(--bg-gray); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
 
-  .header { background: #fff; border-bottom: 1px solid var(--border-color); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-  .logo { font-size: 18px; font-weight: 700; color: var(--samsung-blue); letter-spacing: -0.5px; }
-  .logo span { font-weight: 300; color: #555; margin-left: 2px; }
-  .lang-selector { display: flex; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
-  .lang-btn { padding: 6px 12px; border: none; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; color: var(--text-sub); }
-  .lang-btn:hover { background: #f0f0f0; }
-  .lang-btn.active { background: var(--samsung-blue); color: #fff; }
+  /* Header */
+  .header { background: #fff; border-bottom: 1px solid var(--border-color); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .logo { font-size: 20px; font-weight: 700; color: var(--samsung-blue); }
+  .logo span { font-weight: 300; color: #555; }
 
-  .main-layout { display: grid; grid-template-columns: 350px 1fr 350px; gap: 2rem; padding: 2rem; max-width: 1600px; margin: 0 auto; min-height: calc(100vh - 56px); align-items: start; }
+  /* Layout - 높이 동기화의 핵심 */
+  .main-layout { 
+    display: grid; 
+    grid-template-columns: 350px 1fr 350px; 
+    gap: 1.5rem; 
+    padding: 2rem; 
+    max-width: 1600px; 
+    margin: 0 auto; 
+    flex: 1; /* 푸터를 하단으로 밀어내고 남은 높이 차지 */
+    align-items: stretch; /* 자식 요소들의 높이를 동일하게 맞춤 */
+  }
 
-  .login-section { background: linear-gradient(135deg, #005EB8 0%, #003d82 100%); color: #fff; padding: 2.5rem; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,94,184,0.3); position: sticky; top: 2rem; }
-  .login-title { font-size: 22px; font-weight: 700; margin-bottom: 2rem; text-align: center; }
-  .form-group { margin-bottom: 1.5rem; }
-  .form-group label { display: block; font-size: 14px; color: #e0e0e0; margin-bottom: 6px; font-weight: 500; }
-  .form-group input { width: 100%; padding: 12px 16px; border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; font-size: 14px; backdrop-filter: blur(10px); }
-  .form-group input::placeholder { color: rgba(255,255,255,0.7); }
-  .form-group input:focus { border-color: #fff; outline: none; background: rgba(255,255,255,0.2); }
-  .login-btn { width: 100%; padding: 14px; background: #fff; color: #005EB8; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 1rem; transition: all 0.3s; }
-  .login-btn:hover { background: #f0f0f0; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-  .sso-btn { width: 100%; padding: 14px; background: rgba(255,255,255,0.1); color: #fff; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.3s; }
-  .sso-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
-  .error-msg { color: #ffcccc; font-size: 13px; margin-top: 12px; text-align: center; display: none; }
+  .center-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 
-  .info-section { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  /* Common Card Style */
+  .section-card { 
+    height: 100%;
+    background: #fff; 
+    border: 1px solid var(--border-color); 
+    border-radius: 12px; 
+    display: flex; 
+    flex-direction: column; /* 내부 요소 세로 정렬 */
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .card-header { padding: 1.5rem; border-bottom: 1px solid #f0f0f0; }
+  .card-body { padding: 1.5rem; flex: 1; } /* flex: 1로 남은 공간을 채워 높이 맞춤 */
 
-  .section-card { background: #fff; border: 1px solid #e8e8e8; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s; }
-  .section-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
-  .section-title { font-size: 18px; font-weight: 700; margin-bottom: 1.5rem; color: #005EB8; display: flex; align-items: center; gap: 8px; }
-  .section-title::before { content: ''; width: 4px; height: 20px; background: #005EB8; border-radius: 2px; }
+  .section-title { font-size: 18px; font-weight: 700; color: var(--samsung-blue); display: flex; align-items: center; gap: 10px; }
+  .section-title::before { content: ''; width: 4px; height: 18px; background: var(--samsung-blue); border-radius: 2px; }
 
-  .notice-item { padding: 16px; border-bottom: 1px solid #f5f5f5; cursor: pointer; transition: all 0.2s; border-radius: 8px; margin-bottom: 8px; }
-  .notice-item:hover { background: #f8f9fa; transform: translateX(4px); }
-  .notice-item:last-child { border-bottom: none; margin-bottom: 0; }
-  .notice-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: #333; }
-  .notice-date { font-size: 12px; color: #666; font-weight: 500; }
-  .notice-summary { font-size: 13px; color: #777; margin-top: 8px; line-height: 1.4; }
+  /* Login Section */
+  .login-card { background: linear-gradient(145deg, var(--samsung-blue), var(--samsung-dark)); color: #fff; border: none; }
+  .login-card .section-title { color: #fff; }
+  .login-card .section-title::before { background: #fff; }
+  .form-group { margin-bottom: 1.2rem; }
+  .form-group label { display: block; font-size: 13px; color: #e0e0e0; margin-bottom: 6px; }
+  .form-group input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(255,255,255,0.1); color: #fff; }
+  .login-btn { width: 100%; padding: 14px; background: #fff; color: var(--samsung-blue); border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+  .login-btn:hover { background: #f0f0f0; transform: translateY(-2px); }
+  
+  .login-footer { margin-top: 1.5rem; display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; }
+  .login-footer a { color: #fff; font-size: 13px; text-decoration: none; opacity: 0.8; }
+  .login-footer a:hover { opacity: 1; }
 
-  .archive-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #f5f5f5; border-radius: 8px; margin-bottom: 8px; transition: all 0.2s; }
-  .archive-item:hover { background: #f8f9fa; transform: translateX(4px); }
-  .archive-item:last-child { border-bottom: none; margin-bottom: 0; }
-  .archive-info { display: flex; align-items: center; gap: 12px; }
-  .archive-icon { font-size: 24px; color: #005EB8; }
-  .archive-details h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: #333; }
-  .archive-details span { font-size: 12px; color: #666; }
-  .download-btn { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-  .download-btn:hover { background: #004a94; transform: translateY(-1px); }
+  /* Center Content: Quick Guide + Notices */
+  .quick-guide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .guide-item { background: #f8f9fa; padding: 1.2rem; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+  .guide-item:hover { background: #fff; border-color: var(--samsung-blue); color: var(--samsung-blue); }
+  .guide-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .guide-text { font-size: 13px; font-weight: 600; }
 
-  .faq-container { max-height: 400px; overflow-y: auto; }
-  .faq-search { margin-bottom: 1.5rem; }
-  .faq-search input { width: 100%; padding: 12px 16px; border: 2px solid #e8e8e8; border-radius: 8px; font-size: 14px; transition: all 0.2s; }
-  .faq-search input:focus { border-color: #005EB8; outline: none; box-shadow: 0 0 0 3px rgba(0,94,184,0.1); }
-  .faq-category { margin-bottom: 1.5rem; }
-  .faq-category select { padding: 8px 12px; border: 2px solid #e8e8e8; border-radius: 8px; font-size: 14px; background: #fff; transition: all 0.2s; }
-  .faq-category select:focus { border-color: #005EB8; outline: none; }
-  .faq-item { border-bottom: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
-  .faq-question { padding: 16px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-  .faq-question:hover { background: #f8f9fa; }
-  .faq-answer { padding: 0 16px 16px; display: none; color: #666; font-size: 13px; line-height: 1.5; }
+  .list-item { padding: 12px 0; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
+  .list-item:last-child { border-bottom: none; }
+  .list-content { flex: 1; cursor: pointer; }
+  .list-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .list-date { font-size: 12px; color: #999; }
 
-  .footer { text-align: center; padding: 2rem; color: #666; font-size: 13px; border-top: 1px solid #e8e8e8; background: #f8f9fa; }
+  /* Right Section: FAQ & Support */
+  .contact-box { background: #f8f9fa; padding: 1.2rem; border-radius: 8px; margin-top: 1rem; }
+  .contact-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #555; }
+  .contact-info { font-size: 15px; color: var(--samsung-blue); font-weight: 700; }
 
-  @media (max-width: 768px) {
-    .main-layout { grid-template-columns: 1fr; gap: 1.5rem; padding: 1.5rem; }
-    .info-section { grid-template-columns: 1fr; gap: 1.5rem; }
-    .login-section { position: static; padding: 2rem; }
+  .sub-btn {
+    width: 100%; padding: 10px; margin-top: 10px;
+    background: #f0f0f0; border: 1px solid #ddd;
+    border-radius: 4px; cursor: pointer; font-weight: 600;
+  }
+  .sub-btn:hover { background: #e0e0e0; }
+
+  .footer { text-align: center; padding: 1.5rem; color: #999; font-size: 12px; background: #fff; border-top: 1px solid var(--border-color); }
+
+  @media (max-width: 1200px) {
+    .main-layout { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -88,212 +107,107 @@
 
 <div class="header">
   <div class="logo">AI <span>SRM Portal</span></div>
-  <div class="lang-selector">
-    <button class="lang-btn active" onclick="setLanguage('ko')">한</button>
-    <button class="lang-btn" onclick="setLanguage('en')">EN</button>
-    <button class="lang-btn" onclick="setLanguage('zh')">中</button>
-  </div>
 </div>
 
 <div class="main-layout">
-  <div class="login-section">
-    <h2 class="login-title">AI SRM Portal 로그인</h2>
-
-    <form id="loginForm">
-      <div class="form-group">
-        <label for="username">아이디</label>
-        <input type="text" id="username" required>
+  <div class="section-card login-card">
+    <div class="card-header">
+      <h3 class="section-title">로그인</h3>
+    </div>
+    <div class="card-body">
+      <form id="loginForm">
+        <div class="form-group">
+          <label>아이디</label>
+          <input type="text" id="username" placeholder="아이디를 입력하세요" required>
+        </div>
+        <div class="form-group">
+          <label>비밀번호</label>
+          <input type="password" id="password" placeholder="비밀번호를 입력하세요" required>
+        </div>
+        <button type="submit" class="login-btn">로그인</button>
+      </form>
+      <div class="login-footer">
+        <a href="#">아이디/비번 찾기</a>
+        <a href="#" style="font-weight: 700; color: #ffeb3b;">신규 협력사 등록 →</a>
       </div>
-      <div class="form-group">
-        <label for="password">비밀번호</label>
-        <input type="password" id="password" required>
-      </div>
-      <button type="submit" class="login-btn">LDAP 로그인</button>
-      <button type="button" class="sso-btn" onclick="handleSSOLogin()">SSO 로그인</button>
-      <div id="errorMsg" class="error-msg">아이디 또는 비밀번호가 잘못되었습니다.</div>
-    </form>
+    </div>
   </div>
 
-  <div class="info-section">
-    <div class="section-card">
-      <h3 class="section-title">📢 공지사항</h3>
-      <div id="noticesList"></div>
+  <div class="center-column">
+  <div class="section-card">
+    <div class="card-header">
+      <h3 class="section-title">시스템 안내 및 공지</h3>
     </div>
-
-    <div class="section-card">
-      <h3 class="section-title">📁 자료실</h3>
-      <div id="archivesList"></div>
+    <div class="card-body">
+      <div class="quick-guide">
+        <div class="guide-item">
+          <span class="guide-icon">📘</span>
+          <span class="guide-text">이용 가이드</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-icon">🔐</span>
+          <span class="guide-text">인증서 안내</span>
+        </div>
+        <div class="guide-item">
+          <span class="guide-icon">⚙️</span>
+          <span class="guide-text">환경 설정</span>
+        </div>
+      </div>
+      
+      <h4 style="font-size: 15px; margin: 1.5rem 0 1rem; border-bottom: 2px solid var(--samsung-blue); display: inline-block;">주요 공지사항</h4>
+      <div id="noticesList">
+        <div class="list-item">
+          <div class="list-content">
+            <div class="list-title">[공지] AI SRM 시스템 정기 점검 안내 (2026-04-20)</div>
+            <div class="list-date">2026.04.16</div>
+          </div>
+        </div>
+        <div class="list-item">
+          <div class="list-content">
+            <div class="list-title">[안내] 신규 전자서명법 적용에 따른 인증서 갱신 방법</div>
+            <div class="list-date">2026.04.10</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="section-card">
-    <h3 class="section-title">❓ FAQ</h3>
-    <div class="faq-container">
-      <div class="faq-search">
-        <input type="text" id="faqSearch" placeholder="질문 검색...">
-      </div>
-      <div class="faq-category">
-        <select id="faqCategory">
-          <option value="">전체 카테고리</option>
-          <option value="시스템 이용">시스템 이용</option>
-          <option value="인증 관련">인증 관련</option>
-          <option value="서류 제출">서류 제출</option>
-        </select>
-      </div>
-      <div id="faqList"></div>
+    <div class="card-header">
+      <h3 class="section-title">고객지원</h3>
     </div>
+    <div class="card-body">
+      <div id="faqShortList">
+        <div class="list-item">
+          <div class="list-content">
+            <div class="list-title">Q. 비밀번호를 5회 틀렸습니다.</div>
+          </div>
+          <span>+</span>
+        </div>
+        <div class="list-item">
+          <div class="list-content">
+            <div class="list-title">Q. 권한 신청은 어디서 하나요?</div>
+          </div>
+          <span>+</span>
+        </div>
+      </div>
+
+      <div class="contact-box">
+        <div class="contact-title">시스템 이용 문의 (평일 09:00~18:00)</div>
+        <div class="contact-info">📞 02-1234-5678</div>
+        <div class="contact-info" style="font-size: 13px; margin-top: 5px;">📧 it-support@company.com</div>
+      </div>
+      
+      <button class="sub-btn" onclick="window.open('https://remotedesktop.google.com/')">원격 지원 연결</button>
+      <button class="sub-btn">자주 묻는 질문(FAQ)</button>
+    </div>
+  </div>
   </div>
 </div>
 
 <div class="footer">
-  © 2026 AI SRM Portal | 문의: it-support@company.com
+  © 2026 AI SRM Portal. All Rights Reserved.
 </div>
 
-<script type="module">
-  import { portalData } from './data.js';
-
-  let currentLang = 'ko';
-
-  // 언어 설정 (간단 버전)
-  window.setLanguage = (lang) => {
-    currentLang = lang;
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.textContent.toLowerCase() === lang);
-    });
-    // 실제로는 다국어 데이터 적용
-  };
-
-  // 공지사항 렌더링
-  const renderNotices = () => {
-    const container = document.getElementById('noticesList');
-    container.innerHTML = portalData.notices.slice(0, 3).map(notice => `
-      <div class="notice-item" onclick="showNoticeDetail(${notice.id})">
-        <div class="notice-title">${notice.title}</div>
-        <div class="notice-date">${notice.date}</div>
-        <div class="notice-summary">${notice.summary}</div>
-      </div>
-    `).join('');
-  };
-
-  // 공지사항 상세 모달
-  window.showNoticeDetail = (id) => {
-    const notice = portalData.notices.find(n => n.id === id);
-    if (notice) {
-      alert(`${notice.title}\n\n${notice.content}`);
-    }
-  };
-
-  // 자료실 렌더링 (공용 자료만)
-  const renderArchives = () => {
-    const container = document.getElementById('archivesList');
-    container.innerHTML = portalData.archives.public.map(archive => `
-      <div class="archive-item">
-        <div class="archive-info">
-          <div class="archive-icon">${getFileIcon(archive.type)}</div>
-          <div class="archive-details">
-            <h4>${archive.title}</h4>
-            <span>${archive.type} · ${archive.size}</span>
-          </div>
-        </div>
-        <button class="download-btn" onclick="downloadFile(${archive.id})">다운로드</button>
-      </div>
-    `).join('');
-  };
-
-  const getFileIcon = (type) => {
-    switch(type) {
-      case 'PDF': return '📄';
-      case 'Excel': return '📊';
-      case 'Word': return '📝';
-      default: return '📁';
-    }
-  };
-
-  window.downloadFile = (id) => {
-    alert('파일 다운로드 기능은 실제 운영 시 구현됩니다.');
-  };
-
-  // FAQ 렌더링
-  const renderFAQ = (searchTerm = '', category = '') => {
-    const container = document.getElementById('faqList');
-    let filtered = portalData.faq;
-
-    if (searchTerm) {
-      filtered = filtered.filter(faq =>
-        faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (category) {
-      filtered = filtered.filter(faq => faq.category === category);
-    }
-
-    container.innerHTML = filtered.map(faq => `
-      <div class="faq-item">
-        <div class="faq-question" onclick="toggleFAQ(${faq.id})">
-          <span>${faq.question}</span>
-          <span>▼</span>
-        </div>
-        <div class="faq-answer" id="faq-${faq.id}">${faq.answer}</div>
-      </div>
-    `).join('');
-  };
-
-  window.toggleFAQ = (id) => {
-    const answer = document.getElementById(`faq-${id}`);
-    answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
-  };
-
-  // 로그인 핸들러
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const errorMsg = document.getElementById('errorMsg');
-
-    // 가상 인증 (실제로는 LDAP/SSO 서버 연동)
-    if (username && password) {
-      // 내부 직원 vs 외부 협력사 구분 (가상 로직)
-      const userRole = username.includes('external') ? 'external' : 'internal';
-
-      // 세션 저장
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userRole', userRole);
-      localStorage.setItem('username', username);
-
-      // index.html로 리다이렉트
-      window.location.href = 'index.html';
-    } else {
-      errorMsg.style.display = 'block';
-    }
-  };
-
-  // SSO 로그인 핸들러
-  window.handleSSOLogin = () => {
-    // 가상 SSO 인증
-    const userRole = 'internal'; // SSO는 내부 직원으로 가정
-
-    localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('userRole', userRole);
-    localStorage.setItem('username', 'sso-user');
-
-    window.location.href = 'index.html';
-  };
-
-  // 이벤트 리스너
-  document.getElementById('loginForm').addEventListener('submit', handleLogin);
-  document.getElementById('faqSearch').addEventListener('input', (e) => {
-    renderFAQ(e.target.value, document.getElementById('faqCategory').value);
-  });
-  document.getElementById('faqCategory').addEventListener('change', (e) => {
-    renderFAQ(document.getElementById('faqSearch').value, e.target.value);
-  });
-
-  // 초기 렌더링
-  renderNotices();
-  renderArchives();
-  renderFAQ();
-</script>
 </body>
 </html>
