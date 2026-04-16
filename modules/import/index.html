@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수출입관리</title>
+    <style>
+        .import-container { padding: 2rem; }
+        .import-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .import-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .import-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .import-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .import-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .import-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .import-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+
+        .import-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .import-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .import-table thead { background: #f8f9fa; }
+        .import-table th, .import-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .import-table th { font-weight: 600; color: #333; }
+        .import-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-pending { background: #fff3e0; color: #f57c00; }
+        .status-processing { background: #e3f2fd; color: #1976d2; }
+        .status-completed { background: #e8f5e8; color: #2e7d32; }
+        .status-delayed { background: #ffebee; color: #c62828; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="import-container">
+        <div class="import-header">
+            <h1 class="import-title">🚢 수출입관리</h1>
+            <div class="import-actions">
+                <button class="btn-primary" onclick="createImportExport()">수출입 신청</button>
+            </div>
+        </div>
+
+        <div class="import-grid">
+            <div class="import-card">
+                <div class="import-card-title">수출입 현황</div>
+                <div class="import-stats">
+                    <span class="stat-label">총 건수</span>
+                    <span class="stat-value">89</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">진행중</span>
+                    <span class="stat-value">23</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">완료</span>
+                    <span class="stat-value">56</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">지연</span>
+                    <span class="stat-value">10</span>
+                </div>
+            </div>
+            <div class="import-card">
+                <div class="import-card-title">관세 및 비용</div>
+                <div class="import-stats">
+                    <span class="stat-label">총 관세</span>
+                    <span class="stat-value">₩2.3억</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">운송비</span>
+                    <span class="stat-value">₩1.8억</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">보험료</span>
+                    <span class="stat-value">₩450만원</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">기타비용</span>
+                    <span class="stat-value">₩320만원</span>
+                </div>
+            </div>
+            <div class="import-card">
+                <div class="import-card-title">주요 국가</div>
+                <div class="import-stats">
+                    <span class="stat-label">중국</span>
+                    <span class="stat-value">45건</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">일본</span>
+                    <span class="stat-value">18건</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">미국</span>
+                    <span class="stat-value">12건</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">독일</span>
+                    <span class="stat-value">8건</span>
+                </div>
+            </div>
+            <div class="import-card">
+                <div class="import-card-title">통관 현황</div>
+                <div class="import-stats">
+                    <span class="stat-label">통관 완료</span>
+                    <span class="stat-value">94.2%</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">검사 대기</span>
+                    <span class="stat-value">3건</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">서류 보완</span>
+                    <span class="stat-value">2건</span>
+                </div>
+                <div class="import-stats">
+                    <span class="stat-label">평균 통관일</span>
+                    <span class="stat-value">5.2일</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="import-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="importType">
+                    <option value="">전체 유형</option>
+                    <option value="import">수입</option>
+                    <option value="export">수출</option>
+                </select>
+                <select class="filter-select" id="importStatus">
+                    <option value="">전체 상태</option>
+                    <option value="pending">신청</option>
+                    <option value="processing">진행중</option>
+                    <option value="completed">완료</option>
+                    <option value="delayed">지연</option>
+                </select>
+                <input type="text" class="filter-input" id="importSearch" placeholder="BL번호 또는 품목명 검색...">
+                <button class="btn-primary" onclick="searchImport()">검색</button>
+            </div>
+        </div>
+
+        <table class="import-table">
+            <thead>
+                <tr>
+                    <th>BL번호</th>
+                    <th>유형</th>
+                    <th>품목명</th>
+                    <th>수량</th>
+                    <th>목적국</th>
+                    <th>선박명</th>
+                    <th>출발일</th>
+                    <th>도착예정일</th>
+                    <th>상태</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="importTableBody">
+                <!-- 수출입 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.importModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.import-filters'),
+                    {
+                        searchPlaceholder: 'BL번호 또는 품목명 검색...',
+                        categories: [
+                            { value: 'import', label: '수입' },
+                            { value: 'export', label: '수출' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#importTableBody'),
+                    {
+                        columns: [
+                            { header: 'BL번호', field: 'blNumber' },
+                            {
+                                header: '유형',
+                                field: 'type',
+                                formatter: (value) => value === 'import' ? '수입' : '수출'
+                            },
+                            { header: '품목명', field: 'itemName' },
+                            { header: '수량', field: 'quantity' },
+                            { header: '목적국', field: 'destination' },
+                            { header: '선박명', field: 'vesselName' },
+                            {
+                                header: '출발일',
+                                field: 'departureDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '도착예정일',
+                                field: 'arrivalDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        pending: '<span class="status-badge status-pending">신청</span>',
+                                        processing: '<span class="status-badge status-processing">진행중</span>',
+                                        completed: '<span class="status-badge status-completed">완료</span>',
+                                        delayed: '<span class="status-badge status-delayed">지연</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewImport', color: '#17a2b8' },
+                            { label: '수정', handler: 'editImport', color: '#28a745' },
+                            { label: '삭제', handler: 'deleteImport', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'type', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'type', categoryValue);
+                    }
+                );
+
+                await loadImportData();
+            }
+        };
+
+        const loadImportData = async () => {
+            // 가상 수출입 데이터
+            const mockImportData = [
+                {
+                    id: 1,
+                    blNumber: 'BL-2024-001',
+                    type: 'import',
+                    itemName: '전자부품 세트',
+                    quantity: '1,000개',
+                    destination: '부산항',
+                    vesselName: 'EVER GREEN',
+                    departureDate: '2024-01-10',
+                    arrivalDate: '2024-01-25',
+                    status: 'processing'
+                },
+                {
+                    id: 2,
+                    blNumber: 'BL-2024-002',
+                    type: 'export',
+                    itemName: '완제품 A',
+                    quantity: '500세트',
+                    destination: '상하이',
+                    vesselName: 'COSCO SHIPPING',
+                    departureDate: '2024-01-15',
+                    arrivalDate: '2024-01-22',
+                    status: 'completed'
+                },
+                {
+                    id: 3,
+                    blNumber: 'BL-2024-003',
+                    type: 'import',
+                    itemName: '기계부품',
+                    quantity: '200개',
+                    destination: '인천항',
+                    vesselName: 'MAERSK LINE',
+                    departureDate: '2024-01-12',
+                    arrivalDate: '2024-01-28',
+                    status: 'pending'
+                }
+            ];
+
+            table.setData(mockImportData);
+        };
+
+        window.createImportExport = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('수출입 신청')
+                .setContent(`
+                    <form id="importForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">유형</label>
+                            <select name="type" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="import">수입</option>
+                                <option value="export">수출</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">품목명</label>
+                            <input type="text" name="itemName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">수량</label>
+                            <input type="text" name="quantity" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">목적지</label>
+                            <input type="text" name="destination" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">선박명</label>
+                            <input type="text" name="vesselName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">출발일</label>
+                            <input type="date" name="departureDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">도착예정일</label>
+                            <input type="date" name="arrivalDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">관세율</label>
+                            <input type="number" name="dutyRate" step="0.01" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" placeholder="0.00">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">비고</label>
+                            <textarea name="notes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="수출입 관련 특이사항을 입력하세요"></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveImportExport(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveImportExport = async (modal) => {
+            const form = document.getElementById('importForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 수출입 데이터:', data);
+
+            Notification.success('수출입 신청이 등록되었습니다.');
+            modal.close();
+            loadImportData(); // 목록 새로고침
+        };
+
+        window.viewImport = (id) => {
+            Notification.info(`수출입 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editImport = (id) => {
+            Notification.info(`수출입 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteImport = (id) => {
+            showConfirm(`수출입 신청을 삭제하시겠습니까?`, () => {
+                Notification.success('수출입 신청이 삭제되었습니다.');
+                loadImportData(); // 목록 새로고침
+            });
+        };
+
+        window.searchImport = () => {
+            const searchTerm = document.getElementById('importSearch').value;
+            const typeValue = document.getElementById('importType').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'type', typeValue);
+        };
+    </script>
+</body>
+</html>

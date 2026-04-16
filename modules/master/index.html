@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기준정보</title>
+    <style>
+        .master-container { padding: 2rem; }
+        .master-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .master-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .master-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .master-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .master-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .master-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+
+        .master-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .master-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .master-table thead { background: #f8f9fa; }
+        .master-table th, .master-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .master-table th { font-weight: 600; color: #333; }
+        .master-table tbody tr:hover { background: #f8f9fa; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="master-container">
+        <div class="master-header">
+            <h1 class="master-title">📋 기준정보</h1>
+            <div class="master-actions">
+                <button class="btn-primary" onclick="addMasterData()">기준정보 등록</button>
+            </div>
+        </div>
+
+        <div class="master-grid">
+            <div class="master-card">
+                <div class="master-card-title">품목 정보</div>
+                <div class="master-stats">
+                    <span class="stat-label">총 품목수</span>
+                    <span class="stat-value">1,245</span>
+                </div>
+                <div class="master-stats">
+                    <span class="stat-label">활성 품목</span>
+                    <span class="stat-value">1,180</span>
+                </div>
+                <div class="master-stats">
+                    <span class="stat-label">신규 등록</span>
+                    <span class="stat-value">23</span>
+                </div>
+            </div>
+            <div class="master-card">
+                <div class="master-card-title">협력사 정보</div>
+                <div class="master-stats">
+                    <span class="stat-label">등록 협력사</span>
+                    <span class="stat-value">156</span>
+                </div>
+                <div class="master-stats">
+                    <span class="stat-label">활성 협력사</span>
+                    <span class="stat-value">142</span>
+                </div>
+                <div class="master-stats">
+                    <span class="stat-label">신규 등록</span>
+                    <span class="stat-value">8</span>
+                </div>
+            </div>
+            <div class="master-card">
+                <div class="master-card-title">단가 정보</div>
+                <div class="master-stats">
+                    <span class="stat-label">단가 항목</span>
+                    <span class="stat-value">892</span>
+                </div>
+                <div class="master-stats">
+                    <span class="stat-label">유효 단가</span>
+                    <span class="stat-value">856</span>
+                </div>
+                <div class="master-stats">
+                    <span class="stat-label">만료 예정</span>
+                    <span class="stat-value">12</span>
+                </div>
+            </div>
+            <div class="master-card">
+                <div class="master-card-title">시스템 설정</div>
+                <div class="master-stats">
+                    <span class="stat-label">코드 그룹</span>
+                    <span class="stat-value">45</span>
+                </div>
+                <div class="master-stats">
+                    <span class="stat-label">코드 항목</span>
+                    <span class="stat-value">1,203</span>
+                </div>
+                <div class="master-stats">
+                    <span class="stat-label">최근 변경</span>
+                    <span class="stat-value">3</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="master-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="masterCategory">
+                    <option value="">전체 분류</option>
+                    <option value="item">품목정보</option>
+                    <option value="supplier">협력사정보</option>
+                    <option value="price">단가정보</option>
+                    <option value="code">시스템코드</option>
+                </select>
+                <input type="text" class="filter-input" id="masterSearch" placeholder="코드 또는 명칭 검색...">
+                <button class="btn-primary" onclick="searchMaster()">검색</button>
+            </div>
+        </div>
+
+        <table class="master-table">
+            <thead>
+                <tr>
+                    <th>분류</th>
+                    <th>코드</th>
+                    <th>명칭</th>
+                    <th>설명</th>
+                    <th>등록일</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="masterTableBody">
+                <!-- 기준정보 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.masterModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.master-filters'),
+                    {
+                        searchPlaceholder: '코드 또는 명칭 검색...',
+                        categories: [
+                            { value: 'item', label: '품목정보' },
+                            { value: 'supplier', label: '협력사정보' },
+                            { value: 'price', label: '단가정보' },
+                            { value: 'code', label: '시스템코드' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#masterTableBody'),
+                    {
+                        columns: [
+                            { header: '분류', field: 'category' },
+                            { header: '코드', field: 'code' },
+                            { header: '명칭', field: 'name' },
+                            { header: '설명', field: 'description' },
+                            {
+                                header: '등록일',
+                                field: 'createdDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewMasterData', color: '#17a2b8' },
+                            { label: '수정', handler: 'editMasterData', color: '#28a745' },
+                            { label: '삭제', handler: 'deleteMasterData', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'category', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'category', categoryValue);
+                    }
+                );
+
+                await loadMasterData();
+            }
+        };
+
+        const loadMasterData = async () => {
+            // 가상 기준정보 데이터
+            const mockMasterData = [
+                {
+                    id: 1,
+                    category: '품목정보',
+                    code: 'ITEM-001',
+                    name: '베어링 6205',
+                    description: '볼베어링 6205 규격',
+                    createdDate: '2024-01-15'
+                },
+                {
+                    id: 2,
+                    category: '협력사정보',
+                    code: 'SUP-001',
+                    name: 'ABC베어링',
+                    description: '베어링 전문 제조사',
+                    createdDate: '2024-01-14'
+                },
+                {
+                    id: 3,
+                    category: '단가정보',
+                    code: 'PRC-001',
+                    name: '베어링 6205 단가',
+                    description: '₩15,000 (단위: 개)',
+                    createdDate: '2024-01-13'
+                },
+                {
+                    id: 4,
+                    category: '시스템코드',
+                    code: 'SYS-001',
+                    name: '품질등급',
+                    description: 'A/B/C 등급 분류',
+                    createdDate: '2024-01-12'
+                }
+            ];
+
+            table.setData(mockMasterData);
+        };
+
+        window.addMasterData = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('기준정보 등록')
+                .setContent(`
+                    <form id="masterForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">분류</label>
+                            <select name="category" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="item">품목정보</option>
+                                <option value="supplier">협력사정보</option>
+                                <option value="price">단가정보</option>
+                                <option value="code">시스템코드</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">코드</label>
+                            <input type="text" name="code" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">명칭</label>
+                            <input type="text" name="name" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">설명</label>
+                            <textarea name="description" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="상세 설명을 입력하세요"></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveMasterData(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveMasterData = async (modal) => {
+            const form = document.getElementById('masterForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 기준정보 데이터:', data);
+
+            Notification.success('기준정보가 등록되었습니다.');
+            modal.close();
+            loadMasterData(); // 목록 새로고침
+        };
+
+        window.viewMasterData = (id) => {
+            Notification.info(`기준정보 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editMasterData = (id) => {
+            Notification.info(`기준정보 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteMasterData = (id) => {
+            showConfirm(`기준정보를 삭제하시겠습니까?`, () => {
+                Notification.success('기준정보가 삭제되었습니다.');
+                loadMasterData(); // 목록 새로고침
+            });
+        };
+
+        window.searchMaster = () => {
+            const searchTerm = document.getElementById('masterSearch').value;
+            const categoryValue = document.getElementById('masterCategory').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'category', categoryValue);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사급관리</title>
+    <style>
+        .vendor-container { padding: 2rem; }
+        .vendor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .vendor-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .vendor-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .vendor-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .vendor-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .vendor-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .vendor-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+
+        .vendor-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .vendor-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .vendor-table thead { background: #f8f9fa; }
+        .vendor-table th, .vendor-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .vendor-table th { font-weight: 600; color: #333; }
+        .vendor-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-active { background: #e8f5e8; color: #2e7d32; }
+        .status-inactive { background: #f5f5f5; color: #9e9e9e; }
+        .status-suspended { background: #ffebee; color: #c62828; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="vendor-container">
+        <div class="vendor-header">
+            <h1 class="vendor-title">🏭 사급관리</h1>
+            <div class="vendor-actions">
+                <button class="btn-primary" onclick="addVendorItem()">사급품 등록</button>
+            </div>
+        </div>
+
+        <div class="vendor-grid">
+            <div class="vendor-card">
+                <div class="vendor-card-title">사급품 현황</div>
+                <div class="vendor-stats">
+                    <span class="stat-label">총 사급품</span>
+                    <span class="stat-value">156</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">활성 품목</span>
+                    <span class="stat-value">142</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">신규 등록</span>
+                    <span class="stat-value">8</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">단종 예정</span>
+                    <span class="stat-value">6</span>
+                </div>
+            </div>
+            <div class="vendor-card">
+                <div class="vendor-card-title">재고 현황</div>
+                <div class="vendor-stats">
+                    <span class="stat-label">총 재고량</span>
+                    <span class="stat-value">45,230</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">안전재고 이하</span>
+                    <span class="stat-value">12</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">재고 회전율</span>
+                    <span class="stat-value">4.2회</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">평균 재고일</span>
+                    <span class="stat-value">87일</span>
+                </div>
+            </div>
+            <div class="vendor-card">
+                <div class="vendor-card-title">사용 현황</div>
+                <div class="vendor-stats">
+                    <span class="stat-label">금월 사용량</span>
+                    <span class="stat-value">8,450</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">전월 대비</span>
+                    <span class="stat-value">+12.3%</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">예상 소모량</span>
+                    <span class="stat-value">9,200</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">부족 예상</span>
+                    <span class="stat-value">3</span>
+                </div>
+            </div>
+            <div class="vendor-card">
+                <div class="vendor-card-title">품질 현황</div>
+                <div class="vendor-stats">
+                    <span class="stat-label">합격률</span>
+                    <span class="stat-value">97.8%</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">불량률</span>
+                    <span class="stat-value">2.2%</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">검사 완료</span>
+                    <span class="stat-value">1,245</span>
+                </div>
+                <div class="vendor-stats">
+                    <span class="stat-label">개선 건수</span>
+                    <span class="stat-value">23</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="vendor-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="vendorStatus">
+                    <option value="">전체 상태</option>
+                    <option value="active">활성</option>
+                    <option value="inactive">비활성</option>
+                    <option value="suspended">중단</option>
+                </select>
+                <select class="filter-select" id="vendorCategory">
+                    <option value="">전체 분류</option>
+                    <option value="electronic">전자부품</option>
+                    <option value="mechanical">기계부품</option>
+                    <option value="consumable">소모품</option>
+                    <option value="chemical">화학품</option>
+                </select>
+                <input type="text" class="filter-input" id="vendorSearch" placeholder="품목코드 또는 품명 검색...">
+                <button class="btn-primary" onclick="searchVendor()">검색</button>
+            </div>
+        </div>
+
+        <table class="vendor-table">
+            <thead>
+                <tr>
+                    <th>품목코드</th>
+                    <th>품명</th>
+                    <th>분류</th>
+                    <th>현재재고</th>
+                    <th>안전재고</th>
+                    <th>단가</th>
+                    <th>상태</th>
+                    <th>최종입고일</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="vendorTableBody">
+                <!-- 사급품 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.vendorModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.vendor-filters'),
+                    {
+                        searchPlaceholder: '품목코드 또는 품명 검색...',
+                        categories: [
+                            { value: 'electronic', label: '전자부품' },
+                            { value: 'mechanical', label: '기계부품' },
+                            { value: 'consumable', label: '소모품' },
+                            { value: 'chemical', label: '화학품' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#vendorTableBody'),
+                    {
+                        columns: [
+                            { header: '품목코드', field: 'itemCode' },
+                            { header: '품명', field: 'itemName' },
+                            { header: '분류', field: 'category' },
+                            { header: '현재재고', field: 'currentStock' },
+                            { header: '안전재고', field: 'safetyStock' },
+                            {
+                                header: '단가',
+                                field: 'unitPrice',
+                                formatter: (value) => new Intl.NumberFormat('ko-KR').format(value) + '원'
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        active: '<span class="status-badge status-active">활성</span>',
+                                        inactive: '<span class="status-badge status-inactive">비활성</span>',
+                                        suspended: '<span class="status-badge status-suspended">중단</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            },
+                            {
+                                header: '최종입고일',
+                                field: 'lastInboundDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewVendorItem', color: '#17a2b8' },
+                            { label: '수정', handler: 'editVendorItem', color: '#28a745' },
+                            { label: '삭제', handler: 'deleteVendorItem', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'category', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'category', categoryValue);
+                    }
+                );
+
+                await loadVendorData();
+            }
+        };
+
+        const loadVendorData = async () => {
+            // 가상 사급품 데이터
+            const mockVendorData = [
+                {
+                    id: 1,
+                    itemCode: 'VD-001',
+                    itemName: '베어링 6205',
+                    category: '기계부품',
+                    currentStock: 150,
+                    safetyStock: 50,
+                    unitPrice: 15000,
+                    status: 'active',
+                    lastInboundDate: '2024-01-15'
+                },
+                {
+                    id: 2,
+                    itemCode: 'VD-002',
+                    itemName: '모터 M-100',
+                    category: '전자부품',
+                    currentStock: 25,
+                    safetyStock: 30,
+                    unitPrice: 120000,
+                    status: 'active',
+                    lastInboundDate: '2024-01-14'
+                },
+                {
+                    id: 3,
+                    itemCode: 'VD-003',
+                    itemName: '케이블 C-50',
+                    category: '전자부품',
+                    currentStock: 200,
+                    safetyStock: 100,
+                    unitPrice: 8000,
+                    status: 'active',
+                    lastInboundDate: '2024-01-13'
+                }
+            ];
+
+            table.setData(mockVendorData);
+        };
+
+        window.addVendorItem = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('사급품 등록')
+                .setContent(`
+                    <form id="vendorForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">품목코드</label>
+                            <input type="text" name="itemCode" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">품명</label>
+                            <input type="text" name="itemName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">분류</label>
+                            <select name="category" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="electronic">전자부품</option>
+                                <option value="mechanical">기계부품</option>
+                                <option value="consumable">소모품</option>
+                                <option value="chemical">화학품</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">현재재고</label>
+                            <input type="number" name="currentStock" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">안전재고</label>
+                            <input type="number" name="safetyStock" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">단가</label>
+                            <input type="number" name="unitPrice" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">상태</label>
+                            <select name="status" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="active">활성</option>
+                                <option value="inactive">비활성</option>
+                                <option value="suspended">중단</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">비고</label>
+                            <textarea name="notes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="품목 관련 특이사항을 입력하세요"></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveVendorItem(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveVendorItem = async (modal) => {
+            const form = document.getElementById('vendorForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 사급품 데이터:', data);
+
+            Notification.success('사급품이 등록되었습니다.');
+            modal.close();
+            loadVendorData(); // 목록 새로고침
+        };
+
+        window.viewVendorItem = (id) => {
+            Notification.info(`사급품 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editVendorItem = (id) => {
+            Notification.info(`사급품 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteVendorItem = (id) => {
+            showConfirm(`사급품을 삭제하시겠습니까?`, () => {
+                Notification.success('사급품이 삭제되었습니다.');
+                loadVendorData(); // 목록 새로고침
+            });
+        };
+
+        window.searchVendor = () => {
+            const searchTerm = document.getElementById('vendorSearch').value;
+            const statusValue = document.getElementById('vendorStatus').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'status', statusValue);
+        };
+    </script>
+</body>
+</html>

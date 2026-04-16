@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생산계획</title>
+    <style>
+        .planning-container { padding: 2rem; }
+        .planning-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .planning-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .planning-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .planning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .planning-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .planning-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .planning-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+
+        .planning-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .planning-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .planning-table thead { background: #f8f9fa; }
+        .planning-table th, .planning-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .planning-table th { font-weight: 600; color: #333; }
+        .planning-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-draft { background: #fff3e0; color: #f57c00; }
+        .status-approved { background: #e8f5e8; color: #2e7d32; }
+        .status-inprogress { background: #e3f2fd; color: #1976d2; }
+        .status-completed { background: #f3e5f5; color: #7b1fa2; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="planning-container">
+        <div class="planning-header">
+            <h1 class="planning-title">📅 생산계획</h1>
+            <div class="planning-actions">
+                <button class="btn-primary" onclick="createProductionPlan()">생산계획 수립</button>
+            </div>
+        </div>
+
+        <div class="planning-grid">
+            <div class="planning-card">
+                <div class="planning-card-title">계획 현황</div>
+                <div class="planning-stats">
+                    <span class="stat-label">총 계획수</span>
+                    <span class="stat-value">45</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">승인 대기</span>
+                    <span class="stat-value">8</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">진행중</span>
+                    <span class="stat-value">23</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">완료</span>
+                    <span class="stat-value">14</span>
+                </div>
+            </div>
+            <div class="planning-card">
+                <div class="planning-card-title">생산량 목표</div>
+                <div class="planning-stats">
+                    <span class="stat-label">금월 목표</span>
+                    <span class="stat-value">12,500</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">현재 달성률</span>
+                    <span class="stat-value">78.5%</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">잔여 목표</span>
+                    <span class="stat-value">2,687</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">예상 완료일</span>
+                    <span class="stat-value">25일</span>
+                </div>
+            </div>
+            <div class="planning-card">
+                <div class="planning-card-title">자원 활용률</div>
+                <div class="planning-stats">
+                    <span class="stat-label">설비 가동률</span>
+                    <span class="stat-value">85.2%</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">인력 활용률</span>
+                    <span class="stat-value">92.1%</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">자재 공급률</span>
+                    <span class="stat-value">94.7%</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">병목 구간</span>
+                    <span class="stat-value">2개</span>
+                </div>
+            </div>
+            <div class="planning-card">
+                <div class="planning-card-title">품질 목표</div>
+                <div class="planning-stats">
+                    <span class="stat-label">품질 목표</span>
+                    <span class="stat-value">98.5%</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">현재 품질률</span>
+                    <span class="stat-value">97.8%</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">개선 필요</span>
+                    <span class="stat-value">0.7%</span>
+                </div>
+                <div class="planning-stats">
+                    <span class="stat-label">품질 이슈</span>
+                    <span class="stat-value">3건</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="planning-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="planningStatus">
+                    <option value="">전체 상태</option>
+                    <option value="draft">승인대기</option>
+                    <option value="approved">승인완료</option>
+                    <option value="inprogress">진행중</option>
+                    <option value="completed">완료</option>
+                </select>
+                <select class="filter-select" id="planningPeriod">
+                    <option value="">전체 기간</option>
+                    <option value="week">이번 주</option>
+                    <option value="month">이번 달</option>
+                    <option value="quarter">이번 분기</option>
+                </select>
+                <input type="text" class="filter-input" id="planningSearch" placeholder="계획번호 또는 품목명 검색...">
+                <button class="btn-primary" onclick="searchPlanning()">검색</button>
+            </div>
+        </div>
+
+        <table class="planning-table">
+            <thead>
+                <tr>
+                    <th>계획번호</th>
+                    <th>품목명</th>
+                    <th>계획수량</th>
+                    <th>시작일</th>
+                    <th>완료예정일</th>
+                    <th>진행률</th>
+                    <th>상태</th>
+                    <th>담당자</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="planningTableBody">
+                <!-- 생산계획 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.planningModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.planning-filters'),
+                    {
+                        searchPlaceholder: '계획번호 또는 품목명 검색...',
+                        categories: [
+                            { value: 'draft', label: '승인대기' },
+                            { value: 'approved', label: '승인완료' },
+                            { value: 'inprogress', label: '진행중' },
+                            { value: 'completed', label: '완료' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#planningTableBody'),
+                    {
+                        columns: [
+                            { header: '계획번호', field: 'planNumber' },
+                            { header: '품목명', field: 'itemName' },
+                            { header: '계획수량', field: 'plannedQuantity' },
+                            {
+                                header: '시작일',
+                                field: 'startDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '완료예정일',
+                                field: 'endDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '진행률',
+                                field: 'progress',
+                                formatter: (value) => value + '%'
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        draft: '<span class="status-badge status-draft">승인대기</span>',
+                                        approved: '<span class="status-badge status-approved">승인완료</span>',
+                                        inprogress: '<span class="status-badge status-inprogress">진행중</span>',
+                                        completed: '<span class="status-badge status-completed">완료</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            },
+                            { header: '담당자', field: 'manager' }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewPlanning', color: '#17a2b8' },
+                            { label: '수정', handler: 'editPlanning', color: '#28a745' },
+                            { label: '삭제', handler: 'deletePlanning', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'status', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'status', categoryValue);
+                    }
+                );
+
+                await loadPlanningData();
+            }
+        };
+
+        const loadPlanningData = async () => {
+            // 가상 생산계획 데이터
+            const mockPlanningData = [
+                {
+                    id: 1,
+                    planNumber: 'PP-2024-001',
+                    itemName: '제품 A',
+                    plannedQuantity: 1000,
+                    startDate: '2024-01-15',
+                    endDate: '2024-01-25',
+                    progress: 85,
+                    status: 'inprogress',
+                    manager: '김생산'
+                },
+                {
+                    id: 2,
+                    planNumber: 'PP-2024-002',
+                    itemName: '제품 B',
+                    plannedQuantity: 500,
+                    startDate: '2024-01-20',
+                    endDate: '2024-02-05',
+                    progress: 0,
+                    status: 'draft',
+                    manager: '이제조'
+                },
+                {
+                    id: 3,
+                    planNumber: 'PP-2024-003',
+                    itemName: '제품 C',
+                    plannedQuantity: 750,
+                    startDate: '2024-01-10',
+                    endDate: '2024-01-20',
+                    progress: 100,
+                    status: 'completed',
+                    manager: '박품질'
+                }
+            ];
+
+            table.setData(mockPlanningData);
+        };
+
+        window.createProductionPlan = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('생산계획 수립')
+                .setContent(`
+                    <form id="planningForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">품목명</label>
+                            <input type="text" name="itemName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">계획수량</label>
+                            <input type="number" name="plannedQuantity" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">시작일</label>
+                            <input type="date" name="startDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">완료예정일</label>
+                            <input type="date" name="endDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">담당자</label>
+                            <input type="text" name="manager" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">우선순위</label>
+                            <select name="priority" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="high">높음</option>
+                                <option value="medium">중간</option>
+                                <option value="low">낮음</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">특이사항</label>
+                            <textarea name="notes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="생산계획 관련 특이사항을 입력하세요"></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveProductionPlan(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveProductionPlan = async (modal) => {
+            const form = document.getElementById('planningForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 생산계획 데이터:', data);
+
+            Notification.success('생산계획이 수립되었습니다.');
+            modal.close();
+            loadPlanningData(); // 목록 새로고침
+        };
+
+        window.viewPlanning = (id) => {
+            Notification.info(`생산계획 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editPlanning = (id) => {
+            Notification.info(`생산계획 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deletePlanning = (id) => {
+            showConfirm(`생산계획을 삭제하시겠습니까?`, () => {
+                Notification.success('생산계획이 삭제되었습니다.');
+                loadPlanningData(); // 목록 새로고침
+            });
+        };
+
+        window.searchPlanning = () => {
+            const searchTerm = document.getElementById('planningSearch').value;
+            const statusValue = document.getElementById('planningStatus').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'status', statusValue);
+        };
+    </script>
+</body>
+</html>

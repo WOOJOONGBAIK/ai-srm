@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>발주관리</title>
+    <style>
+        .po-container { padding: 2rem; }
+        .po-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .po-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .po-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .po-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .po-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .po-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .po-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+
+        .po-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .po-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .po-table thead { background: #f8f9fa; }
+        .po-table th, .po-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .po-table th { font-weight: 600; color: #333; }
+        .po-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-draft { background: #fff3e0; color: #f57c00; }
+        .status-approved { background: #e8f5e8; color: #2e7d32; }
+        .status-rejected { background: #ffebee; color: #c62828; }
+        .status-completed { background: #e3f2fd; color: #1976d2; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="po-container">
+        <div class="po-header">
+            <h1 class="po-title">📋 발주관리</h1>
+            <div class="po-actions">
+                <button class="btn-primary" onclick="createPO()">발주서 생성</button>
+            </div>
+        </div>
+
+        <div class="po-grid">
+            <div class="po-card">
+                <div class="po-card-title">발주 현황</div>
+                <div class="po-stats">
+                    <span class="stat-label">총 발주건</span>
+                    <span class="stat-value">245</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">승인 대기</span>
+                    <span class="stat-value">23</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">진행중</span>
+                    <span class="stat-value">89</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">완료</span>
+                    <span class="stat-value">133</span>
+                </div>
+            </div>
+            <div class="po-card">
+                <div class="po-card-title">발주 금액</div>
+                <div class="po-stats">
+                    <span class="stat-label">총 발주금액</span>
+                    <span class="stat-value">₩1.2억</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">평균 단가</span>
+                    <span class="stat-value">₩48만원</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">최대 단가</span>
+                    <span class="stat-value">₩120만원</span>
+                </div>
+            </div>
+            <div class="po-card">
+                <div class="po-card-title">납기 현황</div>
+                <div class="po-stats">
+                    <span class="stat-label">정시 납품</span>
+                    <span class="stat-value">94.2%</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">지연 건수</span>
+                    <span class="stat-value">8건</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">평균 리드타임</span>
+                    <span class="stat-value">12일</span>
+                </div>
+            </div>
+            <div class="po-card">
+                <div class="po-card-title">품질 현황</div>
+                <div class="po-stats">
+                    <span class="stat-label">합격률</span>
+                    <span class="stat-value">96.8%</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">불량률</span>
+                    <span class="stat-value">3.2%</span>
+                </div>
+                <div class="po-stats">
+                    <span class="stat-label">검사 완료</span>
+                    <span class="stat-value">187건</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="po-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="poStatus">
+                    <option value="">전체 상태</option>
+                    <option value="draft">승인대기</option>
+                    <option value="approved">승인완료</option>
+                    <option value="rejected">반려</option>
+                    <option value="completed">완료</option>
+                </select>
+                <select class="filter-select" id="poPeriod">
+                    <option value="">전체 기간</option>
+                    <option value="week">이번 주</option>
+                    <option value="month">이번 달</option>
+                    <option value="quarter">이번 분기</option>
+                </select>
+                <input type="text" class="filter-input" id="poSearch" placeholder="발주번호 또는 품목명 검색...">
+                <button class="btn-primary" onclick="searchPO()">검색</button>
+            </div>
+        </div>
+
+        <table class="po-table">
+            <thead>
+                <tr>
+                    <th>발주번호</th>
+                    <th>품목명</th>
+                    <th>협력사</th>
+                    <th>발주수량</th>
+                    <th>단가</th>
+                    <th>총금액</th>
+                    <th>발주일</th>
+                    <th>납기일</th>
+                    <th>상태</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="poTableBody">
+                <!-- 발주 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.poModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.po-filters'),
+                    {
+                        searchPlaceholder: '발주번호 또는 품목명 검색...',
+                        categories: [
+                            { value: 'draft', label: '승인대기' },
+                            { value: 'approved', label: '승인완료' },
+                            { value: 'rejected', label: '반려' },
+                            { value: 'completed', label: '완료' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#poTableBody'),
+                    {
+                        columns: [
+                            { header: '발주번호', field: 'poNumber' },
+                            { header: '품목명', field: 'itemName' },
+                            { header: '협력사', field: 'supplierName' },
+                            { header: '발주수량', field: 'quantity' },
+                            {
+                                header: '단가',
+                                field: 'unitPrice',
+                                formatter: (value) => new Intl.NumberFormat('ko-KR').format(value) + '원'
+                            },
+                            {
+                                header: '총금액',
+                                field: 'totalAmount',
+                                formatter: (value) => new Intl.NumberFormat('ko-KR').format(value) + '원'
+                            },
+                            {
+                                header: '발주일',
+                                field: 'orderDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '납기일',
+                                field: 'dueDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        draft: '<span class="status-badge status-draft">승인대기</span>',
+                                        approved: '<span class="status-badge status-approved">승인완료</span>',
+                                        rejected: '<span class="status-badge status-rejected">반려</span>',
+                                        completed: '<span class="status-badge status-completed">완료</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewPO', color: '#17a2b8' },
+                            { label: '수정', handler: 'editPO', color: '#28a745' },
+                            { label: '삭제', handler: 'deletePO', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'status', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'status', categoryValue);
+                    }
+                );
+
+                await loadPOData();
+            }
+        };
+
+        const loadPOData = async () => {
+            // 가상 발주 데이터
+            const mockPOData = [
+                {
+                    id: 1,
+                    poNumber: 'PO-2024-001',
+                    itemName: '베어링 6205',
+                    supplierName: 'ABC베어링',
+                    quantity: 100,
+                    unitPrice: 15000,
+                    totalAmount: 1500000,
+                    orderDate: '2024-01-15',
+                    dueDate: '2024-01-25',
+                    status: 'completed'
+                },
+                {
+                    id: 2,
+                    poNumber: 'PO-2024-002',
+                    itemName: '모터 M-100',
+                    supplierName: '테크모터',
+                    quantity: 50,
+                    unitPrice: 120000,
+                    totalAmount: 6000000,
+                    orderDate: '2024-01-14',
+                    dueDate: '2024-02-14',
+                    status: 'approved'
+                },
+                {
+                    id: 3,
+                    poNumber: 'PO-2024-003',
+                    itemName: '케이블 C-50',
+                    supplierName: '케이블코리아',
+                    quantity: 200,
+                    unitPrice: 8000,
+                    totalAmount: 1600000,
+                    orderDate: '2024-01-13',
+                    dueDate: '2024-01-23',
+                    status: 'draft'
+                }
+            ];
+
+            table.setData(mockPOData);
+        };
+
+        window.createPO = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('발주서 생성')
+                .setContent(`
+                    <form id="poForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">품목명</label>
+                            <input type="text" name="itemName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">협력사</label>
+                            <input type="text" name="supplierName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">발주수량</label>
+                            <input type="number" name="quantity" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">단가</label>
+                            <input type="number" name="unitPrice" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">납기일</label>
+                            <input type="date" name="dueDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">비고</label>
+                            <textarea name="notes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="특이사항을 입력하세요"></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => savePO(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const savePO = async (modal) => {
+            const form = document.getElementById('poForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 총금액 계산
+            data.totalAmount = parseInt(data.quantity) * parseInt(data.unitPrice);
+            data.orderDate = new Date().toISOString().split('T')[0];
+            data.status = 'draft';
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 발주 데이터:', data);
+
+            Notification.success('발주서가 생성되었습니다.');
+            modal.close();
+            loadPOData(); // 목록 새로고침
+        };
+
+        window.viewPO = (id) => {
+            Notification.info(`발주서 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editPO = (id) => {
+            Notification.info(`발주서 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deletePO = (id) => {
+            showConfirm(`발주서를 삭제하시겠습니까?`, () => {
+                Notification.success('발주서가 삭제되었습니다.');
+                loadPOData(); // 목록 새로고침
+            });
+        };
+
+        window.searchPO = () => {
+            const searchTerm = document.getElementById('poSearch').value;
+            const statusValue = document.getElementById('poStatus').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'status', statusValue);
+        };
+    </script>
+</body>
+</html>

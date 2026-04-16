@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선적관리</title>
+    <style>
+        .shipping-container { padding: 2rem; }
+        .shipping-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .shipping-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .shipping-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .shipping-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .shipping-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .shipping-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .shipping-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+
+        .shipping-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .shipping-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .shipping-table thead { background: #f8f9fa; }
+        .shipping-table th, .shipping-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .shipping-table th { font-weight: 600; color: #333; }
+        .shipping-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-booked { background: #e3f2fd; color: #1976d2; }
+        .status-loading { background: #fff3e0; color: #f57c00; }
+        .status-intransit { background: #e8f5e8; color: #2e7d32; }
+        .status-arrived { background: #f3e5f5; color: #7b1fa2; }
+        .status-delayed { background: #ffebee; color: #c62828; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="shipping-container">
+        <div class="shipping-header">
+            <h1 class="shipping-title">🚢 선적관리</h1>
+            <div class="shipping-actions">
+                <button class="btn-primary" onclick="createShippingOrder()">선적 의뢰</button>
+            </div>
+        </div>
+
+        <div class="shipping-grid">
+            <div class="shipping-card">
+                <div class="shipping-card-title">선적 현황</div>
+                <div class="shipping-stats">
+                    <span class="stat-label">총 선적건</span>
+                    <span class="stat-value">67</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">예약완료</span>
+                    <span class="stat-value">23</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">선적중</span>
+                    <span class="stat-value">18</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">운송중</span>
+                    <span class="stat-value">21</span>
+                </div>
+            </div>
+            <div class="shipping-card">
+                <div class="shipping-card-title">컨테이너 현황</div>
+                <div class="shipping-stats">
+                    <span class="stat-label">20ft 컨테이너</span>
+                    <span class="stat-value">45개</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">40ft 컨테이너</span>
+                    <span class="stat-value">32개</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">LCL 화물</span>
+                    <span class="stat-value">12건</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">가용 용적률</span>
+                    <span class="stat-value">78%</span>
+                </div>
+            </div>
+            <div class="shipping-card">
+                <div class="shipping-card-title">운송 시간</div>
+                <div class="shipping-stats">
+                    <span class="stat-label">평균 운송일</span>
+                    <span class="stat-value">14일</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">최단 운송</span>
+                    <span class="stat-value">7일</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">최장 운송</span>
+                    <span class="stat-value">28일</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">정시 도착률</span>
+                    <span class="stat-value">92%</span>
+                </div>
+            </div>
+            <div class="shipping-card">
+                <div class="shipping-card-title">비용 현황</div>
+                <div class="shipping-stats">
+                    <span class="stat-label">평균 운임</span>
+                    <span class="stat-value">₩2,300</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">부대비용</span>
+                    <span class="stat-value">₩450</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">총 운송비</span>
+                    <span class="stat-value">₩2,750</span>
+                </div>
+                <div class="shipping-stats">
+                    <span class="stat-label">절감액</span>
+                    <span class="stat-value">₩320</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="shipping-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="shippingStatus">
+                    <option value="">전체 상태</option>
+                    <option value="booked">예약완료</option>
+                    <option value="loading">선적중</option>
+                    <option value="intransit">운송중</option>
+                    <option value="arrived">도착완료</option>
+                    <option value="delayed">지연</option>
+                </select>
+                <select class="filter-select" id="shippingType">
+                    <option value="">전체 유형</option>
+                    <option value="fcl">FCL</option>
+                    <option value="lcl">LCL</option>
+                    <option value="bulk">벌크</option>
+                </select>
+                <input type="text" class="filter-input" id="shippingSearch" placeholder="선적번호 또는 BL번호 검색...">
+                <button class="btn-primary" onclick="searchShipping()">검색</button>
+            </div>
+        </div>
+
+        <table class="shipping-table">
+            <thead>
+                <tr>
+                    <th>선적번호</th>
+                    <th>BL번호</th>
+                    <th>선박명</th>
+                    <th>컨테이너</th>
+                    <th>출발항</th>
+                    <th>도착항</th>
+                    <th>출발일</th>
+                    <th>도착예정일</th>
+                    <th>상태</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="shippingTableBody">
+                <!-- 선적관리 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.shippingModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.shipping-filters'),
+                    {
+                        searchPlaceholder: '선적번호 또는 BL번호 검색...',
+                        categories: [
+                            { value: 'fcl', label: 'FCL' },
+                            { value: 'lcl', label: 'LCL' },
+                            { value: 'bulk', label: '벌크' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#shippingTableBody'),
+                    {
+                        columns: [
+                            { header: '선적번호', field: 'shippingNumber' },
+                            { header: 'BL번호', field: 'blNumber' },
+                            { header: '선박명', field: 'vesselName' },
+                            { header: '컨테이너', field: 'containerInfo' },
+                            { header: '출발항', field: 'departurePort' },
+                            { header: '도착항', field: 'arrivalPort' },
+                            {
+                                header: '출발일',
+                                field: 'departureDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '도착예정일',
+                                field: 'arrivalDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        booked: '<span class="status-badge status-booked">예약완료</span>',
+                                        loading: '<span class="status-badge status-loading">선적중</span>',
+                                        intransit: '<span class="status-badge status-intransit">운송중</span>',
+                                        arrived: '<span class="status-badge status-arrived">도착완료</span>',
+                                        delayed: '<span class="status-badge status-delayed">지연</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewShipping', color: '#17a2b8' },
+                            { label: '수정', handler: 'editShipping', color: '#28a745' },
+                            { label: '삭제', handler: 'deleteShipping', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'status', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'status', categoryValue);
+                    }
+                );
+
+                await loadShippingData();
+            }
+        };
+
+        const loadShippingData = async () => {
+            // 가상 선적관리 데이터
+            const mockShippingData = [
+                {
+                    id: 1,
+                    shippingNumber: 'SH-2024-001',
+                    blNumber: 'BL-2024-001',
+                    vesselName: 'EVER GREEN',
+                    containerInfo: '40ft x 2',
+                    departurePort: '부산',
+                    arrivalPort: '상하이',
+                    departureDate: '2024-01-15',
+                    arrivalDate: '2024-01-22',
+                    status: 'intransit'
+                },
+                {
+                    id: 2,
+                    shippingNumber: 'SH-2024-002',
+                    blNumber: 'BL-2024-002',
+                    vesselName: 'COSCO SHIPPING',
+                    containerInfo: '20ft x 1',
+                    departurePort: '인천',
+                    arrivalPort: 'LA',
+                    departureDate: '2024-01-18',
+                    arrivalDate: '2024-02-05',
+                    status: 'loading'
+                },
+                {
+                    id: 3,
+                    shippingNumber: 'SH-2024-003',
+                    blNumber: 'BL-2024-003',
+                    vesselName: 'MAERSK LINE',
+                    containerInfo: 'LCL 5CBM',
+                    departurePort: '부산',
+                    arrivalPort: '도쿄',
+                    departureDate: '2024-01-12',
+                    arrivalDate: '2024-01-16',
+                    status: 'arrived'
+                }
+            ];
+
+            table.setData(mockShippingData);
+        };
+
+        window.createShippingOrder = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('선적 의뢰')
+                .setContent(`
+                    <form id="shippingForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">BL번호</label>
+                            <input type="text" name="blNumber" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">선박명</label>
+                            <input type="text" name="vesselName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">컨테이너 정보</label>
+                            <input type="text" name="containerInfo" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" placeholder="예: 40ft x 2, LCL 5CBM" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">출발항</label>
+                            <input type="text" name="departurePort" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">도착항</label>
+                            <input type="text" name="arrivalPort" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">출발일</label>
+                            <input type="date" name="departureDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">도착예정일</label>
+                            <input type="date" name="arrivalDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">화물 유형</label>
+                            <select name="cargoType" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="fcl">FCL (Full Container Load)</option>
+                                <option value="lcl">LCL (Less than Container Load)</option>
+                                <option value="bulk">벌크 화물</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">운송비용</label>
+                            <input type="number" name="shippingCost" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" placeholder="예상 운송비용">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">특이사항</label>
+                            <textarea name="notes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="선적 관련 특이사항을 입력하세요"></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveShippingOrder(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveShippingOrder = async (modal) => {
+            const form = document.getElementById('shippingForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 선적 데이터:', data);
+
+            Notification.success('선적 의뢰가 등록되었습니다.');
+            modal.close();
+            loadShippingData(); // 목록 새로고침
+        };
+
+        window.viewShipping = (id) => {
+            Notification.info(`선적 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editShipping = (id) => {
+            Notification.info(`선적 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteShipping = (id) => {
+            showConfirm(`선적 의뢰를 삭제하시겠습니까?`, () => {
+                Notification.success('선적 의뢰가 삭제되었습니다.');
+                loadShippingData(); // 목록 새로고침
+            });
+        };
+
+        window.searchShipping = () => {
+            const searchTerm = document.getElementById('shippingSearch').value;
+            const statusValue = document.getElementById('shippingStatus').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'status', statusValue);
+        };
+    </script>
+</body>
+</html>

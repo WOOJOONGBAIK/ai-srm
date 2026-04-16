@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>납기관리</title>
+    <style>
+        .delivery-container { padding: 2rem; }
+        .delivery-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .delivery-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .delivery-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .delivery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .delivery-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .delivery-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .delivery-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+        .stat-good { color: #2e7d32; }
+        .stat-warning { color: #f57c00; }
+        .stat-danger { color: #c62828; }
+
+        .delivery-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .delivery-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .delivery-table thead { background: #f8f9fa; }
+        .delivery-table th, .delivery-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .delivery-table th { font-weight: 600; color: #333; }
+        .delivery-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-ontime { background: #e8f5e8; color: #2e7d32; }
+        .status-delayed { background: #ffebee; color: #c62828; }
+        .status-warning { background: #fff3e0; color: #f57c00; }
+        .status-completed { background: #e3f2fd; color: #1976d2; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-alert { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="delivery-container">
+        <div class="delivery-header">
+            <h1 class="delivery-title">🚚 납기관리</h1>
+            <div class="delivery-actions">
+                <button class="btn-primary" onclick="addDeliverySchedule()">납기 일정 등록</button>
+            </div>
+        </div>
+
+        <div class="delivery-grid">
+            <div class="delivery-card">
+                <div class="delivery-card-title">납기 현황</div>
+                <div class="delivery-stats">
+                    <span class="stat-label">총 납품건</span>
+                    <span class="stat-value">245</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">정시 납품</span>
+                    <span class="stat-value stat-good">94.2%</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">지연 건수</span>
+                    <span class="stat-value stat-danger">8건</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">진행중</span>
+                    <span class="stat-value">67건</span>
+                </div>
+            </div>
+            <div class="delivery-card">
+                <div class="delivery-card-title">지연 경고</div>
+                <div class="delivery-stats">
+                    <span class="stat-label">3일 이내</span>
+                    <span class="stat-value stat-warning">12건</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">1일 이내</span>
+                    <span class="stat-value stat-danger">5건</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">기한 초과</span>
+                    <span class="stat-value stat-danger">3건</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">평균 지연일</span>
+                    <span class="stat-value">2.3일</span>
+                </div>
+            </div>
+            <div class="delivery-card">
+                <div class="delivery-card-title">협력사별 신뢰도</div>
+                <div class="delivery-stats">
+                    <span class="stat-label">A등급</span>
+                    <span class="stat-value stat-good">12개사</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">B등급</span>
+                    <span class="stat-value">8개사</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">C등급</span>
+                    <span class="stat-value stat-warning">3개사</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">D등급</span>
+                    <span class="stat-value stat-danger">1개사</span>
+                </div>
+            </div>
+            <div class="delivery-card">
+                <div class="delivery-card-title">품목별 납기율</div>
+                <div class="delivery-stats">
+                    <span class="stat-label">전자부품</span>
+                    <span class="stat-value stat-good">96.5%</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">기계부품</span>
+                    <span class="stat-value stat-good">94.2%</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">소모품</span>
+                    <span class="stat-value stat-warning">89.7%</span>
+                </div>
+                <div class="delivery-stats">
+                    <span class="stat-label">특수가공품</span>
+                    <span class="stat-value stat-good">97.1%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="delivery-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="deliveryStatus">
+                    <option value="">전체 상태</option>
+                    <option value="ontime">정시납품</option>
+                    <option value="delayed">지연</option>
+                    <option value="warning">경고</option>
+                    <option value="completed">완료</option>
+                </select>
+                <select class="filter-select" id="deliveryPeriod">
+                    <option value="">전체 기간</option>
+                    <option value="today">오늘</option>
+                    <option value="week">이번 주</option>
+                    <option value="month">이번 달</option>
+                </select>
+                <input type="text" class="filter-input" id="deliverySearch" placeholder="발주번호 또는 품목명 검색...">
+                <button class="btn-primary" onclick="searchDelivery()">검색</button>
+            </div>
+        </div>
+
+        <table class="delivery-table">
+            <thead>
+                <tr>
+                    <th>발주번호</th>
+                    <th>품목명</th>
+                    <th>협력사</th>
+                    <th>발주수량</th>
+                    <th>납기일</th>
+                    <th>납품일</th>
+                    <th>상태</th>
+                    <th>지연일수</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="deliveryTableBody">
+                <!-- 납기관리 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.deliveryModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.delivery-filters'),
+                    {
+                        searchPlaceholder: '발주번호 또는 품목명 검색...',
+                        categories: [
+                            { value: 'ontime', label: '정시납품' },
+                            { value: 'delayed', label: '지연' },
+                            { value: 'warning', label: '경고' },
+                            { value: 'completed', label: '완료' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#deliveryTableBody'),
+                    {
+                        columns: [
+                            { header: '발주번호', field: 'poNumber' },
+                            { header: '품목명', field: 'itemName' },
+                            { header: '협력사', field: 'supplierName' },
+                            { header: '발주수량', field: 'quantity' },
+                            {
+                                header: '납기일',
+                                field: 'dueDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '납품일',
+                                field: 'deliveryDate',
+                                formatter: (value) => value ? new Date(value).toLocaleDateString('ko-KR') : '-'
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        ontime: '<span class="status-badge status-ontime">정시납품</span>',
+                                        delayed: '<span class="status-badge status-delayed">지연</span>',
+                                        warning: '<span class="status-badge status-warning">경고</span>',
+                                        completed: '<span class="status-badge status-completed">완료</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            },
+                            {
+                                header: '지연일수',
+                                field: 'delayDays',
+                                formatter: (value) => value > 0 ? `${value}일` : '-'
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewDelivery', color: '#17a2b8' },
+                            { label: '수정', handler: 'editDelivery', color: '#28a745' },
+                            { label: '알림', handler: 'sendDeliveryAlert', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'status', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'status', categoryValue);
+                    }
+                );
+
+                await loadDeliveryData();
+            }
+        };
+
+        const loadDeliveryData = async () => {
+            // 가상 납기관리 데이터
+            const mockDeliveryData = [
+                {
+                    id: 1,
+                    poNumber: 'PO-2024-001',
+                    itemName: '베어링 6205',
+                    supplierName: 'ABC베어링',
+                    quantity: 100,
+                    dueDate: '2024-01-25',
+                    deliveryDate: '2024-01-24',
+                    status: 'ontime',
+                    delayDays: 0
+                },
+                {
+                    id: 2,
+                    poNumber: 'PO-2024-002',
+                    itemName: '모터 M-100',
+                    supplierName: '테크모터',
+                    quantity: 50,
+                    dueDate: '2024-02-14',
+                    deliveryDate: null,
+                    status: 'warning',
+                    delayDays: 0
+                },
+                {
+                    id: 3,
+                    poNumber: 'PO-2024-003',
+                    itemName: '케이블 C-50',
+                    supplierName: '케이블코리아',
+                    quantity: 200,
+                    dueDate: '2024-01-23',
+                    deliveryDate: '2024-01-26',
+                    status: 'delayed',
+                    delayDays: 3
+                }
+            ];
+
+            table.setData(mockDeliveryData);
+        };
+
+        window.addDeliverySchedule = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('납기 일정 등록')
+                .setContent(`
+                    <form id="deliveryForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">발주번호</label>
+                            <input type="text" name="poNumber" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">품목명</label>
+                            <input type="text" name="itemName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">협력사</label>
+                            <input type="text" name="supplierName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">발주수량</label>
+                            <input type="number" name="quantity" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">납기일</label>
+                            <input type="date" name="dueDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">납품 예정일</label>
+                            <input type="date" name="expectedDeliveryDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">특이사항</label>
+                            <textarea name="notes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="납기 관련 특이사항을 입력하세요"></textarea>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveDeliverySchedule(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveDeliverySchedule = async (modal) => {
+            const form = document.getElementById('deliveryForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 납기 일정 데이터:', data);
+
+            Notification.success('납기 일정이 등록되었습니다.');
+            modal.close();
+            loadDeliveryData(); // 목록 새로고침
+        };
+
+        window.viewDelivery = (id) => {
+            Notification.info(`납기 일정 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editDelivery = (id) => {
+            Notification.info(`납기 일정 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.sendDeliveryAlert = (id) => {
+            showConfirm(`납기 지연 알림을 발송하시겠습니까?`, () => {
+                Notification.success('납기 지연 알림이 발송되었습니다.');
+            });
+        };
+
+        window.searchDelivery = () => {
+            const searchTerm = document.getElementById('deliverySearch').value;
+            const statusValue = document.getElementById('deliveryStatus').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'status', statusValue);
+        };
+    </script>
+</body>
+</html>

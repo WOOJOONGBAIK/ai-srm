@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트관리</title>
+    <style>
+        .project-container { padding: 2rem; }
+        .project-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .project-title { font-size: 24px; font-weight: 600; color: #005EB8; }
+        .project-actions { display: flex; gap: 1rem; }
+        .btn-primary { padding: 8px 16px; background: #005EB8; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary:hover { background: #004a94; }
+
+        .project-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+        .project-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; }
+        .project-card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #005EB8; }
+        .project-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-value { font-size: 20px; font-weight: 600; }
+
+        .project-filters { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+        .filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filter-select, .filter-input { padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-width: 120px; }
+        .filter-input { flex: 1; min-width: 200px; }
+
+        .project-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .project-table thead { background: #f8f9fa; }
+        .project-table th, .project-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .project-table th { font-weight: 600; color: #333; }
+        .project-table tbody tr:hover { background: #f8f9fa; }
+
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .status-planning { background: #e3f2fd; color: #1976d2; }
+        .status-active { background: #e8f5e8; color: #2e7d32; }
+        .status-paused { background: #fff3e0; color: #f57c00; }
+        .status-completed { background: #f3e5f5; color: #7b1fa2; }
+        .status-cancelled { background: #ffebee; color: #c62828; }
+
+        .action-buttons { display: flex; gap: 4px; }
+        .btn-edit { padding: 4px 8px; background: #28a745; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-view { padding: 4px 8px; background: #17a2b8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-delete { padding: 4px 8px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="project-container">
+        <div class="project-header">
+            <h1 class="project-title">📋 프로젝트관리</h1>
+            <div class="project-actions">
+                <button class="btn-primary" onclick="createProject()">프로젝트 생성</button>
+            </div>
+        </div>
+
+        <div class="project-grid">
+            <div class="project-card">
+                <div class="project-card-title">프로젝트 현황</div>
+                <div class="project-stats">
+                    <span class="stat-label">총 프로젝트</span>
+                    <span class="stat-value">28</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">진행중</span>
+                    <span class="stat-value">12</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">완료</span>
+                    <span class="stat-value">14</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">계획중</span>
+                    <span class="stat-value">2</span>
+                </div>
+            </div>
+            <div class="project-card">
+                <div class="project-card-title">프로젝트 예산</div>
+                <div class="project-stats">
+                    <span class="stat-label">총 예산</span>
+                    <span class="stat-value">₩50억</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">집행액</span>
+                    <span class="stat-value">₩32억</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">잔여 예산</span>
+                    <span class="stat-value">₩18억</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">집행률</span>
+                    <span class="stat-value">64%</span>
+                </div>
+            </div>
+            <div class="project-card">
+                <div class="project-card-title">일정 현황</div>
+                <div class="project-stats">
+                    <span class="stat-label">정시 완료</span>
+                    <span class="stat-value">89%</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">지연 프로젝트</span>
+                    <span class="stat-value">3건</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">평균 기간</span>
+                    <span class="stat-value">6.2개월</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">남은 기간</span>
+                    <span class="stat-value">2.8개월</span>
+                </div>
+            </div>
+            <div class="project-card">
+                <div class="project-card-title">품질 현황</div>
+                <div class="project-stats">
+                    <span class="stat-label">품질 만족도</span>
+                    <span class="stat-value">94%</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">결함 건수</span>
+                    <span class="stat-value">8건</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">개선 완료</span>
+                    <span class="stat-value">6건</span>
+                </div>
+                <div class="project-stats">
+                    <span class="stat-label">품질 목표</span>
+                    <span class="stat-value">95%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="project-filters">
+            <div class="filter-row">
+                <select class="filter-select" id="projectStatus">
+                    <option value="">전체 상태</option>
+                    <option value="planning">계획중</option>
+                    <option value="active">진행중</option>
+                    <option value="paused">일시중지</option>
+                    <option value="completed">완료</option>
+                    <option value="cancelled">취소</option>
+                </select>
+                <select class="filter-select" id="projectType">
+                    <option value="">전체 유형</option>
+                    <option value="development">개발</option>
+                    <option value="maintenance">유지보수</option>
+                    <option value="research">연구</option>
+                    <option value="infrastructure">인프라</option>
+                </select>
+                <input type="text" class="filter-input" id="projectSearch" placeholder="프로젝트명 또는 담당자 검색...">
+                <button class="btn-primary" onclick="searchProject()">검색</button>
+            </div>
+        </div>
+
+        <table class="project-table">
+            <thead>
+                <tr>
+                    <th>프로젝트명</th>
+                    <th>유형</th>
+                    <th>담당자</th>
+                    <th>시작일</th>
+                    <th>완료예정일</th>
+                    <th>진행률</th>
+                    <th>예산</th>
+                    <th>상태</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="projectTableBody">
+                <!-- 프로젝트 목록이 동적으로 추가됩니다 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { DataTable } from '../../components/table.js';
+        import { SearchFilter } from '../../components/table.js';
+        import { Modal, showConfirm } from '../../components/modal.js';
+        import { Notification } from '../../components/utils.js';
+
+        let table;
+        let searchFilter;
+
+        // 전역 모듈 객체 정의
+        window.projectModule = {
+            init: async (container, supabase) => {
+                // 컴포넌트 초기화
+                searchFilter = new SearchFilter(
+                    container.querySelector('.project-filters'),
+                    {
+                        searchPlaceholder: '프로젝트명 또는 담당자 검색...',
+                        categories: [
+                            { value: 'development', label: '개발' },
+                            { value: 'maintenance', label: '유지보수' },
+                            { value: 'research', label: '연구' },
+                            { value: 'infrastructure', label: '인프라' }
+                        ]
+                    }
+                );
+
+                table = new DataTable(
+                    container.querySelector('#projectTableBody'),
+                    {
+                        columns: [
+                            { header: '프로젝트명', field: 'projectName' },
+                            { header: '유형', field: 'projectType' },
+                            { header: '담당자', field: 'manager' },
+                            {
+                                header: '시작일',
+                                field: 'startDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '완료예정일',
+                                field: 'endDate',
+                                formatter: (value) => new Date(value).toLocaleDateString('ko-KR')
+                            },
+                            {
+                                header: '진행률',
+                                field: 'progress',
+                                formatter: (value) => value + '%'
+                            },
+                            {
+                                header: '예산',
+                                field: 'budget',
+                                formatter: (value) => new Intl.NumberFormat('ko-KR').format(value) + '원'
+                            },
+                            {
+                                header: '상태',
+                                field: 'status',
+                                formatter: (value) => {
+                                    const statusMap = {
+                                        planning: '<span class="status-badge status-planning">계획중</span>',
+                                        active: '<span class="status-badge status-active">진행중</span>',
+                                        paused: '<span class="status-badge status-paused">일시중지</span>',
+                                        completed: '<span class="status-badge status-completed">완료</span>',
+                                        cancelled: '<span class="status-badge status-cancelled">취소</span>'
+                                    };
+                                    return statusMap[value] || value;
+                                }
+                            }
+                        ],
+                        actions: [
+                            { label: '보기', handler: 'viewProject', color: '#17a2b8' },
+                            { label: '수정', handler: 'editProject', color: '#28a745' },
+                            { label: '삭제', handler: 'deleteProject', color: '#dc3545' }
+                        ]
+                    }
+                );
+
+                // 검색 필터 이벤트
+                searchFilter.render(
+                    (searchTerm, categoryValue) => {
+                        table.filter(searchTerm, 'projectType', categoryValue);
+                    },
+                    (categoryValue) => {
+                        table.filter('', 'projectType', categoryValue);
+                    }
+                );
+
+                await loadProjectData();
+            }
+        };
+
+        const loadProjectData = async () => {
+            // 가상 프로젝트 데이터
+            const mockProjectData = [
+                {
+                    id: 1,
+                    projectName: 'AI SRM 시스템 개발',
+                    projectType: '개발',
+                    manager: '김개발',
+                    startDate: '2024-01-01',
+                    endDate: '2024-06-30',
+                    progress: 75,
+                    budget: 500000000,
+                    status: 'active'
+                },
+                {
+                    id: 2,
+                    projectName: '서버 인프라 구축',
+                    projectType: '인프라',
+                    manager: '이인프라',
+                    startDate: '2024-02-01',
+                    endDate: '2024-04-30',
+                    progress: 60,
+                    budget: 200000000,
+                    status: 'active'
+                },
+                {
+                    id: 3,
+                    projectName: '품질관리 시스템 개선',
+                    projectType: '유지보수',
+                    manager: '박품질',
+                    startDate: '2024-01-15',
+                    endDate: '2024-03-15',
+                    progress: 100,
+                    budget: 100000000,
+                    status: 'completed'
+                }
+            ];
+
+            table.setData(mockProjectData);
+        };
+
+        window.createProject = () => {
+            const modal = new Modal({ size: 'large' })
+                .setTitle('프로젝트 생성')
+                .setContent(`
+                    <form id="projectForm">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">프로젝트명</label>
+                            <input type="text" name="projectName" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">프로젝트 유형</label>
+                            <select name="projectType" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="development">개발</option>
+                                <option value="maintenance">유지보수</option>
+                                <option value="research">연구</option>
+                                <option value="infrastructure">인프라</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">담당자</label>
+                            <input type="text" name="manager" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">시작일</label>
+                            <input type="date" name="startDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">완료예정일</label>
+                            <input type="date" name="endDate" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">예산</label>
+                            <input type="number" name="budget" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;" placeholder="예산 금액을 입력하세요" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">프로젝트 설명</label>
+                            <textarea name="description" rows="3" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; resize: vertical;" placeholder="프로젝트에 대한 상세 설명을 입력하세요"></textarea>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">우선순위</label>
+                            <select name="priority" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                <option value="high">높음</option>
+                                <option value="medium">중간</option>
+                                <option value="low">낮음</option>
+                            </select>
+                        </div>
+                    </form>
+                `)
+                .setFooter([
+                    { label: '취소' },
+                    { label: '저장', handler: () => saveProject(modal), primary: true }
+                ])
+                .open();
+        };
+
+        const saveProject = async (modal) => {
+            const form = document.getElementById('projectForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            // 여기서 실제 저장 로직 구현
+            console.log('저장할 프로젝트 데이터:', data);
+
+            Notification.success('프로젝트가 생성되었습니다.');
+            modal.close();
+            loadProjectData(); // 목록 새로고침
+        };
+
+        window.viewProject = (id) => {
+            Notification.info(`프로젝트 ${id} 상세보기 기능 준비중입니다.`);
+        };
+
+        window.editProject = (id) => {
+            Notification.info(`프로젝트 ${id} 수정 기능 준비중입니다.`);
+        };
+
+        window.deleteProject = (id) => {
+            showConfirm(`프로젝트를 삭제하시겠습니까?`, () => {
+                Notification.success('프로젝트가 삭제되었습니다.');
+                loadProjectData(); // 목록 새로고침
+            });
+        };
+
+        window.searchProject = () => {
+            const searchTerm = document.getElementById('projectSearch').value;
+            const statusValue = document.getElementById('projectStatus').value;
+
+            // 필터링 로직
+            table.filter(searchTerm, 'status', statusValue);
+        };
+    </script>
+</body>
+</html>
