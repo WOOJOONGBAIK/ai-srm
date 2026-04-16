@@ -1,523 +1,676 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI SRM</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  body { background: #f8f9fa; color: #333; min-height: 100vh; line-height: 1.5; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI SRM - 공급망 관리</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* CSS 변수 선언 - 브랜드 컬러 및 반복되는 값 관리 */
+    :root {
+      --primary-color: #005EB8;
+      --primary-dark: #003d82;
+      --border-color: #e0e0e0;
+      --bg-gray: #f8f9fa;
+      --bg-white: #fff;
+      --text-main: #333;
+      --text-sub: #666;
+      --text-light: #999;
+      --error-color: #dc3545;
+      --warning-color: #ffc107;
+      --success-color: #28a745;
+      --info-color: #17a2b8;
+    }
 
-  .header { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+    }
 
-  /* 탭 시스템 */
-  .tab-bar { background: #f8f9fa; border-bottom: 1px solid #e0e0e0; display: flex; overflow-x: auto; position: sticky; top: 56px; z-index: 99; }
-  .tab { display: flex; align-items: center; padding: 8px 16px; background: #fff; border-right: 1px solid #e0e0e0; cursor: pointer; font-size: 13px; color: #666; min-width: 120px; max-width: 200px; position: relative; }
-  .tab.active { background: #005EB8; color: #fff; }
-  .tab:hover:not(.active) { background: #f0f0f0; }
-  .tab-close { margin-left: 8px; padding: 2px 6px; border-radius: 50%; background: rgba(255,255,255,0.3); color: inherit; border: none; cursor: pointer; font-size: 12px; line-height: 1; }
-  .tab-close:hover { background: rgba(255,255,255,0.5); }
-  .tab-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    body { 
+      background: var(--bg-gray); 
+      color: var(--text-main); 
+      min-height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+    }
 
-  .logo { font-size: 18px; font-weight: 600; color: #005EB8; }
-  .nav { display: flex; gap: 2px; flex: 1; justify-content: center; overflow-x: auto; }
-  .nav-btn { padding: 8px 12px; border-radius: 4px; border: none; background: none; font-size: 13px; color: #666; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-  .nav-btn:hover { background: #f0f0f0; color: #005EB8; }
-  .nav-btn.active { background: #005EB8; color: #fff; }
-  .user-info { display: flex; align-items: center; gap: 12px; }
-  .time-location { font-size: 12px; color: #666; }
-  .user-name { font-size: 13px; color: #666; font-weight: 500; }
-  .lang-selector { display: flex; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden; }
-  .lang-btn { padding: 6px 12px; border: none; background: #fff; font-size: 12px; cursor: pointer; transition: all 0.2s; color: #666; }
-  .lang-btn:hover { background: #f0f0f0; }
-  .lang-btn.active { background: #005EB8; color: #fff; }
+    /* 헤더 - 시맨틱 태그 사용 */
+    header { 
+      background: var(--bg-white); 
+      border-bottom: 1px solid var(--border-color); 
+      padding: 0 1.5rem; 
+      height: 56px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      position: sticky; 
+      top: 0; 
+      z-index: 100; 
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
 
-  /* 시스템 서브메뉴 */
-  .system-submenu { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; margin-top: 4px; padding: 4px; }
-  .submenu-btn { padding: 6px 12px; font-size: 12px; margin: 2px 0; width: 100%; justify-content: flex-start; }
+    .logo { 
+      font-size: 18px; 
+      font-weight: 600; 
+      color: var(--primary-color); 
+    }
 
-  /* 메인 레이아웃 */
-  .main-layout { display: flex; min-height: calc(100vh - 56px - 40px); } /* 헤더 + 탭바 높이 제외 */
-  .workspace { flex: 1; padding: 2rem; display: flex; flex-direction: column; }
-  .welcome-message { text-align: center; padding: 4rem 2rem; }
-  .welcome-message h2 { font-size: 24px; color: #005EB8; margin-bottom: 1rem; }
-  .welcome-message p { font-size: 16px; color: #666; }
-  .sidebar { width: 300px; background: #fafafa; border-left: 1px solid #e0e0e0; padding: 1.5rem; }
-  .sidebar-title { font-size: 16px; font-weight: 600; margin-bottom: 1rem; color: #333; }
-  .sidebar-item { padding: 12px 15px; background: #fff; border: 1px solid #eee; border-left: 4px solid #ddd; border-radius: 4px; margin-bottom: 10px; font-size: 13px; color: #444; transition: transform 0.2s; }
-  .sidebar-item:hover { transform: translateX(3px); border-color: #ccc; }
-  .sidebar-item.danger { border-left-color: #ff6b6b; }
-  .sidebar-item.warning { border-left-color: #ffd43b; }
-  .sidebar-item.info { border-left-color: #74c0fc; }
+    /* 네비게이션 - 시맨틱 태그 사용 */
+    nav { 
+      background: var(--bg-gray); 
+      border-bottom: 1px solid var(--border-color); 
+      display: flex; 
+      overflow-x: auto; 
+      padding: 0 1.5rem;
+    }
 
-  /* 프롬프트 영역 (하단 고정) */
-  .prompt-area { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e0e0e0; padding: 1rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
-  .prompt-container { max-width: 800px; margin: 0 auto; }
-  .prompt-input { width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 16px; font-size: 14px; resize: none; font-family: inherit; outline: none; }
-  .prompt-input:focus { border-color: #005EB8; box-shadow: 0 0 0 2px rgba(0,94,184,0.1); }
-  .prompt-hint { font-size: 12px; color: #999; margin-top: 8px; text-align: center; }
+    .nav-btn { 
+      padding: 12px 16px; 
+      border-radius: 4px 4px 0 0; 
+      border: none; 
+      background: none; 
+      font-size: 13px; 
+      color: var(--text-sub); 
+      cursor: pointer; 
+      transition: all 0.2s; 
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+    }
 
-  /* 칩 */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 600px; margin-bottom: 2.5rem; }
-  .chip { font-size: 13px; padding: 8px 16px; border-radius: 20px; border: 1px solid #e0e0e0; background: #fff; color: #666; cursor: pointer; transition: all 0.2s; }
-  .chip:hover { border-color: #005EB8; color: #005EB8; }
+    .nav-btn:hover { 
+      color: var(--primary-color); 
+      background: rgba(0, 94, 184, 0.05);
+    }
 
-  /* 모듈 카드 */
-  .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; width: 100%; max-width: 800px; }
-  .module-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s; }
-  .module-card:hover { border-color: #005EB8; box-shadow: 0 2px 8px rgba(0,94,184,0.1); }
-  .module-dot { width: 12px; height: 12px; border-radius: 50%; margin: 0 auto 12px; }
-  .module-name { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
-  .module-desc { font-size: 13px; color: #999; }
+    .nav-btn.active { 
+      color: var(--primary-color); 
+      border-bottom-color: var(--primary-color);
+    }
 
-  /* 탭 콘텐츠 */
-  .tab-content { display: none; padding: 2rem 1.5rem; max-width: 1200px; margin: 0 auto; min-height: calc(100vh - 56px - 40px - 4rem); }
-  .tab-content.active { display: block; }
+    /* 탭 시스템 - 자동 스크롤 지원 */
+    .tab-bar { 
+      background: var(--bg-white); 
+      border-bottom: 1px solid var(--border-color); 
+      display: flex; 
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      position: sticky; 
+      top: 56px; 
+      z-index: 99; 
+    }
 
-  /* 콘텐츠 영역 */
-  #content { display: none; padding: 2rem 1.5rem; max-width: 1200px; margin: 0 auto; }
+    .tab { 
+      display: flex; 
+      align-items: center; 
+      padding: 8px 16px; 
+      background: var(--bg-gray); 
+      border-right: 1px solid var(--border-color); 
+      cursor: pointer; 
+      font-size: 13px; 
+      color: var(--text-sub); 
+      min-width: 120px; 
+      max-width: 200px; 
+      position: relative; 
+      transition: all 0.2s;
+    }
 
-  /* OCR 검증 UI 전용 스타일 */
-  .ocr-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; }
-  .ocr-viewer { background: #525659; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
-  .ocr-viewer img { max-width: 100%; height: auto; }
-  .ocr-data-form { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; overflow-y: auto; }
-  .ocr-field { margin-bottom: 15px; }
-  .ocr-field label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
-  .ocr-field input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-  .ocr-field.low-confidence input { border-color: #ff6b6b; background: #fff5f5; }
-  .ocr-badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 8px; }
-  .badge-low { background: #ff6b6b; color: #fff; }
+    .tab:hover { 
+      background: var(--bg-white);
+    }
 
-  /* 상태 표시 */
-  #db-status { font-size: 12px; padding: 4px 12px; border-radius: 12px; }
-  .status-ok { background: #e8f5e8; color: #2e7d32; }
-  .status-err { background: #ffebee; color: #c62828; }
-  .status-loading { background: #f5f5f5; color: #9e9e9e; }
-</style>
+    .tab.active { 
+      background: var(--primary-color); 
+      color: var(--bg-white);
+    }
+
+    .tab-close { 
+      margin-left: 8px; 
+      padding: 2px 6px; 
+      border-radius: 50%; 
+      background: rgba(255, 255, 255, 0.3); 
+      color: inherit; 
+      border: none; 
+      cursor: pointer; 
+      font-size: 12px; 
+      line-height: 1;
+      transition: background 0.2s;
+    }
+
+    .tab-close:hover { 
+      background: rgba(255, 255, 255, 0.5); 
+    }
+
+    .tab-title { 
+      flex: 1; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+    }
+
+    /* 메인 레이아웃 */
+    .main-layout { 
+      display: flex; 
+      flex: 1; 
+      overflow: hidden; 
+    }
+
+    /* 사이드바 - 반응형 처리 */
+    aside { 
+      width: 300px; 
+      background: var(--bg-white); 
+      border-right: 1px solid var(--border-color); 
+      padding: 1.5rem; 
+      overflow-y: auto; 
+      flex-shrink: 0;
+    }
+
+    .sidebar-title { 
+      font-size: 14px; 
+      font-weight: 600; 
+      margin: 1.5rem 0 1rem; 
+      color: var(--text-main);
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .sidebar-item { 
+      padding: 12px 15px; 
+      background: var(--bg-gray); 
+      border: 1px solid var(--border-color); 
+      border-left: 4px solid var(--border-color); 
+      border-radius: 4px; 
+      margin-bottom: 10px; 
+      font-size: 13px; 
+      color: var(--text-main); 
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .sidebar-item:hover { 
+      transform: translateX(3px); 
+      border-color: var(--primary-color);
+      background: rgba(0, 94, 184, 0.05);
+    }
+
+    .sidebar-item.danger { 
+      border-left-color: var(--error-color); 
+      background: rgba(220, 53, 69, 0.05);
+    }
+
+    .sidebar-item.warning { 
+      border-left-color: var(--warning-color); 
+      background: rgba(255, 193, 7, 0.05);
+    }
+
+    .sidebar-item.info { 
+      border-left-color: var(--info-color); 
+      background: rgba(23, 162, 184, 0.05);
+    }
+
+    /* 워크스페이스 */
+    .workspace { 
+      flex: 1; 
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden;
+    }
+
+    .workspace-header { 
+      padding: 1.5rem; 
+      background: var(--bg-white); 
+      border-bottom: 1px solid var(--border-color); 
+      display: flex; 
+      gap: 1rem; 
+      align-items: center;
+    }
+
+    .prompt-container { 
+      display: flex; 
+      gap: 0.5rem; 
+      flex: 1;
+    }
+
+    .prompt-input { 
+      flex: 1; 
+      padding: 10px 12px; 
+      border: 1px solid var(--border-color); 
+      border-radius: 4px; 
+      font-size: 13px;
+      background: var(--bg-white);
+    }
+
+    .prompt-input:focus { 
+      outline: none; 
+      border-color: var(--primary-color); 
+      box-shadow: 0 0 0 3px rgba(0, 94, 184, 0.1);
+    }
+
+    .prompt-btn { 
+      padding: 10px 16px; 
+      background: var(--primary-color); 
+      color: var(--bg-white); 
+      border: none; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .prompt-btn:hover { 
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .prompt-hint { 
+      font-size: 12px; 
+      color: var(--text-light);
+      margin: 0;
+    }
+
+    /* 콘텐츠 영역 */
+    .content { 
+      flex: 1; 
+      overflow-y: auto; 
+      padding: 2rem;
+    }
+
+    .welcome-message { 
+      text-align: center; 
+      padding: 4rem 2rem;
+    }
+
+    .welcome-message h2 { 
+      font-size: 24px; 
+      color: var(--primary-color); 
+      margin-bottom: 1rem;
+    }
+
+    .welcome-message p { 
+      font-size: 14px; 
+      color: var(--text-sub);
+    }
+
+    /* 에러 메시지 - 에러 종류 구분 */
+    .error-message { 
+      background: rgba(220, 53, 69, 0.1); 
+      border: 1px solid var(--error-color); 
+      color: var(--error-color); 
+      padding: 1rem; 
+      border-radius: 4px; 
+      margin: 1rem 0;
+    }
+
+    .error-message.not-found { 
+      background: rgba(255, 193, 7, 0.1); 
+      border-color: var(--warning-color); 
+      color: var(--warning-color);
+    }
+
+    .error-message.runtime { 
+      background: rgba(220, 53, 69, 0.1); 
+      border-color: var(--error-color); 
+      color: var(--error-color);
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 1200px) {
+      aside { 
+        width: 250px;
+      }
+
+      .tab { 
+        min-width: 100px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-layout { 
+        flex-direction: column;
+      }
+
+      aside { 
+        width: 100%; 
+        max-height: 200px; 
+        overflow-x: auto; 
+        overflow-y: hidden;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem;
+      }
+
+      header { 
+        flex-direction: column; 
+        height: auto; 
+        padding: 1rem;
+        gap: 1rem;
+      }
+
+      .workspace-header {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .prompt-container {
+        flex-direction: column;
+      }
+
+      .content { 
+        padding: 1rem;
+      }
+
+      .tab { 
+        min-width: 80px; 
+        padding: 8px 12px;
+      }
+
+      .sidebar-item { 
+        display: inline-block; 
+        margin-right: 10px;
+        width: auto;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .tab { 
+        min-width: 60px; 
+        font-size: 12px;
+        padding: 6px 8px;
+      }
+
+      .tab-close { 
+        margin-left: 4px;
+      }
+
+      .prompt-input { 
+        font-size: 12px;
+        padding: 8px;
+      }
+
+      .prompt-btn { 
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+    }
+
+    /* 로딩 상태 */
+    .loading { 
+      display: inline-block; 
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
+    }
+  </style>
 </head>
 <body>
+  <!-- 헤더 (시맨틱 태그) -->
+  <header>
+    <div class="logo">🚀 AI SRM</div>
+    <div id="user-info"></div>
+  </header>
 
-<div class="header">
-  <div class="logo">AI <span>SRM</span></div>
-  <div class="nav">
-    <button class="nav-btn active" onclick="showLanding()">대시보드</button>
-    <button class="nav-btn" onclick="loadModule('master')" data-role="internal">기준정보</button>
-    <button class="nav-btn" onclick="loadModule('supplier')">협력사관리</button>
-    <button class="nav-btn" onclick="loadModule('pr')">구매요청</button>
-    <button class="nav-btn" onclick="loadModule('contract')">계약관리</button>
-    <button class="nav-btn" onclick="loadModule('po')">발주관리</button>
-    <button class="nav-btn" onclick="loadModule('delivery')">납기관리</button>
-    <button class="nav-btn" onclick="loadModule('vendor')">사급관리</button>
-    <button class="nav-btn" onclick="loadModule('planning')" data-role="internal">생산계획</button>
-    <button class="nav-btn" onclick="loadModule('quality')" data-role="internal">품질관리</button>
-    <button class="nav-btn" onclick="loadModule('import')" data-role="internal">수출입관리</button>
-    <button class="nav-btn" onclick="loadModule('shipping')" data-role="internal">선적관리</button>
-    <button class="nav-btn" onclick="loadModule('project')" data-role="internal">프로젝트관리</button>
-    <button class="nav-btn" onclick="toggleSystemMenu()" data-role="internal">시스템관리</button>
-    <div id="system-submenu" class="system-submenu" style="display: none;">
-      <button class="nav-btn submenu-btn" onclick="loadModule('board')">게시판관리</button>
-      <button class="nav-btn submenu-btn" onclick="loadModule('archive')">자료실관리</button>
-      <button class="nav-btn submenu-btn" onclick="loadModule('faq')">FAQ관리</button>
-      <button class="nav-btn submenu-btn" onclick="loadModule('notice')">공지사항관리</button>
+  <!-- 네비게이션 (시맨틱 태그) -->
+  <nav id="gnb">
+    <!-- 메뉴가 동적으로 추가됩니다 -->
+  </nav>
+
+  <!-- 메인 레이아웃 -->
+  <div class="main-layout">
+    <!-- 사이드바 (시맨틱 aside 태그) -->
+    <aside id="sidebar">
+      <div class="sidebar-title">위험신호</div>
+      <div class="sidebar-item danger">🔴 공급업체 A 납기 지연</div>
+      <div class="sidebar-item warning">🟡 원자재 가격 상승</div>
+      <div class="sidebar-item info">🔵 신규 협력사 검토</div>
+    </aside>
+
+    <!-- 워크스페이스 -->
+    <div class="workspace">
+      <!-- 워크스페이스 헤더 -->
+      <div class="workspace-header">
+        <div class="prompt-container">
+          <input 
+            type="text" 
+            id="prompt" 
+            class="prompt-input" 
+            placeholder="무엇을 도와드릴까요? 예: '공급망 리스크 분석', '구매요청 현황'"
+            aria-label="AI 어시스턴트 입력"
+          >
+          <button class="prompt-btn" onclick="handlePrompt()" title="검색">🔍</button>
+        </div>
+        <p class="prompt-hint">구매팀 · Claude Sonnet 4.6</p>
+      </div>
+
+      <!-- 탭 바 -->
+      <div class="tab-bar" id="tab-bar"></div>
+
+      <!-- 콘텐츠 영역 -->
+      <main class="content" id="content">
+        <div class="welcome-message">
+          <h2>공급망 관리 시스템에 오신 것을 환영합니다</h2>
+          <p>왼쪽 메뉴에서 원하는 기능을 선택하거나 AI 어시스턴트에 말씀해주세요.</p>
+        </div>
+      </main>
     </div>
   </div>
-  <div class="user-info">
-    <span class="time-location" id="time-location">서울, 14:30</span>
-    <span class="user-name">${localStorage.getItem('username') || '사용자'} 님</span>
-    <div class="lang-selector">
-      <button class="lang-btn active" onclick="setLanguage(event, 'ko')">한</button>
-      <button class="lang-btn" onclick="setLanguage(event, 'en')">EN</button>
-      <button class="lang-btn" onclick="setLanguage(event, 'zh')">中</button>
-    </div>
-    <div id="db-status" class="status-loading">연결 확인 중...</div>
-  </div>
-</div>
 
-<div class="tab-bar" id="tab-bar"></div>
-
-<div id="tab-contents"></div>
-
-<div class="main-layout">
-  <div class="workspace" id="workspace">
-    <div class="welcome-message">
-      <h2>AI SRM 대시보드에 오신 것을 환영합니다</h2>
-      <p>왼쪽 메뉴에서 원하는 모듈을 선택하거나, 아래 프롬프트로 AI 어시스턴트와 대화해보세요.</p>
-    </div>
-  </div>
-
-  <div class="sidebar">
-    <div class="sidebar-title">해야할 일</div>
-    <div class="sidebar-item info">📋 계약 갱신 검토 (3건)</div>
-    <div class="sidebar-item warning">⚠️ 공급업체 리스크 점검</div>
-    <div class="sidebar-item danger">🚨 품질 이슈 대응 필요</div>
-    <div class="sidebar-item info">📊 월간 보고서 작성</div>
-
-    <div class="sidebar-title" style="margin-top: 2rem;">위험 신호</div>
-    <div class="sidebar-item danger">🔴 공급업체 A 납기 지연</div>
-    <div class="sidebar-item warning">🟡 원자재 가격 상승</div>
-    <div class="sidebar-item info">🔵 신규 협력사 검토</div>
-  </div>
-</div>
-
-<div class="prompt-area">
-  <div class="prompt-container">
-    <textarea class="prompt-input" id="prompt" rows="2"
-      placeholder='무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"'></textarea>
-    <div class="prompt-hint">구매팀 · Claude Sonnet 4.6</div>
-  </div>
-</div>
-
-<script type="module">
-  // 세션 체크: 로그인하지 않은 경우 포털로 리다이렉트
-  if (!localStorage.getItem('isLoggedIn')) {
-    window.location.href = 'portal.html';
-  }
-
-  // 탭 관리 시스템
-  let tabs = [];
-  let activeTabId = null;
-  const MAX_TABS = 10;
-
-  const createTab = (id, title) => {
-    if (tabs.length >= MAX_TABS) {
-      alert('최대 10개의 탭만 열 수 있습니다.');
-      return false;
-    }
-
-    const tabBar = document.getElementById('tab-bar');
-    const tabContents = document.getElementById('tab-contents');
-
-    // 탭 버튼 생성
-    const tab = document.createElement('div');
-    tab.className = 'tab';
-    tab.dataset.tabId = id;
-    tab.innerHTML = `
-      <span class="tab-title">${title}</span>
-      <button class="tab-close" onclick="closeTab('${id}')">×</button>
-    `;
-    tab.onclick = () => switchTab(id);
-    tabBar.appendChild(tab);
-
-    // 탭 콘텐츠 생성
-    const content = document.createElement('div');
-    content.className = 'tab-content';
-    content.id = `tab-${id}`;
-    tabContents.appendChild(content);
-
-    tabs.push({ id, title, element: content });
-    return content;
-  };
-
-  const switchTab = (id) => {
-    // 기존 활성 탭 비활성화
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-    // 새 탭 활성화
-    const tab = document.querySelector(`[data-tab-id="${id}"]`);
-    const content = document.getElementById(`tab-${id}`);
-    if (tab && content) {
-      tab.classList.add('active');
-      content.classList.add('active');
-      activeTabId = id;
-    }
-  };
-
-  const closeTab = (id) => {
-    const tabIndex = tabs.findIndex(t => t.id === id);
-    if (tabIndex === -1) return;
-
-    const tab = document.querySelector(`[data-tab-id="${id}"]`);
-    const content = document.getElementById(`tab-${id}`);
-
-    // 탭과 콘텐츠 제거
-    if (tab) tab.remove();
-    if (content) content.remove();
-
-    tabs.splice(tabIndex, 1);
-
-    // 활성 탭이 닫힌 경우 다른 탭으로 전환
-    if (activeTabId === id && tabs.length > 0) {
-      const nextTab = tabs[Math.min(tabIndex, tabs.length - 1)];
-      switchTab(nextTab.id);
-    } else if (tabs.length === 0) {
-      // 모든 탭이 닫힌 경우 대시보드 표시
-      showLanding();
-    }
-  };
-
-  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-  const SUPABASE_URL = 'https://zsgigvswnwudlpanpodl.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzZ2lndnN3bnd1ZGxwYW5wb2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjUxNTgsImV4cCI6MjA5MTMwMTE1OH0.cW0m3EyXXNcYHwPxCoBazYPbAuwCZgHdGarBMqEAM6k';
-
-  window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  const status = document.getElementById('db-status');
-  try {
-    const { error } = await window.supabase.from('lfa1').select('count').limit(1).schema('sap_mm');
-    if (error) throw error;
-    status.textContent = 'DB 연결됨';
-    status.className = 'status-ok';
-  } catch(e) {
-    status.textContent = 'DB 오류';
-    status.className = 'status-err';
-    console.error(e);
-  }
-
-  window.showLanding = () => {
-    // 모든 탭 닫기
-    tabs.forEach(tab => {
-      document.querySelector(`[data-tab-id="${tab.id}"]`)?.remove();
-      document.getElementById(`tab-${tab.id}`)?.remove();
-    });
-    tabs = [];
-    activeTabId = null;
-
-    // 대시보드 표시
-    document.getElementById('workspace').style.display = 'block';
-    document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', i===0));
-  };
-
-  // 사용자 역할에 따른 메뉴 필터링
-  const filterMenusByRole = () => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole === 'external') {
-      // 외부 협력사: 내부 전용 메뉴 숨김
-      document.querySelectorAll('.nav-btn[data-role="internal"]').forEach(btn => {
-        btn.style.display = 'none';
-      });
-    }
-  };
-
-  // 페이지 로드 시 메뉴 필터링 실행
-  filterMenusByRole();
-
-  window.loadModule = async (name) => {
-    // 기존 탭이 있는지 확인
-    const existingTab = tabs.find(t => t.id === name);
-    if (existingTab) {
-      switchTab(name);
-      return;
-    }
-
-    // 탭 생성
-    const tabTitles = {
-      master: '기준정보', supplier: '협력사관리', pr: '구매요청', contract: '계약관리',
-      po: '발주관리', delivery: '납기관리', vendor: '사급관리', planning: '생산계획',
-      quality: '품질관리', import: '수출입관리', shipping: '선적관리', project: '프로젝트관리',
-      system: '시스템관리'
+  <script type="module">
+    const MAX_TABS = 8;
+    const MODULES = {
+      dashboard: '대시보드',
+      master: '기준정보',
+      supplier: '협력사관리',
+      pr: '구매요청',
+      contract: '계약관리',
+      po: '발주관리',
+      delivery: '납기관리',
+      vendor: '사급관리',
+      planning: '생산계획',
+      quality: '품질관리',
+      import: '수출입관리',
+      shipping: '선적관리',
+      project: '프로젝트관리',
     };
 
-    const content = createTab(name, tabTitles[name] || name);
-    if (!content) return; // 최대 탭 수 초과
+    let currentTab = null;
+    let tabs = new Map();
 
-    content.innerHTML = `<p style="color:#868e96;font-size:14px;">모듈 로딩중: ${name}...</p>`;
+    window.addEventListener('DOMContentLoaded', () => {
+      initGNB();
+      loadModule('dashboard');
+    });
 
-    try {
-      const mod = await import(`./modules/${name}/index.js`);
-      mod.render(content, window.supabase);
-      switchTab(name);
-    } catch(e) {
-      content.innerHTML = `<p style="color:#c92a2a;font-size:14px;">모듈 준비중입니다.</p>`;
+    function initGNB() {
+      const gnb = document.getElementById('gnb');
+      Object.entries(MODULES).forEach(([key, label]) => {
+        const btn = document.createElement('button');
+        btn.className = `nav-btn ${key === 'dashboard' ? 'active' : ''}`;
+        btn.textContent = label;
+        btn.onclick = () => loadModule(key);
+        gnb.appendChild(btn);
+      });
     }
-  };
 
-  window.toggleSystemMenu = () => {
-    const submenu = document.getElementById('system-submenu');
-    submenu.style.display = submenu.style.display === 'none' ? 'block' : 'none';
-  };
+    window.loadModule = async (moduleName) => {
+      const moduleLabel = MODULES[moduleName] || moduleName;
 
-  window.handlePrompt = () => {
-    const text = document.getElementById('prompt').value.trim();
-    if (!text) return;
-    
-    if (text.includes('OCR') || text.includes('인식') || text.includes('검증')) {
-      renderOCRVerify();
+      if (tabs.has(moduleName)) {
+        switchTab(moduleName);
+        return;
+      }
+
+      if (tabs.size >= MAX_TABS) {
+        alert(`최대 ${MAX_TABS}개 탭까지만 열 수 있습니다.`);
+        return;
+      }
+
+      createTab(moduleName, moduleLabel);
+      await loadModuleContent(moduleName);
+    };
+
+    function createTab(moduleName, label) {
+      const tabBar = document.getElementById('tab-bar');
+      const tab = document.createElement('div');
+      tab.className = 'tab active';
+      tab.id = `tab-${moduleName}`;
+      tab.innerHTML = `
+        <span class="tab-title" title="${label}">${label}</span>
+        <button class="tab-close" onclick="closeTab('${moduleName}')">&times;</button>
+      `;
+
+      tab.onclick = () => switchTab(moduleName);
+      tabBar.appendChild(tab);
+
+      tabs.set(moduleName, tab);
+      currentTab = moduleName;
+
+      scrollTabIntoView(tab);
+      updateActiveTab();
+    }
+
+    window.switchTab = (moduleName) => {
+      currentTab = moduleName;
+      updateActiveTab();
+      loadModuleContent(moduleName);
+    };
+
+    window.closeTab = (moduleName) => {
+      const tab = tabs.get(moduleName);
+      if (tab) {
+        tab.remove();
+        tabs.delete(moduleName);
+
+        if (currentTab === moduleName) {
+          const remainingTab = tabs.keys().next().value;
+          if (remainingTab) {
+            switchTab(remainingTab);
+          } else {
+            currentTab = null;
+            document.getElementById('content').innerHTML = `
+              <div class="welcome-message">
+                <h2>공급망 관리 시스템에 오신 것을 환영합니다</h2>
+                <p>왼쪽 메뉴에서 원하는 기능을 선택하거나 AI 어시스턴트에 말씀해주세요.</p>
+              </div>
+            `;
+          }
+        }
+      }
+    };
+
+    function updateActiveTab() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      const activeTab = tabs.get(currentTab);
+      if (activeTab) {
+        activeTab.classList.add('active');
+      }
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      const activeBtn = document.querySelector(`.nav-btn[onclick*="'${currentTab}'"]`);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+      }
+    }
+
+    function scrollTabIntoView(tab) {
+      const tabBar = document.getElementById('tab-bar');
+      const tabRect = tab.getBoundingClientRect();
+      const barRect = tabBar.getBoundingClientRect();
+
+      if (tabRect.right > barRect.right) {
+        tabBar.scrollBy({ left: tabRect.right - barRect.right + 20, behavior: 'smooth' });
+      } else if (tabRect.left < barRect.left) {
+        tabBar.scrollBy({ left: tabRect.left - barRect.left - 20, behavior: 'smooth' });
+      }
+    }
+
+    async function loadModuleContent(moduleName) {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">⏳ 로딩중...</div>';
+
+      try {
+        const mod = await import(`./modules/${moduleName}/index.js`);
+        
+        if (mod.render && typeof mod.render === 'function') {
+          content.innerHTML = '';
+          await mod.render(content, window.supabase);
+        } else {
+          throw new Error('모듈에 render 함수가 없습니다.');
+        }
+      } catch (error) {
+        let errorHTML = '';
+        
+        if (error.message.includes('not found') || error.message.includes('404')) {
+          errorHTML = `
+            <div class="error-message not-found">
+              <strong>⚠️ 준비중입니다</strong><br>
+              <small>${moduleName} 모듈이 아직 준비 중입니다.</small>
+            </div>
+          `;
+        } else if (error.message.includes('render')) {
+          errorHTML = `
+            <div class="error-message">
+              <strong>❌ 모듈 초기화 실패</strong><br>
+              <small>모듈 구조에 문제가 있습니다. 개발팀에 연락해주세요.</small>
+            </div>
+          `;
+        } else {
+          errorHTML = `
+            <div class="error-message runtime">
+              <strong>❌ 실행 오류</strong><br>
+              <small>${error.message || '알 수 없는 오류가 발생했습니다.'}</small>
+            </div>
+          `;
+        }
+
+        content.innerHTML = errorHTML;
+        console.error(`[${moduleName}] 모듈 로드 실패:`, error);
+      }
+    }
+
+    window.handlePrompt = async () => {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) return;
+
+      const promptLower = prompt.toLowerCase();
+
+      if (promptLower.includes('현황') || promptLower.includes('상태')) {
+        loadModule('dashboard');
+      } else if (promptLower.includes('구매요청')) {
+        loadModule('pr');
+      } else if (promptLower.includes('발주')) {
+        loadModule('po');
+      } else if (promptLower.includes('납기')) {
+        loadModule('delivery');
+      } else if (promptLower.includes('협력사') || promptLower.includes('공급업체')) {
+        loadModule('supplier');
+      } else if (promptLower.includes('품질')) {
+        loadModule('quality');
+      } else if (promptLower.includes('계약')) {
+        loadModule('contract');
+      } else if (promptLower.includes('기준정보')) {
+        loadModule('master');
+      } else {
+        alert('이해하지 못한 요청입니다. 다시 시도해주세요.');
+      }
+
       document.getElementById('prompt').value = '';
-    } else {
-      alert(`준비중: "${text}"\nClaude API 연동 후 동작합니다.`);
-    }
-  };
+    };
 
-  // Enter 키로 프롬프트 실행
-  document.getElementById('prompt').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handlePrompt();
-    }
-  });
-
-  // 언어 데이터
-  const translations = {
-    ko: {
-      placeholder: '무엇을 도와드릴까요? 예: "공급망 리스크 분석해줘", "구매요청 현황 보여줘"',
-      hint: "구매팀 · Claude Sonnet 4.6",
-      nav: [
-        "대시보드",
-        "기준정보",
-        "협력사관리",
-        "구매요청",
-        "계약관리",
-        "발주관리",
-        "납기관리",
-        "사급관리",
-        "생산계획",
-        "품질관리",
-        "수출입관리",
-        "선적관리",
-        "프로젝트관리",
-        "시스템관리"
-      ]
-    },
-    en: {
-      placeholder: 'What can I help you with? e.g., "Show supply chain risk status", "Show purchase request summary"',
-      hint: "Procurement Team · Claude Sonnet 4.6",
-      nav: [
-        "Dashboard",
-        "Master",
-        "Suppliers",
-        "PR",
-        "Contracts",
-        "Orders",
-        "Delivery",
-        "Vendor Mgmt",
-        "Planning",
-        "Quality",
-        "Import/Export",
-        "Shipping",
-        "Projects",
-        "System"
-      ]
-    },
-    zh: {
-      placeholder: '我能帮您什么？例如："显示供应链风险状态"、"显示采购请求摘要"',
-      hint: "采购团队 · Claude Sonnet 4.6",
-      nav: [
-        "仪表板",
-        "基础信息",
-        "供应商管理",
-        "采购请求",
-        "合同管理",
-        "订单管理",
-        "交付管理",
-        "供应商管理",
-        "生产计划",
-        "质量管理",
-        "进出口管理",
-        "发货管理",
-        "项目管理",
-        "系统管理"
-      ]
-    }
-  };
-
-  let currentLang = 'ko';
-
-  window.setLanguage = (e, lang) => {
-    currentLang = lang;
-    const t = translations[lang];
-    
-    // 언어 버튼 활성화
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    e.currentTarget.classList.add('active');
-    
-    // 프롬프트 변경
-    document.getElementById('prompt').placeholder = t.placeholder;
-    document.querySelector('.prompt-hint').textContent = t.hint;
-    
-    // 네비게이션 변경
-    const navBtns = document.querySelectorAll('.nav-btn');
-    navBtns.forEach((btn, i) => {
-      if (t.nav[i]) btn.textContent = t.nav[i];
-    });
-  };
-
-  // OCR 검증 UI 렌더링
-  window.renderOCRVerify = () => {
-    const tabId = 'ocr-verify';
-    let content = document.getElementById(`tab-${tabId}`);
-
-    if (!content) {
-      content = createTab(tabId, 'OCR 검증');
-      if (!content) return;
-    }
-
-    content.innerHTML = `
-      <div style="margin-bottom: 20px; display:flex; justify-content: space-between; align-items:center;">
-        <h3>📦 선적 서류 AI 인식 결과 검증</h3>
-        <button class="nav-btn active" onclick="saveOCR()">최종 승인 및 DB 저장</button>
-      </div>
-      <div class="ocr-container">
-        <div class="ocr-viewer">
-          <img src="https://via.placeholder.com/600x800?text=Shipping+Invoice+Sample" alt="Invoice">
-          <div style="position:absolute; top:150px; left:100px; width:150px; height:30px; border:2px solid red; pointer-events:none;"></div>
-        </div>
-        <div class="ocr-data-form">
-          <div class="ocr-field">
-            <label>Invoice Number</label>
-            <input type="text" value="INV-2024-001">
-          </div>
-          <div class="ocr-field low-confidence">
-            <label>Supplier Name <span class="ocr-badge badge-low">신뢰도 62%</span></label>
-            <input type="text" value="SK On Logistics?">
-            <small style="color:#ff6b6b; font-size:11px;">* 텍스트가 흐릿하여 인식이 부정확합니다. 확인 바랍니다.</small>
-          </div>
-          <div class="ocr-field">
-            <label>Total Amount (USD)</label>
-            <input type="number" value="12500.00">
-          </div>
-          <div class="ocr-field">
-            <label>Container No.</label>
-            <input type="text" value="MSKU1234567">
-          </div>
-        </div>
-      </div>
-    `;
-    switchTab(tabId);
-  };
-
-  // OCR 데이터 저장 (가상)
-  window.saveOCR = () => {
-    alert('OCR 검증 데이터가 저장되었습니다.');
-    showLanding(); // 대시보드로 돌아가기
-  };
-
-  // 현재 시간 업데이트
-  const updateTime = () => {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('time-location').textContent = `서울, ${timeString}`;
-  };
-
-  // 1분마다 시간 업데이트
-  setInterval(updateTime, 60000);
-  updateTime(); // 초기 실행
-
-  // 위험 신호 동적 로딩 (가상 데이터)
-  const loadRiskSignals = async () => {
-    // 실제로는 Supabase에서 데이터 가져오기
-    const mockData = [
-      { type: 'danger', text: '🔴 공급업체 A 납기 지연' },
-      { type: 'warning', text: '🟡 원자재 가격 상승' },
-      { type: 'info', text: '🔵 신규 협력사 검토' }
-    ];
-    
-    const riskContainer = document.querySelector('.sidebar .sidebar-item:last-child').parentNode;
-    const riskItems = riskContainer.querySelectorAll('.sidebar-item');
-    riskItems.forEach((item, index) => {
-      if (mockData[index]) {
-        item.className = `sidebar-item ${mockData[index].type}`;
-        item.textContent = mockData[index].text;
+    document.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && e.target.id === 'prompt') {
+        handlePrompt();
       }
     });
-  };
-
-  // 페이지 로드 시 위험 신호 로딩
-  loadRiskSignals();
-</script>
+  </script>
 </body>
 </html>
