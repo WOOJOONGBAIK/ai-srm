@@ -598,7 +598,7 @@
       content.innerHTML = '<div class="loading">⏳ 로딩중...</div>';
 
       try {
-        const mod = await import(`./modules/${moduleName}/index.js`);
+        const mod = await import(`./features/${moduleName}/index.js`);
         
         if (mod.render && typeof mod.render === 'function') {
           content.innerHTML = '';
@@ -670,6 +670,11 @@
       if (e.key === 'Enter' && e.target.id === 'prompt') {
         handlePrompt();
       }
+    });
+
+    // Supabase 전역 초기화 (lib/supabase.js 단일 출처)
+    import('./lib/supabase.js').then(({ supabase }) => {
+      window.supabase = supabase;
     });
   </script>
 </body>
