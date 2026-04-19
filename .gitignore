@@ -1,4 +1,27 @@
+# 의존성
 node_modules/
+
+# 환경변수 (절대 커밋 금지 - API 키 유출 위험)
 .env
+.env.local
+.env.production
+.env.*.local
+
+# 시스템 파일
 .DS_Store
-.env
+Thumbs.db
+
+# 빌드 산출물
+dist/
+build/
+.netlify/
+
+# 에디터
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# 로그
+*.log
+npm-debug.log*

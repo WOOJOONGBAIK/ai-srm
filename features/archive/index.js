@@ -1,7 +1,7 @@
 export const render = async (container, supabase) => {
   try {
     // HTML 템플릿 로드
-    const response = await fetch('./modules/archive/index.html');
+    const response = await fetch('./features/archive/index.html');
     const html = await response.text();
 
     // HTML 파싱 및 body 내용 추출
