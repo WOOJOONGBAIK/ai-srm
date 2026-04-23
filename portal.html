@@ -1,3 +1,12 @@
+<!--
+* Project: [AI-SRM]
+* File: [portal.html]
+* Description: [AI-SRM landing page - 리비전 #7: 최종 통합본]
+* --------------------------------------------------------------------------
+* 변경 일자 작성자 변경 내용 요약
+* --------------------------------------------------------------------------
+* 2026-04-23 #7 AI Agent 로그인 이동 복구, Placeholder 다국어화, 애니메이션 최적화
+-->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,208 +15,240 @@
 <title>AI SRM Portal</title>
 <style>
   :root {
-    --samsung-blue: #005EB8;
-    --samsung-dark: #003d82;
+    --primary-color: #005EB8;
+    --primary-dark: #003d82;
+    --bg-body: #f0f2f5;
+    --bg-card: #ffffff;
+    --text-main: #333333;
+    --text-sub: #666666;
     --border-color: #e0e0e0;
-    --bg-gray: #f4f7f9;
-    --text-main: #333;
-    --text-sub: #666;
+    --status-green: #28a745;
+    --transition-speed: 0.3s;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, 'Malgun Gothic', sans-serif; }
-  body { background: var(--bg-gray); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+  /* 고대비 모드 */
+  body.high-contrast {
+    --primary-color: #ffff00;
+    --primary-dark: #e6e600;
+    --bg-body: #000000;
+    --bg-card: #1a1a1a;
+    --text-main: #ffffff;
+    --text-sub: #ffff00;
+    --border-color: #ffffff;
+  }
+
+  /* 색약모드 (Daltolism) */
+  body.color-blind {
+    --primary-color: #d55e00; 
+    --status-green: #009e73;
+    --bg-body: #e6e6e6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
+  body { background: var(--bg-body); color: var(--text-main); transition: background var(--transition-speed); min-height: 100vh; overflow-x: hidden; }
 
   /* Header */
-  .header { background: #fff; border-bottom: 1px solid var(--border-color); padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-  .logo { font-size: 20px; font-weight: 700; color: var(--samsung-blue); }
-  .logo span { font-weight: 300; color: #555; }
-
-  /* Layout - 높이 동기화의 핵심 */
-  .main-layout { 
-    display: grid; 
-    grid-template-columns: 350px 1fr 350px; 
-    gap: 1.5rem; 
-    padding: 2rem; 
-    max-width: 1600px; 
-    margin: 0 auto; 
-    flex: 1; /* 푸터를 하단으로 밀어내고 남은 높이 차지 */
-    align-items: stretch; /* 자식 요소들의 높이를 동일하게 맞춤 */
+  .header { 
+    background: var(--bg-card); padding: 0 2rem; height: 70px; 
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--primary-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
   }
+  .logo { font-size: 24px; font-weight: 800; color: var(--primary-color); letter-spacing: -1px; }
+  .utility-group { display: flex; align-items: center; gap: 20px; font-size: 13px; }
 
-  .center-column {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  .mode-switch button { 
+    padding: 6px 12px; cursor: pointer; border: 1px solid var(--border-color); 
+    background: var(--bg-card); color: var(--text-main); border-radius: 4px; font-weight: bold;
+    transition: all 0.2s ease;
   }
+  .mode-switch button:hover { background: var(--primary-color); color: #fff; transform: translateY(-1px); }
+  body.high-contrast .mode-switch button:hover { color: #000; }
 
-  /* Common Card Style */
-  .section-card { 
-    height: 100%;
-    background: #fff; 
-    border: 1px solid var(--border-color); 
-    border-radius: 12px; 
-    display: flex; 
-    flex-direction: column; /* 내부 요소 세로 정렬 */
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  }
-  .card-header { padding: 1.5rem; border-bottom: 1px solid #f0f0f0; }
-  .card-body { padding: 1.5rem; flex: 1; } /* flex: 1로 남은 공간을 채워 높이 맞춤 */
+  /* Search Section */
+  .search-container { max-width: 1200px; margin: 30px auto 0; padding: 0 20px; }
+  .search-bar { display: flex; background: var(--bg-card); border: 2px solid var(--primary-color); border-radius: 30px; overflow: hidden; transition: box-shadow 0.3s; }
+  .search-bar:focus-within { box-shadow: 0 0 15px rgba(0,94,184,0.3); }
+  .search-bar input { flex: 1; border: none; padding: 15px 25px; outline: none; font-size: 16px; background: transparent; color: var(--text-main); }
+  .search-btn { background: var(--primary-color); color: #fff; border: none; padding: 0 30px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+  .search-btn:hover { background: var(--primary-dark); }
 
-  .section-title { font-size: 18px; font-weight: 700; color: var(--samsung-blue); display: flex; align-items: center; gap: 10px; }
-  .section-title::before { content: ''; width: 4px; height: 18px; background: var(--samsung-blue); border-radius: 2px; }
+  /* Main Layout */
+  .main-layout { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 25px; max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+  .card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 480px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+  .card:hover { transform: translateY(-8px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+  .card-header { padding: 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.01); border-radius: 12px 12px 0 0; }
+  .card-header h3 { color: var(--primary-color); font-size: 18px; font-weight: 700; }
+  .card-body { padding: 25px; flex: 1; display: flex; flex-direction: column; }
 
-  /* Login Section */
-  .login-card { background: linear-gradient(145deg, var(--samsung-blue), var(--samsung-dark)); color: #fff; border: none; }
-  .login-card .section-title { color: #fff; }
-  .login-card .section-title::before { background: #fff; }
-  .form-group { margin-bottom: 1.2rem; }
-  .form-group label { display: block; font-size: 13px; color: #e0e0e0; margin-bottom: 6px; }
-  .form-group input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(255,255,255,0.1); color: #fff; }
-  .login-btn { width: 100%; padding: 14px; background: #fff; color: var(--samsung-blue); border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; }
-  .login-btn:hover { background: #f0f0f0; transform: translateY(-2px); }
+  /* Login Form */
+  .login-input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); color: var(--text-main); }
+  .login-btn { width: 100%; padding: 16px; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
+  .login-btn:hover { background: var(--primary-dark); box-shadow: 0 4px 12px rgba(0,94,184,0.3); }
   
-  .login-footer { margin-top: 1.5rem; display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; }
-  .login-footer a { color: #fff; font-size: 13px; text-decoration: none; opacity: 0.8; }
-  .login-footer a:hover { opacity: 1; }
+  .login-links { margin-top: 20px; font-size: 13.5px; line-height: 2.4; }
+  .login-links a { color: var(--text-sub); text-decoration: none; display: block; cursor: pointer; transition: all 0.2s; }
+  .login-links a:hover { color: var(--primary-color); padding-left: 5px; }
 
-  /* Center Content: Quick Guide + Notices */
-  .quick-guide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
-  .guide-item { background: #f8f9fa; padding: 1.2rem; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-  .guide-item:hover { background: #fff; border-color: var(--samsung-blue); color: var(--samsung-blue); }
-  .guide-icon { font-size: 24px; margin-bottom: 8px; display: block; }
-  .guide-text { font-size: 13px; font-weight: 600; }
-
-  .list-item { padding: 12px 0; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
-  .list-item:last-child { border-bottom: none; }
-  .list-content { flex: 1; cursor: pointer; }
-  .list-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
-  .list-date { font-size: 12px; color: #999; }
-
-  /* Right Section: FAQ & Support */
-  .contact-box { background: #f8f9fa; padding: 1.2rem; border-radius: 8px; margin-top: 1rem; }
-  .contact-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #555; }
-  .contact-info { font-size: 15px; color: var(--samsung-blue); font-weight: 700; }
-
-  .sub-btn {
-    width: 100%; padding: 10px; margin-top: 10px;
-    background: #f0f0f0; border: 1px solid #ddd;
-    border-radius: 4px; cursor: pointer; font-weight: 600;
+  /* Modal */
+  .modal { 
+    display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(2px);
   }
-  .sub-btn:hover { background: #e0e0e0; }
+  .modal.show { display: block; opacity: 1; }
+  .modal-content { 
+    background: var(--bg-card); margin: 8% auto; padding: 35px; border-radius: 16px; width: 550px; 
+    color: var(--text-main); position: relative; transform: translateY(-30px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  }
+  .modal.show .modal-content { transform: translateY(0); }
+  .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 25px; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; }
+  .close-modal { position: absolute; right: 25px; top: 20px; font-size: 28px; cursor: pointer; color: var(--text-sub); }
+  .guide-step { background: rgba(0,94,184,0.05); padding: 15px; margin-bottom: 12px; border-left: 5px solid var(--primary-color); border-radius: 0 8px 8px 0; }
 
-  .footer { text-align: center; padding: 1.5rem; color: #999; font-size: 12px; background: #fff; border-top: 1px solid var(--border-color); }
+  .footer { text-align: center; padding: 40px; font-size: 13px; color: #888; border-top: 1px solid var(--border-color); margin-top: 50px; }
 
-  @media (max-width: 1200px) {
+  @media (max-width: 1024px) {
     .main-layout { grid-template-columns: 1fr; }
+    .card { min-height: auto; }
   }
 </style>
 </head>
-<body>
+<body id="mainBody">
 
 <div class="header">
-  <div class="logo">AI <span>SRM Portal</span></div>
+  <div class="logo">AI-SRM PORTAL</div>
+  <div class="utility-group">
+    <div id="current-info" class="location-info">서울, KR | 2026-04-23 21:05</div>
+    <div class="mode-switch">
+      <select id="langSelect" onchange="changeLanguage()" style="padding: 5px; border-radius: 4px;">
+        <option value="ko">한국어 (KR)</option>
+        <option value="en">English (US)</option>
+      </select>
+      <button onclick="toggleMode('high-contrast')" data-ko="고대비" data-en="Contrast">고대비</button>
+      <button onclick="toggleMode('color-blind')" data-ko="색약모드" data-en="ColorBlind">색약모드</button>
+    </div>
+  </div>
+</div>
+
+<div class="search-container">
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="무엇을 도와드릴까요?">
+    <button class="search-btn" onclick="showFutureSupport()" data-ko="검색" data-en="Search">검색</button>
+  </div>
 </div>
 
 <div class="main-layout">
-  <div class="section-card login-card">
-    <div class="card-header">
-      <h3 class="section-title">로그인</h3>
-    </div>
+  <div class="card">
+    <div class="card-header"><h3 data-ko="로그인" data-en="Login">로그인</h3></div>
     <div class="card-body">
-      <form id="loginForm">
-        <div class="form-group">
-          <label>아이디</label>
-          <input type="text" id="username" placeholder="아이디를 입력하세요" required>
-        </div>
-        <div class="form-group">
-          <label>비밀번호</label>
-          <input type="password" id="password" placeholder="비밀번호를 입력하세요" required>
-        </div>
-        <button type="submit" class="login-btn">로그인</button>
-      </form>
-      <div class="login-footer">
-        <a href="#">아이디/비번 찾기</a>
-        <a href="#" style="font-weight: 700; color: #ffeb3b;">신규 협력사 등록 →</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="center-column">
-  <div class="section-card">
-    <div class="card-header">
-      <h3 class="section-title">시스템 안내 및 공지</h3>
-    </div>
-    <div class="card-body">
-      <div class="quick-guide">
-        <div class="guide-item">
-          <span class="guide-icon">📘</span>
-          <span class="guide-text">이용 가이드</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-icon">🔐</span>
-          <span class="guide-text">인증서 안내</span>
-        </div>
-        <div class="guide-item">
-          <span class="guide-icon">⚙️</span>
-          <span class="guide-text">환경 설정</span>
-        </div>
-      </div>
+      <input type="text" id="loginId" class="login-input" placeholder="아이디">
+      <input type="password" id="loginPw" class="login-input" placeholder="비밀번호">
+      <button class="login-btn" onclick="location.href='index.html'" data-ko="로그인" data-en="Sign In">로그인</button>
       
-      <h4 style="font-size: 15px; margin: 1.5rem 0 1rem; border-bottom: 2px solid var(--samsung-blue); display: inline-block;">주요 공지사항</h4>
-      <div id="noticesList">
-        <div class="list-item">
-          <div class="list-content">
-            <div class="list-title">[공지] AI SRM 시스템 정기 점검 안내 (2026-04-20)</div>
-            <div class="list-date">2026.04.16</div>
-          </div>
-        </div>
-        <div class="list-item">
-          <div class="list-content">
-            <div class="list-title">[안내] 신규 전자서명법 적용에 따른 인증서 갱신 방법</div>
-            <div class="list-date">2026.04.10</div>
-          </div>
-        </div>
+      <div class="login-links">
+        <a onclick="openModal('regModal')">▶ <span data-ko="신규 협력사 등록 안내" data-en="New Partner Registration">신규 협력사 등록 안내</span></a>
+        <a onclick="openModal('errModal')">▶ <span data-ko="로그인 오류/비밀번호 초기화 안내" data-en="Login Help / PW Reset">로그인 오류/비밀번호 초기화 안내</span></a>
+        <a onclick="showFutureSupport()" style="font-weight: bold; color: var(--primary-color);">▶ <span data-ko="사업장 출입 신청 바로가기" data-en="Site Visit Application">사업장 출입 신청 바로가기</span></a>
       </div>
     </div>
   </div>
 
-  <div class="section-card">
-    <div class="card-header">
-      <h3 class="section-title">고객지원</h3>
-    </div>
+  <div class="card">
+    <div class="card-header"><h3 data-ko="공지사항" data-en="Notice">공지사항</h3></div>
     <div class="card-body">
-      <div id="faqShortList">
-        <div class="list-item">
-          <div class="list-content">
-            <div class="list-title">Q. 비밀번호를 5회 틀렸습니다.</div>
-          </div>
-          <span>+</span>
-        </div>
-        <div class="list-item">
-          <div class="list-content">
-            <div class="list-title">Q. 권한 신청은 어디서 하나요?</div>
-          </div>
-          <span>+</span>
-        </div>
-      </div>
-
-      <div class="contact-box">
-        <div class="contact-title">시스템 이용 문의 (평일 09:00~18:00)</div>
-        <div class="contact-info">📞 02-1234-5678</div>
-        <div class="contact-info" style="font-size: 13px; margin-top: 5px;">📧 it-support@company.com</div>
-      </div>
-      
-      <button class="sub-btn" onclick="window.open('https://remotedesktop.google.com/')">원격 지원 연결</button>
-      <button class="sub-btn">자주 묻는 질문(FAQ)</button>
+      <div style="font-size: 14.5px; font-weight: bold; margin-bottom: 5px;">[공지] 2026년 상반기 정기 보안 점검 안내</div>
+      <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 15px;">2026-04-20</p>
+      <hr style="margin-bottom: 20px; opacity: 0.1;">
+      <p style="font-size: 13.5px; color: var(--text-sub); line-height: 1.6;" data-ko="시스템 고도화 작업으로 인해 주말 간 접속이 지연될 수 있습니다." data-en="Access may be delayed during the weekend due to system enhancement.">시스템 고도화 작업으로 인해 주말 간 접속이 지연될 수 있습니다.</p>
     </div>
   </div>
+
+  <div class="card">
+    <div class="card-header"><h3 data-ko="자료실" data-en="Archive">자료실</h3></div>
+    <div class="card-body">
+      <ul style="list-style: none; font-size: 14px; line-height: 2.5;">
+        <li>📁 <span data-ko="2026 협력사 가이드북" data-en="2026 Partner Guide">2026 협력사 가이드북</span></li>
+        <li>📁 <span data-ko="전자계약 메뉴얼(국문/영문)" data-en="E-Contract Manual (KR/EN)">전자계약 메뉴얼(국문/영문)</span></li>
+        <li>📁 <span data-ko="윤리경영 실천 가이드라인" data-en="Ethics Management Guide">윤리경영 실천 가이드라인</span></li>
+      </ul>
+    </div>
   </div>
 </div>
 
-<div class="footer">
-  © 2026 AI SRM Portal. All Rights Reserved.
+<div id="regModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal('regModal')">&times;</span>
+    <div class="modal-header" data-ko="신규 협력사 등록 절차" data-en="New Partner Process">신규 협력사 등록 절차</div>
+    <div class="modal-body">
+      <div class="guide-step"><strong>STEP 1</strong>: <span data-ko="사업자 정보 인증 및 기본정보 입력" data-en="Business Info Verification">사업자 정보 인증 및 기본정보 입력</span></div>
+      <div class="guide-step"><strong>STEP 2</strong>: <span data-ko="희망 소싱그룹(품목) 선택" data-en="Select Sourcing Group">희망 소싱그룹(품목) 선택</span></div>
+    </div>
+  </div>
 </div>
 
+<div id="errModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal('errModal')">&times;</span>
+    <div class="modal-header" data-ko="로그인 문제 해결" data-en="Login Help">로그인 문제 해결</div>
+    <div class="modal-body">
+      <p>• <span data-ko="비밀번호 5회 오류 시 계정 잠금" data-en="Account locked after 5 failed PW attempts.">비밀번호 5회 오류 시 계정 잠금</span></p>
+    </div>
+  </div>
+</div>
+
+<div class="footer">&copy; 2026 AI-SRM Portal System. All Rights Reserved.</div>
+
+<script>
+  function changeLanguage() {
+    const lang = document.getElementById('langSelect').value;
+    document.querySelectorAll('[data-ko]').forEach(el => {
+      el.textContent = el.getAttribute('data-' + lang);
+    });
+    const i18n = {
+      ko: { id: "아이디", pw: "비밀번호", search: "무엇을 도와드릴까요?" },
+      en: { id: "User ID", pw: "Password", search: "How can we help you?" }
+    };
+    document.getElementById('loginId').placeholder = i18n[lang].id;
+    document.getElementById('loginPw').placeholder = i18n[lang].pw;
+    document.getElementById('searchInput').placeholder = i18n[lang].search;
+  }
+
+  function toggleMode(mode) {
+    const body = document.body;
+    if (mode === 'high-contrast') {
+      body.classList.toggle('high-contrast');
+      body.classList.remove('color-blind');
+    } else {
+      body.classList.toggle('color-blind');
+      body.classList.remove('high-contrast');
+    }
+  }
+
+  function openModal(id) {
+    const modal = document.getElementById(id);
+    modal.style.display = "block";
+    setTimeout(() => modal.classList.add('show'), 10);
+  }
+
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = "none", 300);
+  }
+
+  function showFutureSupport() { alert("해당 기능은 준비 중입니다."); }
+
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('current-info').innerText = `서울, KR | ${now.toLocaleString()}`;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) closeModal(event.target.id);
+  }
+</script>
 </body>
 </html>
