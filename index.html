@@ -1,681 +1,292 @@
+<!--
+* Project: [AI-SRM]
+* File: [portal.html]
+* Description: [AI-SRM landing page - 리비전 #11: 최종 통합본]
+* --------------------------------------------------------------------------
+* 변경 일자 작성자 변경 내용 요약
+* --------------------------------------------------------------------------
+* 2026-04-23 #11 다국어 지원, 고대비/색약 모드, 시계 최적화, 이벤트 위임 개선
+-->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI SRM - 공급망 관리</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    /* CSS 변수 선언 - 브랜드 컬러 및 반복되는 값 관리 */
-    :root {
-      --primary-color: #005EB8;
-      --primary-dark: #003d82;
-      --border-color: #e0e0e0;
-      --bg-gray: #f8f9fa;
-      --bg-white: #fff;
-      --text-main: #333;
-      --text-sub: #666;
-      --text-light: #999;
-      --error-color: #dc3545;
-      --warning-color: #ffc107;
-      --success-color: #28a745;
-      --info-color: #17a2b8;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI SRM Portal</title>
+<style>
+  :root {
+    --primary-color: #005EB8;
+    --primary-dark: #003d82;
+    --bg-body: #f0f2f5;
+    --bg-card: #ffffff;
+    --text-main: #333333;
+    --text-sub: #666666;
+    --border-color: #e0e0e0;
+    --status-green: #28a745;
+    --transition-speed: 0.3s;
+  }
 
-    * { 
-      box-sizing: border-box; 
-      margin: 0; 
-      padding: 0; 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-    }
+  /* 고대비 모드 */
+  body.high-contrast {
+    --primary-color: #ffff00;
+    --primary-dark: #e6e600;
+    --bg-body: #000000;
+    --bg-card: #1a1a1a;
+    --text-main: #ffffff;
+    --text-sub: #ffff00;
+    --border-color: #ffffff;
+  }
 
-    body { 
-      background: var(--bg-gray); 
-      color: var(--text-main); 
-      min-height: 100vh; 
-      display: flex; 
-      flex-direction: column; 
-    }
+  /* 색약모드 */
+  body.color-blind {
+    --primary-color: #d55e00; 
+    --status-green: #009e73;
+    --bg-body: #e6e6e6;
+  }
 
-    /* 헤더 - 시맨틱 태그 사용 */
-    header { 
-      background: var(--bg-white); 
-      border-bottom: 1px solid var(--border-color); 
-      padding: 0 1.5rem; 
-      height: 56px; 
-      display: flex; 
-      align-items: center; 
-      justify-content: space-between; 
-      position: sticky; 
-      top: 0; 
-      z-index: 100; 
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
+  body { background: var(--bg-body); color: var(--text-main); transition: background var(--transition-speed); min-height: 100vh; overflow-x: hidden; }
 
-    .logo { 
-      font-size: 18px; 
-      font-weight: 600; 
-      color: var(--primary-color); 
-    }
+  /* Header */
+  .header { 
+    background: var(--bg-card); padding: 0 2rem; height: 70px; 
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--primary-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .logo { font-size: 24px; font-weight: 800; color: var(--primary-color); letter-spacing: -1px; }
+  .utility-group { display: flex; align-items: center; gap: 20px; font-size: 13px; }
 
-    /* 네비게이션 - 시맨틱 태그 사용 */
-    nav { 
-      background: var(--bg-gray); 
-      border-bottom: 1px solid var(--border-color); 
-      display: flex; 
-      overflow-x: auto; 
-      padding: 0 1.5rem;
-    }
+  .mode-switch button { 
+    padding: 6px 12px; cursor: pointer; border: 1px solid var(--border-color); 
+    background: var(--bg-card); color: var(--text-main); border-radius: 4px; font-weight: bold;
+    transition: all 0.2s ease;
+  }
+  .mode-switch button:hover { background: var(--primary-color); color: #fff; transform: translateY(-1px); }
+  body.high-contrast .mode-switch button:hover { color: #000; }
 
-    .nav-btn { 
-      padding: 12px 16px; 
-      border-radius: 4px 4px 0 0; 
-      border: none; 
-      background: none; 
-      font-size: 13px; 
-      color: var(--text-sub); 
-      cursor: pointer; 
-      transition: all 0.2s; 
-      white-space: nowrap;
-      border-bottom: 3px solid transparent;
-    }
+  /* Search Section */
+  .search-container { max-width: 1200px; margin: 30px auto 0; padding: 0 20px; }
+  .search-bar { display: flex; background: var(--bg-card); border: 2px solid var(--primary-color); border-radius: 30px; overflow: hidden; transition: box-shadow 0.3s; }
+  .search-bar:focus-within { box-shadow: 0 0 15px rgba(0,94,184,0.3); }
+  .search-bar input { flex: 1; border: none; padding: 15px 25px; outline: none; font-size: 16px; background: transparent; color: var(--text-main); }
+  .search-btn { background: var(--primary-color); color: #fff; border: none; padding: 0 30px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
 
-    .nav-btn:hover { 
-      color: var(--primary-color); 
-      background: rgba(0, 94, 184, 0.05);
-    }
+  /* Layout & Cards */
+  .main-layout { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 25px; max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+  .card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 480px; transition: transform 0.3s, box-shadow 0.3s; }
+  .card:hover { transform: translateY(-8px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+  .card-header { padding: 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.01); }
+  .card-header h3 { color: var(--primary-color); font-size: 18px; font-weight: 700; }
+  .card-body { padding: 25px; flex: 1; }
 
-    .nav-btn.active { 
-      color: var(--primary-color); 
-      border-bottom-color: var(--primary-color);
-    }
+  /* Login Form */
+  .login-input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); color: var(--text-main); }
+  .login-btn { width: 100%; padding: 16px; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+  .login-links { margin-top: 20px; font-size: 13.5px; line-height: 2.4; }
+  .login-links a { color: var(--text-sub); text-decoration: none; display: block; cursor: pointer; transition: 0.2s; }
+  .login-links a:hover { color: var(--primary-color); padding-left: 5px; }
 
-    /* 탭 시스템 - 자동 스크롤 지원 */
-    .tab-bar { 
-      background: var(--bg-white); 
-      border-bottom: 1px solid var(--border-color); 
-      display: flex; 
-      overflow-x: auto;
-      scroll-behavior: smooth;
-      position: sticky; 
-      top: 56px; 
-      z-index: 99; 
-    }
+  /* Modal */
+  .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(2px); }
+  .modal.show { display: block; opacity: 1; }
+  .modal-content { background: var(--bg-card); margin: 8% auto; padding: 35px; border-radius: 16px; width: 550px; position: relative; transform: translateY(-30px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+  .modal.show .modal-content { transform: translateY(0); }
+  .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 25px; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; }
+  .close-modal { position: absolute; right: 25px; top: 20px; font-size: 28px; cursor: pointer; color: var(--text-sub); }
+  .guide-step { background: rgba(0,94,184,0.05); padding: 15px; margin-bottom: 12px; border-left: 5px solid var(--primary-color); border-radius: 0 8px 8px 0; }
 
-    .tab { 
-      display: flex; 
-      align-items: center; 
-      padding: 8px 16px; 
-      background: var(--bg-gray); 
-      border-right: 1px solid var(--border-color); 
-      cursor: pointer; 
-      font-size: 13px; 
-      color: var(--text-sub); 
-      min-width: 120px; 
-      max-width: 200px; 
-      position: relative; 
-      transition: all 0.2s;
-    }
+  .footer { text-align: center; padding: 40px; font-size: 13px; color: #888; border-top: 1px solid var(--border-color); margin-top: 50px; }
 
-    .tab:hover { 
-      background: var(--bg-white);
-    }
-
-    .tab.active { 
-      background: var(--primary-color); 
-      color: var(--bg-white);
-    }
-
-    .tab-close { 
-      margin-left: 8px; 
-      padding: 2px 6px; 
-      border-radius: 50%; 
-      background: rgba(255, 255, 255, 0.3); 
-      color: inherit; 
-      border: none; 
-      cursor: pointer; 
-      font-size: 12px; 
-      line-height: 1;
-      transition: background 0.2s;
-    }
-
-    .tab-close:hover { 
-      background: rgba(255, 255, 255, 0.5); 
-    }
-
-    .tab-title { 
-      flex: 1; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
-    }
-
-    /* 메인 레이아웃 */
-    .main-layout { 
-      display: flex; 
-      flex: 1; 
-      overflow: hidden; 
-    }
-
-    /* 사이드바 - 반응형 처리 */
-    aside { 
-      width: 300px; 
-      background: var(--bg-white); 
-      border-right: 1px solid var(--border-color); 
-      padding: 1.5rem; 
-      overflow-y: auto; 
-      flex-shrink: 0;
-    }
-
-    .sidebar-title { 
-      font-size: 14px; 
-      font-weight: 600; 
-      margin: 1.5rem 0 1rem; 
-      color: var(--text-main);
-      text-transform: uppercase;
-      opacity: 0.8;
-    }
-
-    .sidebar-item { 
-      padding: 12px 15px; 
-      background: var(--bg-gray); 
-      border: 1px solid var(--border-color); 
-      border-left: 4px solid var(--border-color); 
-      border-radius: 4px; 
-      margin-bottom: 10px; 
-      font-size: 13px; 
-      color: var(--text-main); 
-      transition: transform 0.2s;
-      cursor: pointer;
-    }
-
-    .sidebar-item:hover { 
-      transform: translateX(3px); 
-      border-color: var(--primary-color);
-      background: rgba(0, 94, 184, 0.05);
-    }
-
-    .sidebar-item.danger { 
-      border-left-color: var(--error-color); 
-      background: rgba(220, 53, 69, 0.05);
-    }
-
-    .sidebar-item.warning { 
-      border-left-color: var(--warning-color); 
-      background: rgba(255, 193, 7, 0.05);
-    }
-
-    .sidebar-item.info { 
-      border-left-color: var(--info-color); 
-      background: rgba(23, 162, 184, 0.05);
-    }
-
-    /* 워크스페이스 */
-    .workspace { 
-      flex: 1; 
-      display: flex; 
-      flex-direction: column; 
-      overflow: hidden;
-    }
-
-    .workspace-header { 
-      padding: 1.5rem; 
-      background: var(--bg-white); 
-      border-bottom: 1px solid var(--border-color); 
-      display: flex; 
-      gap: 1rem; 
-      align-items: center;
-    }
-
-    .prompt-container { 
-      display: flex; 
-      gap: 0.5rem; 
-      flex: 1;
-    }
-
-    .prompt-input { 
-      flex: 1; 
-      padding: 10px 12px; 
-      border: 1px solid var(--border-color); 
-      border-radius: 4px; 
-      font-size: 13px;
-      background: var(--bg-white);
-    }
-
-    .prompt-input:focus { 
-      outline: none; 
-      border-color: var(--primary-color); 
-      box-shadow: 0 0 0 3px rgba(0, 94, 184, 0.1);
-    }
-
-    .prompt-btn { 
-      padding: 10px 16px; 
-      background: var(--primary-color); 
-      color: var(--bg-white); 
-      border: none; 
-      border-radius: 4px; 
-      cursor: pointer; 
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .prompt-btn:hover { 
-      background: var(--primary-dark);
-      transform: translateY(-1px);
-    }
-
-    .prompt-hint { 
-      font-size: 12px; 
-      color: var(--text-light);
-      margin: 0;
-    }
-
-    /* 콘텐츠 영역 */
-    .content { 
-      flex: 1; 
-      overflow-y: auto; 
-      padding: 2rem;
-    }
-
-    .welcome-message { 
-      text-align: center; 
-      padding: 4rem 2rem;
-    }
-
-    .welcome-message h2 { 
-      font-size: 24px; 
-      color: var(--primary-color); 
-      margin-bottom: 1rem;
-    }
-
-    .welcome-message p { 
-      font-size: 14px; 
-      color: var(--text-sub);
-    }
-
-    /* 에러 메시지 - 에러 종류 구분 */
-    .error-message { 
-      background: rgba(220, 53, 69, 0.1); 
-      border: 1px solid var(--error-color); 
-      color: var(--error-color); 
-      padding: 1rem; 
-      border-radius: 4px; 
-      margin: 1rem 0;
-    }
-
-    .error-message.not-found { 
-      background: rgba(255, 193, 7, 0.1); 
-      border-color: var(--warning-color); 
-      color: var(--warning-color);
-    }
-
-    .error-message.runtime { 
-      background: rgba(220, 53, 69, 0.1); 
-      border-color: var(--error-color); 
-      color: var(--error-color);
-    }
-
-    /* 반응형 디자인 */
-    @media (max-width: 1200px) {
-      aside { 
-        width: 250px;
-      }
-
-      .tab { 
-        min-width: 100px;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .main-layout { 
-        flex-direction: column;
-      }
-
-      aside { 
-        width: 100%; 
-        max-height: 200px; 
-        overflow-x: auto; 
-        overflow-y: hidden;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-        padding: 1rem;
-      }
-
-      header { 
-        flex-direction: column; 
-        height: auto; 
-        padding: 1rem;
-        gap: 1rem;
-      }
-
-      .workspace-header {
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      .prompt-container {
-        flex-direction: column;
-      }
-
-      .content { 
-        padding: 1rem;
-      }
-
-      .tab { 
-        min-width: 80px; 
-        padding: 8px 12px;
-      }
-
-      .sidebar-item { 
-        display: inline-block; 
-        margin-right: 10px;
-        width: auto;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .tab { 
-        min-width: 60px; 
-        font-size: 12px;
-        padding: 6px 8px;
-      }
-
-      .tab-close { 
-        margin-left: 4px;
-      }
-
-      .prompt-input { 
-        font-size: 12px;
-        padding: 8px;
-      }
-
-      .prompt-btn { 
-        padding: 8px 12px;
-        font-size: 12px;
-      }
-    }
-
-    /* 로딩 상태 */
-    .loading { 
-      display: inline-block; 
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin { 
-      to { transform: rotate(360deg); } 
-    }
-  </style>
+  @media (max-width: 1024px) { .main-layout { grid-template-columns: 1fr; } }
+</style>
 </head>
-<body>
-  <!-- 헤더 (시맨틱 태그) -->
-  <header>
-    <div class="logo">🚀 AI SRM</div>
-    <div id="user-info"></div>
-  </header>
+<body id="mainBody">
 
-  <!-- 네비게이션 (시맨틱 태그) -->
-  <nav id="gnb">
-    <!-- 메뉴가 동적으로 추가됩니다 -->
-  </nav>
-
-  <!-- 메인 레이아웃 -->
-  <div class="main-layout">
-    <!-- 사이드바 (시맨틱 aside 태그) -->
-    <aside id="sidebar">
-      <div class="sidebar-title">위험신호</div>
-      <div class="sidebar-item danger">🔴 공급업체 A 납기 지연</div>
-      <div class="sidebar-item warning">🟡 원자재 가격 상승</div>
-      <div class="sidebar-item info">🔵 신규 협력사 검토</div>
-    </aside>
-
-    <!-- 워크스페이스 -->
-    <div class="workspace">
-      <!-- 워크스페이스 헤더 -->
-      <div class="workspace-header">
-        <div class="prompt-container">
-          <input 
-            type="text" 
-            id="prompt" 
-            class="prompt-input" 
-            placeholder="무엇을 도와드릴까요? 예: '공급망 리스크 분석', '구매요청 현황'"
-            aria-label="AI 어시스턴트 입력"
-          >
-          <button class="prompt-btn" onclick="handlePrompt()" title="검색">🔍</button>
-        </div>
-        <p class="prompt-hint">구매팀 · Claude Sonnet 4.6</p>
-      </div>
-
-      <!-- 탭 바 -->
-      <div class="tab-bar" id="tab-bar"></div>
-
-      <!-- 콘텐츠 영역 -->
-      <main class="content" id="content">
-        <div class="welcome-message">
-          <h2>공급망 관리 시스템에 오신 것을 환영합니다</h2>
-          <p>왼쪽 메뉴에서 원하는 기능을 선택하거나 AI 어시스턴트에 말씀해주세요.</p>
-        </div>
-      </main>
+<header class="header">
+  <div class="logo">AI-SRM PORTAL</div>
+  <div class="utility-group">
+    <div id="current-info" class="location-info">서울, KR | 2026-04-23 21:05</div>
+    <div class="mode-switch">
+      <select id="langSelect" aria-label="언어 선택" style="padding: 5px; border-radius: 4px;">
+        <option value="ko">한국어 (KR)</option>
+        <option value="en">English (US)</option>
+      </select>
+      <button id="contrastBtn" data-ko="고대비" data-en="Contrast">고대비</button>
+      <button id="colorblindBtn" data-ko="색약모드" data-en="ColorBlind">색약모드</button>
     </div>
   </div>
+</header>
 
-  <script type="module">
-    const MAX_TABS = 8;
-    const MODULES = {
-      dashboard: '대시보드',
-      master: '기준정보',
-      supplier: '협력사관리',
-      pr: '구매요청',
-      contract: '계약관리',
-      po: '발주관리',
-      delivery: '납기관리',
-      vendor: '사급관리',
-      planning: '생산계획',
-      quality: '품질관리',
-      import: '수출입관리',
-      shipping: '선적관리',
-      project: '프로젝트관리',
-    };
+<div class="search-container">
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="무엇을 도와드릴까요?" data-i18n-placeholder="search">
+    <button class="search-btn" id="searchBtn" data-ko="검색" data-en="Search">검색</button>
+  </div>
+</div>
 
-    let currentTab = null;
-    let tabs = new Map();
+<main class="main-layout">
+  <section class="card">
+    <div class="card-header"><h3 data-ko="로그인" data-en="Login">로그인</h3></div>
+    <div class="card-body">
+      <label for="loginId" style="display:block; font-size:13px; margin-bottom:5px;" data-ko="아이디" data-en="User ID">아이디</label>
+      <input type="text" id="loginId" class="login-input" placeholder="아이디" data-i18n-placeholder="id">
+      <label for="loginPw" style="display:block; font-size:13px; margin-bottom:5px;" data-ko="비밀번호" data-en="Password">비밀번호</label>
+      <input type="password" id="loginPw" class="login-input" placeholder="비밀번호" data-i18n-placeholder="pw">
+      <button class="login-btn" id="loginBtn" data-ko="로그인" data-en="Sign In">로그인</button>
+      <div class="login-links">
+        <a id="regLink" role="button" tabindex="0">▶ <span data-ko="신규 협력사 등록 안내" data-en="New Partner Registration">신규 협력사 등록 안내</span></a>
+        <a id="errLink" role="button" tabindex="0">▶ <span data-ko="로그인 오류/비밀번호 초기화 안내" data-en="Login Help / PW Reset">로그인 오류/비밀번호 초기화 안내</span></a>
+        <a id="siteVisitLink" role="button" tabindex="0" style="font-weight: bold; color: var(--primary-color);">▶ <span data-ko="사업장 출입 신청 바로가기" data-en="Site Visit Application">사업장 출입 신청 바로가기</span></a>
+      </div>
+    </div>
+  </section>
 
-    window.addEventListener('DOMContentLoaded', () => {
-      initGNB();
-      loadModule('dashboard');
+  <section class="card">
+    <div class="card-header"><h3 data-ko="공지사항" data-en="Notice">공지사항</h3></div>
+    <div class="card-body">
+      <div style="font-size: 14.5px; font-weight: bold; margin-bottom: 5px;" data-ko="[공지] 2026년 상반기 정기 보안 점검 안내" data-en="[Notice] 2026 1H Security Audit"> [공지] 2026년 상반기 정기 보안 점검 안내 </div>
+      <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 15px;">2026-04-20</p>
+      <hr style="margin-bottom: 20px; opacity: 0.1;">
+      <p style="font-size: 13.5px; color: var(--text-sub); line-height: 1.6;" data-ko="시스템 고도화 작업으로 인해 주말 간 접속이 지연될 수 있습니다." data-en="Access may be delayed during the weekend due to system upgrades.">시스템 고도화 작업으로 인해 주말 간 접속이 지연될 수 있습니다.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header"><h3 data-ko="자료실" data-en="Archive">자료실</h3></div>
+    <div class="card-body">
+      <ul style="list-style: none; font-size: 14px; line-height: 2.5;">
+        <li>📁 <span data-ko="2026 협력사 가이드북" data-en="2026 Partner Guide">2026 협력사 가이드북</span></li>
+        <li>📁 <span data-ko="전자계약 메뉴얼(국문/영문)" data-en="E-Contract Manual (KR/EN)">전자계약 메뉴얼(국문/영문)</span></li>
+        <li>📁 <span data-ko="윤리경영 실천 가이드라인" data-en="Ethics Management Guide">윤리경영 실천 가이드라인</span></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<div id="regModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" id="regClose" role="button" tabindex="0">&times;</span>
+    <div class="modal-header" data-ko="신규 협력사 등록 절차" data-en="New Partner Registration Process">신규 협력사 등록 절차</div>
+    <div id="regStepContainer" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="errModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" id="errClose" role="button" tabindex="0">&times;</span>
+    <div class="modal-header" data-ko="로그인 문제 해결" data-en="Login Help">로그인 문제 해결</div>
+    <div id="errStepContainer" class="modal-body"></div>
+  </div>
+</div>
+
+<footer class="footer">&copy; 2026 AI-SRM Portal System. All Rights Reserved.</footer>
+
+<script>
+  /* 1. i18n 데이터 중앙 관리 (복합 텍스트용) */
+  const i18nData = {
+    ko: {
+      search: "무엇을 도와드릴까요?",
+      id: "아이디",
+      pw: "비밀번호",
+      regSteps: ["사업자 정보 인증 및 기본정보 입력", "희망 소싱그룹(품목) 선택", "거래 조건 및 담당자 정보 입력", "개인정보 수집·이용 동의", "신청 완료 및 검토 대기"],
+      errHelp: ["비밀번호 5회 오류 시 계정 잠금", "계정 잠금 해제는 관리자 문의 필수", "초기 비밀번호 변경 권장"]
+    },
+    en: {
+      search: "How can we help you?",
+      id: "User ID",
+      pw: "Password",
+      regSteps: ["Business Verification", "Sourcing Group Selection", "Contact Details Entry", "Privacy Policy Agreement", "Submission Complete"],
+      errHelp: ["Locked after 5 failed attempts", "Contact Admin to unlock", "Recommend initial password change"]
+    }
+  };
+
+  /* 2. 다국어 전환 핵심 함수 */
+  function updateLanguage() {
+    const lang = document.getElementById('langSelect').value;
+    
+    // A. [일반 텍스트 복구] data-ko/en 속성을 가진 모든 요소 처리
+    document.querySelectorAll('[data-ko]').forEach(el => {
+      el.textContent = el.getAttribute(`data-${lang}`);
     });
 
-    function initGNB() {
-      const gnb = document.getElementById('gnb');
-      Object.entries(MODULES).forEach(([key, label]) => {
-        const btn = document.createElement('button');
-        btn.className = `nav-btn ${key === 'dashboard' ? 'active' : ''}`;
-        btn.textContent = label;
-        btn.onclick = () => loadModule(key);
-        gnb.appendChild(btn);
-      });
-    }
-
-    window.loadModule = async (moduleName) => {
-      const moduleLabel = MODULES[moduleName] || moduleName;
-
-      if (tabs.has(moduleName)) {
-        switchTab(moduleName);
-        return;
-      }
-
-      if (tabs.size >= MAX_TABS) {
-        alert(`최대 ${MAX_TABS}개 탭까지만 열 수 있습니다.`);
-        return;
-      }
-
-      createTab(moduleName, moduleLabel);
-      await loadModuleContent(moduleName);
-    };
-
-    function createTab(moduleName, label) {
-      const tabBar = document.getElementById('tab-bar');
-      const tab = document.createElement('div');
-      tab.className = 'tab active';
-      tab.id = `tab-${moduleName}`;
-      tab.innerHTML = `
-        <span class="tab-title" title="${label}">${label}</span>
-        <button class="tab-close" onclick="closeTab('${moduleName}')">&times;</button>
-      `;
-
-      tab.onclick = () => switchTab(moduleName);
-      tabBar.appendChild(tab);
-
-      tabs.set(moduleName, tab);
-      currentTab = moduleName;
-
-      scrollTabIntoView(tab);
-      updateActiveTab();
-    }
-
-    window.switchTab = (moduleName) => {
-      currentTab = moduleName;
-      updateActiveTab();
-      loadModuleContent(moduleName);
-    };
-
-    window.closeTab = (moduleName) => {
-      const tab = tabs.get(moduleName);
-      if (tab) {
-        tab.remove();
-        tabs.delete(moduleName);
-
-        if (currentTab === moduleName) {
-          const remainingTab = tabs.keys().next().value;
-          if (remainingTab) {
-            switchTab(remainingTab);
-          } else {
-            currentTab = null;
-            document.getElementById('content').innerHTML = `
-              <div class="welcome-message">
-                <h2>공급망 관리 시스템에 오신 것을 환영합니다</h2>
-                <p>왼쪽 메뉴에서 원하는 기능을 선택하거나 AI 어시스턴트에 말씀해주세요.</p>
-              </div>
-            `;
-          }
-        }
-      }
-    };
-
-    function updateActiveTab() {
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-      });
-
-      const activeTab = tabs.get(currentTab);
-      if (activeTab) {
-        activeTab.classList.add('active');
-      }
-
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      const activeBtn = document.querySelector(`.nav-btn[onclick*="'${currentTab}'"]`);
-      if (activeBtn) {
-        activeBtn.classList.add('active');
-      }
-    }
-
-    function scrollTabIntoView(tab) {
-      const tabBar = document.getElementById('tab-bar');
-      const tabRect = tab.getBoundingClientRect();
-      const barRect = tabBar.getBoundingClientRect();
-
-      if (tabRect.right > barRect.right) {
-        tabBar.scrollBy({ left: tabRect.right - barRect.right + 20, behavior: 'smooth' });
-      } else if (tabRect.left < barRect.left) {
-        tabBar.scrollBy({ left: tabRect.left - barRect.left - 20, behavior: 'smooth' });
-      }
-    }
-
-    async function loadModuleContent(moduleName) {
-      const content = document.getElementById('content');
-      content.innerHTML = '<div class="loading">⏳ 로딩중...</div>';
-
-      try {
-        const mod = await import(`./features/${moduleName}/index.js`);
-        
-        if (mod.render && typeof mod.render === 'function') {
-          content.innerHTML = '';
-          await mod.render(content, window.supabase);
-        } else {
-          throw new Error('모듈에 render 함수가 없습니다.');
-        }
-      } catch (error) {
-        let errorHTML = '';
-        
-        if (error.message.includes('not found') || error.message.includes('404')) {
-          errorHTML = `
-            <div class="error-message not-found">
-              <strong>⚠️ 준비중입니다</strong><br>
-              <small>${moduleName} 모듈이 아직 준비 중입니다.</small>
-            </div>
-          `;
-        } else if (error.message.includes('render')) {
-          errorHTML = `
-            <div class="error-message">
-              <strong>❌ 모듈 초기화 실패</strong><br>
-              <small>모듈 구조에 문제가 있습니다. 개발팀에 연락해주세요.</small>
-            </div>
-          `;
-        } else {
-          errorHTML = `
-            <div class="error-message runtime">
-              <strong>❌ 실행 오류</strong><br>
-              <small>${error.message || '알 수 없는 오류가 발생했습니다.'}</small>
-            </div>
-          `;
-        }
-
-        content.innerHTML = errorHTML;
-        console.error(`[${moduleName}] 모듈 로드 실패:`, error);
-      }
-    }
-
-    window.handlePrompt = async () => {
-      const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) return;
-
-      const promptLower = prompt.toLowerCase();
-
-      if (promptLower.includes('현황') || promptLower.includes('상태')) {
-        loadModule('dashboard');
-      } else if (promptLower.includes('구매요청')) {
-        loadModule('pr');
-      } else if (promptLower.includes('발주')) {
-        loadModule('po');
-      } else if (promptLower.includes('납기')) {
-        loadModule('delivery');
-      } else if (promptLower.includes('협력사') || promptLower.includes('공급업체')) {
-        loadModule('supplier');
-      } else if (promptLower.includes('품질')) {
-        loadModule('quality');
-      } else if (promptLower.includes('계약')) {
-        loadModule('contract');
-      } else if (promptLower.includes('기준정보')) {
-        loadModule('master');
-      } else {
-        alert('이해하지 못한 요청입니다. 다시 시도해주세요.');
-      }
-
-      document.getElementById('prompt').value = '';
-    };
-
-    document.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && e.target.id === 'prompt') {
-        handlePrompt();
-      }
+    // B. [Placeholder 처리] 
+    const placeholders = i18nData[lang];
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      el.placeholder = placeholders[key];
     });
 
-    // Supabase 전역 초기화 (lib/supabase.js 단일 출처)
-    import('./lib/supabase.js').then(({ supabase }) => {
-      window.supabase = supabase;
-    });
-  </script>
+    // C. [모달 동적 리스트 처리]
+    renderModalSteps(lang);
+  }
+
+  function renderModalSteps(lang) {
+    document.getElementById('regStepContainer').innerHTML = i18nData[lang].regSteps
+      .map((step, i) => `<div class="guide-step"><strong>STEP ${i+1}</strong>: ${step}</div>`).join('');
+    document.getElementById('errStepContainer').innerHTML = i18nData[lang].errHelp
+      .map(help => `<p>• ${help}</p>`).join('');
+  }
+
+  /* 3. 시계 최적화 (Rev #8 로직 유지) */
+  let clockInterval;
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('current-info').textContent = `서울, KR | ${now.toLocaleString('ko-KR')}`;
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearInterval(clockInterval);
+    else { updateClock(); clockInterval = setInterval(updateClock, 1000); }
+  });
+
+  /* 4. 이벤트 위임 (Rev #8 로직 유지) */
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('a, button, .close-modal, .modal');
+    if (!target) return;
+
+    if (target.id === 'regLink') openModal('regModal');
+    else if (target.id === 'errLink') openModal('errModal');
+    else if (target.id === 'searchBtn' || target.id === 'siteVisitLink') alert("준비 중인 기능입니다.");
+    else if (target.id === 'loginBtn') location.href = 'index.html';
+    else if (target.classList.contains('close-modal')) closeModal(target.closest('.modal').id);
+    else if (target.classList.contains('modal')) closeModal(target.id);
+  });
+
+  /* 5. 기타 유틸리티 */
+  function openModal(id) {
+    const m = document.getElementById(id);
+    m.style.display = "block";
+    setTimeout(() => m.classList.add('show'), 10);
+  }
+  function closeModal(id) {
+    const m = document.getElementById(id);
+    m.classList.remove('show');
+    setTimeout(() => m.style.display = "none", 300);
+  }
+
+  // 모드 전환
+  document.getElementById('contrastBtn').addEventListener('click', () => {
+    document.body.classList.toggle('high-contrast');
+    document.body.classList.remove('color-blind');
+  });
+  document.getElementById('colorblindBtn').addEventListener('click', () => {
+    document.body.classList.toggle('color-blind');
+    document.body.classList.remove('high-contrast');
+  });
+
+  // 초기화
+  document.getElementById('langSelect').addEventListener('change', updateLanguage);
+  updateLanguage();
+  updateClock();
+  clockInterval = setInterval(updateClock, 1000);
+
+  // 키보드 엔터 지원
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.role === 'button') {
+      e.preventDefault();
+      e.target.click();
+    }
+  });
+</script>
 </body>
 </html>

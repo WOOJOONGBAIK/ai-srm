@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI SRM - 공급망 관리</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* CSS 변수 선언 - 브랜드 컬러 및 반복되는 값 관리 */
+    :root {
+      --primary-color: #005EB8;
+      --primary-dark: #003d82;
+      --border-color: #e0e0e0;
+      --bg-gray: #f8f9fa;
+      --bg-white: #fff;
+      --text-main: #333;
+      --text-sub: #666;
+      --text-light: #999;
+      --error-color: #dc3545;
+      --warning-color: #ffc107;
+      --success-color: #28a745;
+      --info-color: #17a2b8;
+    }
+
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+    }
+
+    body { 
+      background: var(--bg-gray); 
+      color: var(--text-main); 
+      min-height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+    }
+
+    /* 헤더 - 시맨틱 태그 사용 */
+    header { 
+      background: var(--bg-white); 
+      border-bottom: 1px solid var(--border-color); 
+      padding: 0 1.5rem; 
+      height: 56px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      position: sticky; 
+      top: 0; 
+      z-index: 100; 
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .logo { 
+      font-size: 18px; 
+      font-weight: 600; 
+      color: var(--primary-color); 
+    }
+
+    /* 네비게이션 - 시맨틱 태그 사용 */
+    nav { 
+      background: var(--bg-gray); 
+      border-bottom: 1px solid var(--border-color); 
+      display: flex; 
+      overflow-x: auto; 
+      padding: 0 1.5rem;
+    }
+
+    .nav-btn { 
+      padding: 12px 16px; 
+      border-radius: 4px 4px 0 0; 
+      border: none; 
+      background: none; 
+      font-size: 13px; 
+      color: var(--text-sub); 
+      cursor: pointer; 
+      transition: all 0.2s; 
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+    }
+
+    .nav-btn:hover { 
+      color: var(--primary-color); 
+      background: rgba(0, 94, 184, 0.05);
+    }
+
+    .nav-btn.active { 
+      color: var(--primary-color); 
+      border-bottom-color: var(--primary-color);
+    }
+
+    /* 탭 시스템 - 자동 스크롤 지원 */
+    .tab-bar { 
+      background: var(--bg-white); 
+      border-bottom: 1px solid var(--border-color); 
+      display: flex; 
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      position: sticky; 
+      top: 56px; 
+      z-index: 99; 
+    }
+
+    .tab { 
+      display: flex; 
+      align-items: center; 
+      padding: 8px 16px; 
+      background: var(--bg-gray); 
+      border-right: 1px solid var(--border-color); 
+      cursor: pointer; 
+      font-size: 13px; 
+      color: var(--text-sub); 
+      min-width: 120px; 
+      max-width: 200px; 
+      position: relative; 
+      transition: all 0.2s;
+    }
+
+    .tab:hover { 
+      background: var(--bg-white);
+    }
+
+    .tab.active { 
+      background: var(--primary-color); 
+      color: var(--bg-white);
+    }
+
+    .tab-close { 
+      margin-left: 8px; 
+      padding: 2px 6px; 
+      border-radius: 50%; 
+      background: rgba(255, 255, 255, 0.3); 
+      color: inherit; 
+      border: none; 
+      cursor: pointer; 
+      font-size: 12px; 
+      line-height: 1;
+      transition: background 0.2s;
+    }
+
+    .tab-close:hover { 
+      background: rgba(255, 255, 255, 0.5); 
+    }
+
+    .tab-title { 
+      flex: 1; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+    }
+
+    /* 메인 레이아웃 */
+    .main-layout { 
+      display: flex; 
+      flex: 1; 
+      overflow: hidden; 
+    }
+
+    /* 사이드바 - 반응형 처리 */
+    aside { 
+      width: 300px; 
+      background: var(--bg-white); 
+      border-right: 1px solid var(--border-color); 
+      padding: 1.5rem; 
+      overflow-y: auto; 
+      flex-shrink: 0;
+    }
+
+    .sidebar-title { 
+      font-size: 14px; 
+      font-weight: 600; 
+      margin: 1.5rem 0 1rem; 
+      color: var(--text-main);
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .sidebar-item { 
+      padding: 12px 15px; 
+      background: var(--bg-gray); 
+      border: 1px solid var(--border-color); 
+      border-left: 4px solid var(--border-color); 
+      border-radius: 4px; 
+      margin-bottom: 10px; 
+      font-size: 13px; 
+      color: var(--text-main); 
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .sidebar-item:hover { 
+      transform: translateX(3px); 
+      border-color: var(--primary-color);
+      background: rgba(0, 94, 184, 0.05);
+    }
+
+    .sidebar-item.danger { 
+      border-left-color: var(--error-color); 
+      background: rgba(220, 53, 69, 0.05);
+    }
+
+    .sidebar-item.warning { 
+      border-left-color: var(--warning-color); 
+      background: rgba(255, 193, 7, 0.05);
+    }
+
+    .sidebar-item.info { 
+      border-left-color: var(--info-color); 
+      background: rgba(23, 162, 184, 0.05);
+    }
+
+    /* 워크스페이스 */
+    .workspace { 
+      flex: 1; 
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden;
+    }
+
+    .workspace-header { 
+      padding: 1.5rem; 
+      background: var(--bg-white); 
+      border-bottom: 1px solid var(--border-color); 
+      display: flex; 
+      gap: 1rem; 
+      align-items: center;
+    }
+
+    .prompt-container { 
+      display: flex; 
+      gap: 0.5rem; 
+      flex: 1;
+    }
+
+    .prompt-input { 
+      flex: 1; 
+      padding: 10px 12px; 
+      border: 1px solid var(--border-color); 
+      border-radius: 4px; 
+      font-size: 13px;
+      background: var(--bg-white);
+    }
+
+    .prompt-input:focus { 
+      outline: none; 
+      border-color: var(--primary-color); 
+      box-shadow: 0 0 0 3px rgba(0, 94, 184, 0.1);
+    }
+
+    .prompt-btn { 
+      padding: 10px 16px; 
+      background: var(--primary-color); 
+      color: var(--bg-white); 
+      border: none; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .prompt-btn:hover { 
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .prompt-hint { 
+      font-size: 12px; 
+      color: var(--text-light);
+      margin: 0;
+    }
+
+    /* 콘텐츠 영역 */
+    .content { 
+      flex: 1; 
+      overflow-y: auto; 
+      padding: 2rem;
+    }
+
+    .welcome-message { 
+      text-align: center; 
+      padding: 4rem 2rem;
+    }
+
+    .welcome-message h2 { 
+      font-size: 24px; 
+      color: var(--primary-color); 
+      margin-bottom: 1rem;
+    }
+
+    .welcome-message p { 
+      font-size: 14px; 
+      color: var(--text-sub);
+    }
+
+    /* 에러 메시지 - 에러 종류 구분 */
+    .error-message { 
+      background: rgba(220, 53, 69, 0.1); 
+      border: 1px solid var(--error-color); 
+      color: var(--error-color); 
+      padding: 1rem; 
+      border-radius: 4px; 
+      margin: 1rem 0;
+    }
+
+    .error-message.not-found { 
+      background: rgba(255, 193, 7, 0.1); 
+      border-color: var(--warning-color); 
+      color: var(--warning-color);
+    }
+
+    .error-message.runtime { 
+      background: rgba(220, 53, 69, 0.1); 
+      border-color: var(--error-color); 
+      color: var(--error-color);
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 1200px) {
+      aside { 
+        width: 250px;
+      }
+
+      .tab { 
+        min-width: 100px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-layout { 
+        flex-direction: column;
+      }
+
+      aside { 
+        width: 100%; 
+        max-height: 200px; 
+        overflow-x: auto; 
+        overflow-y: hidden;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem;
+      }
+
+      header { 
+        flex-direction: column; 
+        height: auto; 
+        padding: 1rem;
+        gap: 1rem;
+      }
+
+      .workspace-header {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .prompt-container {
+        flex-direction: column;
+      }
+
+      .content { 
+        padding: 1rem;
+      }
+
+      .tab { 
+        min-width: 80px; 
+        padding: 8px 12px;
+      }
+
+      .sidebar-item { 
+        display: inline-block; 
+        margin-right: 10px;
+        width: auto;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .tab { 
+        min-width: 60px; 
+        font-size: 12px;
+        padding: 6px 8px;
+      }
+
+      .tab-close { 
+        margin-left: 4px;
+      }
+
+      .prompt-input { 
+        font-size: 12px;
+        padding: 8px;
+      }
+
+      .prompt-btn { 
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+    }
+
+    /* 로딩 상태 */
+    .loading { 
+      display: inline-block; 
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
+    }
+  </style>
+</head>
+<body>
+  <!-- 헤더 (시맨틱 태그) -->
+  <header>
+    <div class="logo">🚀 AI SRM</div>
+    <div id="user-info"></div>
+  </header>
+
+  <!-- 네비게이션 (시맨틱 태그) -->
+  <nav id="gnb">
+    <!-- 메뉴가 동적으로 추가됩니다 -->
+  </nav>
+
+  <!-- 메인 레이아웃 -->
+  <div class="main-layout">
+    <!-- 사이드바 (시맨틱 aside 태그) -->
+    <aside id="sidebar">
+      <div class="sidebar-title">위험신호</div>
+      <div class="sidebar-item danger">🔴 공급업체 A 납기 지연</div>
+      <div class="sidebar-item warning">🟡 원자재 가격 상승</div>
+      <div class="sidebar-item info">🔵 신규 협력사 검토</div>
+    </aside>
+
+    <!-- 워크스페이스 -->
+    <div class="workspace">
+      <!-- 워크스페이스 헤더 -->
+      <div class="workspace-header">
+        <div class="prompt-container">
+          <input 
+            type="text" 
+            id="prompt" 
+            class="prompt-input" 
+            placeholder="무엇을 도와드릴까요? 예: '공급망 리스크 분석', '구매요청 현황'"
+            aria-label="AI 어시스턴트 입력"
+          >
+          <button class="prompt-btn" onclick="handlePrompt()" title="검색">🔍</button>
+        </div>
+        <p class="prompt-hint">구매팀 · Claude Sonnet 4.6</p>
+      </div>
+
+      <!-- 탭 바 -->
+      <div class="tab-bar" id="tab-bar"></div>
+
+      <!-- 콘텐츠 영역 -->
+      <main class="content" id="content">
+        <div class="welcome-message">
+          <h2>공급망 관리 시스템에 오신 것을 환영합니다</h2>
+          <p>왼쪽 메뉴에서 원하는 기능을 선택하거나 AI 어시스턴트에 말씀해주세요.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    const MAX_TABS = 8;
+    const MODULES = {
+      dashboard: '대시보드',
+      master: '기준정보',
+      supplier: '협력사관리',
+      pr: '구매요청',
+      contract: '계약관리',
+      po: '발주관리',
+      delivery: '납기관리',
+      vendor: '사급관리',
+      planning: '생산계획',
+      quality: '품질관리',
+      import: '수출입관리',
+      shipping: '선적관리',
+      project: '프로젝트관리',
+    };
+
+    let currentTab = null;
+    let tabs = new Map();
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initGNB();
+      loadModule('dashboard');
+    });
+
+    function initGNB() {
+      const gnb = document.getElementById('gnb');
+      Object.entries(MODULES).forEach(([key, label]) => {
+        const btn = document.createElement('button');
+        btn.className = `nav-btn ${key === 'dashboard' ? 'active' : ''}`;
+        btn.textContent = label;
+        btn.onclick = () => loadModule(key);
+        gnb.appendChild(btn);
+      });
+    }
+
+    window.loadModule = async (moduleName) => {
+      const moduleLabel = MODULES[moduleName] || moduleName;
+
+      if (tabs.has(moduleName)) {
+        switchTab(moduleName);
+        return;
+      }
+
+      if (tabs.size >= MAX_TABS) {
+        alert(`최대 ${MAX_TABS}개 탭까지만 열 수 있습니다.`);
+        return;
+      }
+
+      createTab(moduleName, moduleLabel);
+      await loadModuleContent(moduleName);
+    };
+
+    function createTab(moduleName, label) {
+      const tabBar = document.getElementById('tab-bar');
+      const tab = document.createElement('div');
+      tab.className = 'tab active';
+      tab.id = `tab-${moduleName}`;
+      tab.innerHTML = `
+        <span class="tab-title" title="${label}">${label}</span>
+        <button class="tab-close" onclick="closeTab('${moduleName}')">&times;</button>
+      `;
+
+      tab.onclick = () => switchTab(moduleName);
+      tabBar.appendChild(tab);
+
+      tabs.set(moduleName, tab);
+      currentTab = moduleName;
+
+      scrollTabIntoView(tab);
+      updateActiveTab();
+    }
+
+    window.switchTab = (moduleName) => {
+      currentTab = moduleName;
+      updateActiveTab();
+      loadModuleContent(moduleName);
+    };
+
+    window.closeTab = (moduleName) => {
+      const tab = tabs.get(moduleName);
+      if (tab) {
+        tab.remove();
+        tabs.delete(moduleName);
+
+        if (currentTab === moduleName) {
+          const remainingTab = tabs.keys().next().value;
+          if (remainingTab) {
+            switchTab(remainingTab);
+          } else {
+            currentTab = null;
+            document.getElementById('content').innerHTML = `
+              <div class="welcome-message">
+                <h2>공급망 관리 시스템에 오신 것을 환영합니다</h2>
+                <p>왼쪽 메뉴에서 원하는 기능을 선택하거나 AI 어시스턴트에 말씀해주세요.</p>
+              </div>
+            `;
+          }
+        }
+      }
+    };
+
+    function updateActiveTab() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      const activeTab = tabs.get(currentTab);
+      if (activeTab) {
+        activeTab.classList.add('active');
+      }
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      const activeBtn = document.querySelector(`.nav-btn[onclick*="'${currentTab}'"]`);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+      }
+    }
+
+    function scrollTabIntoView(tab) {
+      const tabBar = document.getElementById('tab-bar');
+      const tabRect = tab.getBoundingClientRect();
+      const barRect = tabBar.getBoundingClientRect();
+
+      if (tabRect.right > barRect.right) {
+        tabBar.scrollBy({ left: tabRect.right - barRect.right + 20, behavior: 'smooth' });
+      } else if (tabRect.left < barRect.left) {
+        tabBar.scrollBy({ left: tabRect.left - barRect.left - 20, behavior: 'smooth' });
+      }
+    }
+
+    async function loadModuleContent(moduleName) {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">⏳ 로딩중...</div>';
+
+      try {
+        const mod = await import(`./features/${moduleName}/index.js`);
+        
+        if (mod.render && typeof mod.render === 'function') {
+          content.innerHTML = '';
+          await mod.render(content, window.supabase);
+        } else {
+          throw new Error('모듈에 render 함수가 없습니다.');
+        }
+      } catch (error) {
+        let errorHTML = '';
+        
+        if (error.message.includes('not found') || error.message.includes('404')) {
+          errorHTML = `
+            <div class="error-message not-found">
+              <strong>⚠️ 준비중입니다</strong><br>
+              <small>${moduleName} 모듈이 아직 준비 중입니다.</small>
+            </div>
+          `;
+        } else if (error.message.includes('render')) {
+          errorHTML = `
+            <div class="error-message">
+              <strong>❌ 모듈 초기화 실패</strong><br>
+              <small>모듈 구조에 문제가 있습니다. 개발팀에 연락해주세요.</small>
+            </div>
+          `;
+        } else {
+          errorHTML = `
+            <div class="error-message runtime">
+              <strong>❌ 실행 오류</strong><br>
+              <small>${error.message || '알 수 없는 오류가 발생했습니다.'}</small>
+            </div>
+          `;
+        }
+
+        content.innerHTML = errorHTML;
+        console.error(`[${moduleName}] 모듈 로드 실패:`, error);
+      }
+    }
+
+    window.handlePrompt = async () => {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) return;
+
+      const promptLower = prompt.toLowerCase();
+
+      if (promptLower.includes('현황') || promptLower.includes('상태')) {
+        loadModule('dashboard');
+      } else if (promptLower.includes('구매요청')) {
+        loadModule('pr');
+      } else if (promptLower.includes('발주')) {
+        loadModule('po');
+      } else if (promptLower.includes('납기')) {
+        loadModule('delivery');
+      } else if (promptLower.includes('협력사') || promptLower.includes('공급업체')) {
+        loadModule('supplier');
+      } else if (promptLower.includes('품질')) {
+        loadModule('quality');
+      } else if (promptLower.includes('계약')) {
+        loadModule('contract');
+      } else if (promptLower.includes('기준정보')) {
+        loadModule('master');
+      } else {
+        alert('이해하지 못한 요청입니다. 다시 시도해주세요.');
+      }
+
+      document.getElementById('prompt').value = '';
+    };
+
+    document.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && e.target.id === 'prompt') {
+        handlePrompt();
+      }
+    });
+
+    // Supabase 전역 초기화 (lib/supabase.js 단일 출처)
+    import('./lib/supabase.js').then(({ supabase }) => {
+      window.supabase = supabase;
+    });
+  </script>
+</body>
+</html>
