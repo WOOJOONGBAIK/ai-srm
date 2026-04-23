@@ -16,6 +16,13 @@
   | 2026-04-23 | AI-Rev  | [이슈R1] History API URL 동기화         |
   |            |         | [이슈R2] ES Module 동적 import 라우터   |
   |            |         | [이슈R3] History Log 연도 오타 수정     |
+  | 2026-04-24 | AI-Rev  | [P1]     AbortController Race Condition |
+  |            |         | [P2-A]   DOMParser head style 동적 추출 |
+  |            |         | [P2-B]   import() 캐시버스터 단일 TS    |
+  |            |         | [P2-C]   cleanup() 동적 style 제거 포함 |
+  | 2026-04-24 | AI-Rev  | [TAB]    워크스페이스 탭 매니저 추가     |
+  |            |         |          LNB 클릭 → 탭 생성(최대 10개)  |
+  |            |         |          탭 클릭 전환 / X버튼 닫기       |
   ============================================================
   -->
   <style>
@@ -61,17 +68,15 @@
     }
     .header-left { display: flex; align-items: center; gap: 40px; height: 100%; }
     .logo { font-size: 18px; font-weight: 800; color: var(--primary-color); letter-spacing: -0.5px; }
- /* 1. 파이어폭스, IE/Edge용 스크롤바 숨김 속성 추가 */
-.gnb-list { 
-  display: flex; list-style: none; gap: 4px; overflow-x: auto; padding-bottom: 2px;
-  -ms-overflow-style: none; 
-  scrollbar-width: none; 
-}
 
-/* 2. 크롬, 사파리 등 웹킷 기반 브라우저용 스크롤바 완전 숨김 (새로 추가) */
-.gnb-list::-webkit-scrollbar { 
-  display: none; 
-}
+    .gnb-list {
+      display: flex; list-style: none; gap: 4px; overflow-x: auto; padding-bottom: 2px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .gnb-list::-webkit-scrollbar {
+      display: none;
+    }
     .gnb-item {
       padding: 8px 16px; cursor: pointer; border-radius: 6px; white-space: nowrap;
       font-size: 14px; font-weight: 600; transition: 0.2s; color: var(--text-main);
@@ -98,9 +103,8 @@
       padding: 24px 16px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
     }
     .lnb-group  { margin-bottom: 24px; }
-    /* 1. 최상단 대분류 (조금 더 듬직하게) */
     .lnb-title  {
-      font-size: 14px; /* 12px -> 14px 로 키움 */
+      font-size: 14px;
       font-weight: 800;
       color: var(--primary-color);
       margin-bottom: 12px;
@@ -108,22 +112,18 @@
       letter-spacing: 0.5px;
       opacity: 0.8;
     }
-
-    /* 2. 중간 소그룹 (작지만 선명하게) */
     .lnb-sub-title {
-      font-size: 13px; /* 그대로 유지하거나 12px로 조정 */
+      font-size: 13px;
       color: var(--text-sub);
       font-weight: 700;
       margin: 12px 0 8px 14px;
       text-transform: uppercase;
       opacity: 0.6;
     }
-
-    /* 3. 실제 클릭하는 메뉴 (가장 가독성이 좋아야 함) */
     .lnb-item {
       width: 100%;
       padding: 10px 14px;
-      font-size: 13px; /* 기준점 (13px~14px 권장) */
+      font-size: 13px;
       font-weight: 500;
       color: var(--text-sub);
       border-radius: 8px;
@@ -134,10 +134,12 @@
     .lnb-item.active { background: var(--primary-color); color: #fff; font-weight: 600; transform: translateX(0); box-shadow: 0 2px 6px rgba(0,94,184,0.2); }
 
     /* ── 콘텐츠 영역 ─────────────────────────────────────── */
+    /* [AS-IS] .workspace — [TAB] 블록에서 gap:0 추가 후 재정의. 이 선언은 유지(하위 호환)
     .workspace {
       flex: 1; display: flex; flex-direction: column; position: relative;
       background: var(--bg-gray); padding: 24px; overflow: hidden;
     }
+    */
     .content-area {
       flex: 1; padding: 40px; overflow-y: auto; background: var(--panel-bg);
       border-radius: 12px; border: 1px solid var(--border-color);
@@ -161,6 +163,72 @@
     }
     [data-theme='dark'] .content-error { background: #2d1f1f; border-color: #7f1d1d; color: #fca5a5; }
     .content-error.active { display: block; }
+
+    /* ── [TAB] 2026-04-24 START — 워크스페이스 탭바 ────────
+     * [AS-IS] 탭바 없음 — LNB 클릭 시 콘텐츠 영역 단일 교체
+     * [TO-BE] 워크스페이스 상단에 탭바 추가
+     *         탭: 좌→우 누적, 최대 10개, X버튼 닫기, 활성탭 콘텐츠 표시
+     * ────────────────────────────────────────────────────── */
+    .workspace {
+      flex: 1; display: flex; flex-direction: column; position: relative;
+      background: var(--bg-gray); padding: 24px; overflow: hidden; gap: 0;
+    }
+
+    /* 탭바 컨테이너 */
+    .tab-bar {
+      display: flex; align-items: flex-end; gap: 0;
+      padding: 0 0 0 0; flex-shrink: 0;
+      overflow-x: auto; overflow-y: hidden;
+      -ms-overflow-style: none; scrollbar-width: none;
+      min-height: 36px;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    /* 탭 없음 안내 */
+    .tab-empty-hint {
+      display: flex; align-items: center;
+      font-size: 12px; color: var(--text-sub); padding: 0 12px;
+      opacity: 0.6; white-space: nowrap;
+    }
+
+    /* 개별 탭 */
+    .tab-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 14px 0 16px; height: 36px;
+      background: var(--bg-gray); color: var(--text-sub);
+      border: 1px solid var(--border-color); border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      font-size: 12px; font-weight: 500; white-space: nowrap;
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+      margin-right: 2px; flex-shrink: 0; position: relative;
+      top: 1px; /* 활성 탭이 content-area 상단 테두리와 자연스럽게 이어지도록 */
+    }
+    .tab-item:hover { background: var(--panel-bg); color: var(--text-main); }
+    .tab-item.active {
+      background: var(--panel-bg); color: var(--primary-color);
+      font-weight: 700; border-color: var(--border-color);
+      border-bottom-color: var(--panel-bg); /* 아래 테두리 제거 → content-area와 합쳐짐 */
+      z-index: 1;
+    }
+    .tab-item .tab-title { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+    .tab-close {
+      width: 16px; height: 16px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: var(--text-sub); flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab-close:hover { background: rgba(220,38,38,0.12); color: #dc2626; }
+    [data-theme='dark'] .tab-close:hover { background: rgba(252,165,165,0.15); color: #fca5a5; }
+
+    /* 탭 10개 초과 비활성 안내 배지 */
+    .tab-limit-badge {
+      display: none; align-items: center; padding: 0 10px; height: 36px;
+      font-size: 11px; color: var(--text-sub); white-space: nowrap;
+      border: 1px dashed var(--border-color); border-bottom: none;
+      border-radius: 8px 8px 0 0; top: 1px; position: relative;
+    }
+    .tab-limit-badge.visible { display: flex; }
+    /* [TAB] 2026-04-24 END */
 
     /* ── 플로팅 AI 프롬프트 ──────────────────────────────── */
     .floating-prompt {
@@ -214,6 +282,16 @@
 <div class="main-container">
   <aside id="lnb-container"></aside>
   <div class="workspace">
+    <!-- [TAB] 2026-04-24 START — 탭바 엘리먼트
+         [AS-IS] 탭바 없음
+         [TO-BE] .tab-bar: 탭 버튼 누적 컨테이너 (좌→우, 최대 10개)
+                 .tab-limit-badge: 10개 초과 시 안내 배지
+    -->
+    <div class="tab-bar" id="tab-bar">
+      <span class="tab-empty-hint" id="tab-empty-hint">← 좌측 메뉴를 클릭하면 탭이 열립니다</span>
+    </div>
+    <div class="tab-limit-badge" id="tab-limit-badge">탭 최대 10개</div>
+    <!-- [TAB] 2026-04-24 END -->
     <main class="content-area" id="content-area">
       <div class="content-loading" id="content-loading">
         <div class="loading-spinner"></div>
@@ -257,6 +335,20 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
     export default function init(container) { ... }
     export function cleanup() { ... }
+
+  [P2-A] 2026-04-24 — pages/{id}.html 내 <head><style>/<link> 동적 추출 규약
+    - loadPage 내에서 <head> 내 <style>/<link rel="stylesheet"> 를 수집하여 document.head에 append
+    - 각 엘리먼트에 data-page-id 속성 부여 → cleanup 시 일괄 제거
+
+  [P2-C] 2026-04-24 — cleanup() 표준 템플릿 규약
+    pages/scripts/{id}.js 작성 시 아래 형식 준수:
+      export default function init(container) {
+        // 이벤트·타이머 등록
+      }
+      export function cleanup() {
+        // 이벤트 해제, clearInterval, 동적 DOM 제거 등
+        // ※ 동적 <style> 제거는 loadPage 라우터가 data-page-id 기반으로 자동 처리
+      }
 -->
 <script type="module">
 
@@ -295,6 +387,10 @@ document.addEventListener('DOMContentLoaded', () => {
     contentBody:  document.getElementById('content-body'),
     contentLoad:  document.getElementById('content-loading'),
     contentError: document.getElementById('content-error'),
+    // [TAB] 2026-04-24 추가
+    tabBar:       document.getElementById('tab-bar'),
+    tabEmptyHint: document.getElementById('tab-empty-hint'),
+    tabLimitBadge:document.getElementById('tab-limit-badge'),
   };
 
   /* ================================================================
@@ -312,58 +408,245 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ================================================================
-   * [이슈R2] 2026-04-23 START — ES Module 동적 import 라우터
+   * [P2-B] 2026-04-24 START — import() 캐시버스터 단일 TS 고정
    *
-   * [AS-IS] fetch + innerHTML → <script> 태그 비실행 (브라우저 정책)
-   * [TO-BE] Step1: fetch HTML → <script> 제거 후 innerHTML (DOM/CSS 담당)
-   *         Step2: import('./pages/scripts/{id}.js') → init(container) 실행
-   *                (Supabase·DP/MP/FP·결재 등 비즈니스 로직 담당)
-   *         Step3: 페이지 이탈 시 이전 모듈 cleanup() 호출 (이벤트·타이머 정리)
+   * [AS-IS] loadPage 호출마다 Date.now() 생성 → 매 클릭 시 JS 재다운로드
+   * [TO-BE] 앱 초기화 시점(DOMContentLoaded) 1회 생성 후 모듈 전역 고정
+   *         운영 배포 시 빌드 파이프라인에서 [contenthash]로 치환 권장
    * ================================================================ */
-  let _activeCleanup = null; // 현재 활성 모듈의 cleanup 핸들러
+  const MODULE_CACHE_BUSTER = Date.now();
+  /* [P2-B] 2026-04-24 END */
 
-  async function loadPage(itemId, itemTitle, pushHistory = true) {
+  /* ================================================================
+   * [TAB] 2026-04-24 START — 워크스페이스 탭 매니저
+   *
+   * [AS-IS] LNB 클릭 → loadPage() 단일 콘텐츠 영역 교체
+   * [TO-BE] LNB 클릭 → openTab() 호출
+   *         - 동일 itemId 탭 존재 시: 해당 탭 활성화만 수행 (재로딩 없음)
+   *         - 신규 itemId: 탭 생성 후 loadPage() 호출
+   *         - 탭 10개 초과 시: 신규 탭 생성 차단, 안내 배지 표시
+   *         - X버튼 클릭: 탭 닫기, 직전 탭 자동 활성화
+   *
+   * 탭 상태 구조:
+   *   _tabs: Array<{ id, title, html, scripts_cleanup }>
+   *          html          — 로딩 완료된 innerHTML 캐시
+   *          scripts_cleanup — 해당 탭 페이지 모듈 cleanup 함수
+   *   _activeTabId: 현재 활성 탭 id
+   * ================================================================ */
+  const MAX_TABS = 10;
+  let _tabs        = [];   // { id, title, html, scriptsCleanup }
+  let _activeTabId = null;
 
-    /* [이슈R1] 2026-04-23 START — History API URL 동기화
-     * [AS-IS] URL 변경 없음
-     * [TO-BE] pushHistory 플래그 분기:
-     *         true  → pushState  (LNB 클릭, 초기 진입)
-     *         false → replaceState (popstate 복원 시 이중 push 방지)
-     */
-    const url = new URL(window.location.href);
-    url.searchParams.set('page', itemId);
-    if (pushHistory) {
-      history.pushState({ pageId: itemId, pageTitle: itemTitle }, '', url.toString());
-    } else {
-      history.replaceState({ pageId: itemId, pageTitle: itemTitle }, '', url.toString());
-    }
-    /* [이슈R1] 2026-04-23 END */
+  /** 탭바 UI 전체 재렌더 */
+  function renderTabBar() {
+    // 탭 없음 힌트
+    DOM.tabEmptyHint.style.display = _tabs.length === 0 ? '' : 'none';
 
-    // 이전 모듈 cleanup
-    if (typeof _activeCleanup === 'function') {
-      try { _activeCleanup(); } catch (e) { console.warn('[Router] cleanup error:', e); }
-      _activeCleanup = null;
-    }
+    // 기존 탭 버튼 제거 (힌트·배지 제외)
+    DOM.tabBar.querySelectorAll('.tab-item').forEach(el => el.remove());
 
-    // 로딩 상태 진입
-    DOM.contentLoad.classList.add('active');
+    _tabs.forEach(tab => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-item' + (tab.id === _activeTabId ? ' active' : '');
+      btn.dataset.tabId = tab.id;
+      btn.innerHTML = `
+        <span class="tab-title" title="${tab.title}">${tab.title}</span>
+        <span class="tab-close" data-close="${tab.id}" title="닫기">✕</span>`;
+
+      // 탭 클릭 → 활성화
+      btn.addEventListener('click', (e) => {
+        if (e.target.dataset.close) return; // X버튼은 아래서 처리
+        activateTab(tab.id);
+      });
+
+      // X버튼 클릭 → 닫기
+      btn.querySelector('.tab-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeTab(tab.id);
+      });
+
+      // 탭바 내 배지 앞에 삽입
+      DOM.tabBar.insertBefore(btn, DOM.tabLimitBadge);
+    });
+
+    // 10개 초과 배지 표시
+    DOM.tabLimitBadge.classList.toggle('visible', _tabs.length >= MAX_TABS);
+  }
+
+  /** 탭 콘텐츠 영역 전환 (HTML 캐시 → innerHTML 복원) */
+  function showTabContent(tabId) {
+    const tab = _tabs.find(t => t.id === tabId);
+    if (!tab) return;
+
     DOM.contentError.classList.remove('active');
-    DOM.contentBody.style.display = 'none';
+
+    if (tab.html !== null) {
+      // 캐시된 HTML 복원
+      DOM.contentBody.innerHTML = tab.html;
+      DOM.contentBody.style.display = 'block';
+      DOM.contentLoad.classList.remove('active');
+    } else {
+      // 아직 로딩 중 — 스피너 유지
+      DOM.contentBody.style.display = 'none';
+      DOM.contentLoad.classList.add('active');
+    }
+  }
+
+  /** 탭 활성화 (클릭 전환) */
+  function activateTab(tabId) {
+    if (_activeTabId === tabId) return;
+    _activeTabId = tabId;
+    renderTabBar();
+    showTabContent(tabId);
+
+    // LNB 활성 상태 동기화
+    document.querySelectorAll('.lnb-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.id === tabId);
+    });
+
+    // URL 동기화
+    const tab = _tabs.find(t => t.id === tabId);
+    if (tab) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('page', tabId);
+      history.pushState({ pageId: tabId, pageTitle: tab.title }, '', url.toString());
+    }
+  }
+
+  /** 탭 닫기 */
+  function closeTab(tabId) {
+    const idx = _tabs.findIndex(t => t.id === tabId);
+    if (idx === -1) return;
+
+    // 닫히는 탭의 모듈 cleanup 실행
+    const tab = _tabs[idx];
+    if (typeof tab.scriptsCleanup === 'function') {
+      try { tab.scriptsCleanup(); } catch (e) { console.warn('[Tab] cleanup error:', e); }
+    }
+    // 해당 탭의 동적 style 제거
+    document.head.querySelectorAll(`[data-page-id="${tabId}"]`).forEach(el => el.remove());
+
+    _tabs.splice(idx, 1);
+
+    if (_activeTabId === tabId) {
+      // 닫힌 탭이 활성 탭이었으면 → 직전 탭(또는 첫 탭) 활성화
+      if (_tabs.length === 0) {
+        _activeTabId = null;
+        DOM.contentBody.innerHTML = `
+          <h1 style="font-size:24px;font-weight:700;margin-bottom:8px;">메뉴를 선택해주세요.</h1>
+          <p style="color:var(--text-sub);font-size:15px;">AI-SRM 시스템의 상세 기능을 확인하실 수 있습니다.</p>`;
+        DOM.contentBody.style.display = 'block';
+        DOM.contentLoad.classList.remove('active');
+      } else {
+        const newActive = _tabs[Math.max(0, idx - 1)];
+        _activeTabId = newActive.id;
+        showTabContent(_activeTabId);
+      }
+    }
+
+    renderTabBar();
+  }
+
+  /**
+   * openTab — LNB 클릭 진입점
+   * 동일 탭 존재 시 활성화만, 없으면 신규 탭 생성 후 loadPageIntoTab() 호출
+   */
+  function openTab(itemId, itemTitle) {
+    const existing = _tabs.find(t => t.id === itemId);
+    if (existing) {
+      activateTab(itemId);
+      return;
+    }
+    if (_tabs.length >= MAX_TABS) {
+      // 10개 초과 — 신규 탭 생성 차단
+      DOM.tabLimitBadge.classList.add('visible');
+      return;
+    }
+    // 신규 탭 추가
+    _tabs.push({ id: itemId, title: itemTitle, html: null, scriptsCleanup: null });
+    _activeTabId = itemId;
+    renderTabBar();
+    showTabContent(itemId); // html=null → 스피너 표시
+    loadPageIntoTab(itemId, itemTitle);
+  }
+  /* [TAB] 2026-04-24 END */
+
+  /* ================================================================
+   * [P1]    2026-04-24 — AbortController Race Condition 방지
+   * [이슈R2] 2026-04-23 — ES Module 동적 import 라우터
+   * [TAB]   2026-04-24 — loadPage → loadPageIntoTab 전환
+   *
+   * [AS-IS] loadPage(itemId, itemTitle, pushHistory)
+   *         — DOM.contentBody 단일 영역 직접 교체
+   *         — History pushState 내부 처리
+   * [TO-BE] loadPageIntoTab(itemId, itemTitle)
+   *         — 탭 객체(_tabs[].html)에 결과 캐시 후 showTabContent() 호출
+   *         — History / URL 동기화는 openTab()/activateTab()에서 처리
+   *         — AbortController, DOMParser head style, MODULE_CACHE_BUSTER 모두 유지
+   *
+   * [AS-IS 원본 함수 — 주석 처리 보존]
+   * async function loadPage(itemId, itemTitle, pushHistory = true) {
+   *   const url = new URL(window.location.href);
+   *   url.searchParams.set('page', itemId);
+   *   if (pushHistory) { history.pushState(...); } else { history.replaceState(...); }
+   *   if (_activeController) { _activeController.abort(); }
+   *   const controller = new AbortController();
+   *   _activeController = controller;
+   *   if (_activePageId) { document.head.querySelectorAll(`[data-page-id="${_activePageId}"]`).forEach(el => el.remove()); }
+   *   if (typeof _activeCleanup === 'function') { try { _activeCleanup(); } catch (e) {} _activeCleanup = null; }
+   *   _activePageId = itemId;
+   *   DOM.contentLoad.classList.add('active');
+   *   DOM.contentError.classList.remove('active');
+   *   DOM.contentBody.style.display = 'none';
+   *   try {
+   *     const res = await fetch(`pages/${itemId}.html`, { signal: controller.signal });
+   *     if (res.ok) { ... DOM.contentBody.innerHTML = doc.body.innerHTML; }
+   *     else { DOM.contentBody.innerHTML = fallbackHtml; }
+   *     DOM.contentBody.style.display = 'block';
+   *     const mod = await import(`./pages/scripts/${itemId}.js?t=${MODULE_CACHE_BUSTER}`);
+   *     if (typeof mod.default === 'function') { _activeCleanup = mod.cleanup ?? null; mod.default(DOM.contentBody); }
+   *   } catch (err) {
+   *     if (err.name === 'AbortError') return;
+   *     DOM.contentError.textContent = `...`; DOM.contentError.classList.add('active');
+   *   } finally {
+   *     if (_activeController === controller) { DOM.contentLoad.classList.remove('active'); }
+   *   }
+   * }
+   * ================================================================ */
+  let _activeController = null; // [P1] 현재 진행 중인 fetch AbortController
+
+  async function loadPageIntoTab(itemId, itemTitle) {
+
+    /* ── [P1] 이전 fetch 취소 ── */
+    if (_activeController) { _activeController.abort(); }
+    const controller = new AbortController();
+    _activeController = controller;
+
+    /* ── [P2-A] 이전 활성 탭의 동적 style은 closeTab()에서 처리
+     *           신규 탭 로딩 시에는 style 누적 방지만 수행 ── */
+    document.head.querySelectorAll(`[data-page-id="${itemId}"]`).forEach(el => el.remove());
 
     try {
       /* ── Step 1: HTML 마크업 로드 ── */
-      const res = await fetch(`pages/${itemId}.html`);
+      const res = await fetch(`pages/${itemId}.html`, { signal: controller.signal });
+      let html = '';
 
       if (res.ok) {
         const rawHtml = await res.text();
-        // innerHTML 경유 <script> 는 브라우저 정책상 실행 안 됨 → 제거 후 Step2에서 처리
-        const parser = new DOMParser();
-        const doc    = parser.parseFromString(rawHtml, 'text/html');
+        const parser  = new DOMParser();
+        const doc     = parser.parseFromString(rawHtml, 'text/html');
         doc.querySelectorAll('script').forEach(s => s.remove());
-        DOM.contentBody.innerHTML = doc.body.innerHTML;
+
+        /* ── [P2-A] head style/link 동적 추출 ── */
+        doc.head.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+          const clone = el.cloneNode(true);
+          clone.setAttribute('data-page-id', itemId);
+          document.head.appendChild(clone);
+        });
+
+        html = doc.body.innerHTML;
       } else {
-        // 404 → 폴백 UI (파일 미생성 상태 안내)
-        DOM.contentBody.innerHTML = `
+        html = `
           <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">${itemTitle}</h1>
           <p style="color:var(--text-sub);font-size:14px;margin-bottom:32px;">이 페이지는 아직 구현 중입니다.</p>
           <div style="padding:32px;border:2px dashed var(--border-color);border-radius:8px;
@@ -374,20 +657,28 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>`;
       }
 
-      DOM.contentBody.style.display = 'block';
+      /* ── 탭 객체에 HTML 캐시 저장 ── */
+      const tab = _tabs.find(t => t.id === itemId);
+      if (tab) { tab.html = html; }
+
+      /* ── 현재 활성 탭이면 즉시 표시 ── */
+      if (_activeTabId === itemId) {
+        DOM.contentBody.innerHTML = html;
+        DOM.contentBody.style.display = 'block';
+        DOM.contentLoad.classList.remove('active');
+      }
 
       /* ── Step 2: ES Module 동적 import ── */
-      // pages/scripts/{id}.js 미존재 시 → 정상 케이스 (경고 없이 무시)
-      // 실제 JS 런타임 오류 → console.warn 출력 (사용자 화면에 노출 안 함)
+      // [P2-B] MODULE_CACHE_BUSTER 사용
       try {
-        // ?t= 캐시버스터: 개발 단계 핫리로드 대응. 운영 시 빌드 해시로 교체 권장.
-        const mod = await import(`./pages/scripts/${itemId}.js?t=${Date.now()}`);
+        const mod = await import(`./pages/scripts/${itemId}.js?t=${MODULE_CACHE_BUSTER}`);
         if (typeof mod.default === 'function') {
-          _activeCleanup = (typeof mod.cleanup === 'function') ? mod.cleanup : null;
-          mod.default(DOM.contentBody); // init(container) 실행
+          const cleanup = (typeof mod.cleanup === 'function') ? mod.cleanup : null;
+          const t = _tabs.find(t => t.id === itemId);
+          if (t) { t.scriptsCleanup = cleanup; }
+          if (_activeTabId === itemId) { mod.default(DOM.contentBody); }
         }
       } catch (modErr) {
-        // fetch 실패(404) 는 무시, 그 외 JS 오류만 경고
         const msg = modErr?.message ?? '';
         if (!msg.includes('Failed to fetch') && !msg.includes('404')) {
           console.warn(`[Router] pages/scripts/${itemId}.js 오류:`, modErr);
@@ -395,19 +686,27 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
     } catch (err) {
-      DOM.contentError.textContent = `페이지 로딩 중 오류가 발생했습니다. (${err.message})`;
-      DOM.contentError.classList.add('active');
+      /* ── [P1] AbortError는 정상 취소 ── */
+      if (err.name === 'AbortError') { return; }
+      if (_activeTabId === itemId) {
+        DOM.contentError.textContent = `페이지 로딩 중 오류가 발생했습니다. (${err.message})`;
+        DOM.contentError.classList.add('active');
+      }
     } finally {
-      DOM.contentLoad.classList.remove('active');
+      if (_activeController === controller && _activeTabId === itemId) {
+        DOM.contentLoad.classList.remove('active');
+      }
     }
   }
-  /* [이슈R2] 2026-04-23 END */
 
   /* ================================================================
    * [이슈R1] 2026-04-23 — popstate 핸들러 (브라우저 뒤로/앞으로)
-   * [AS-IS] 없음 → URL만 변경되고 화면 미반영
-   * [TO-BE] state.pageId로 메뉴 UI + 콘텐츠 동시 복원
-   *         pushHistory=false 로 호출 → replaceState 처리 (이중 push 방지)
+   * [TAB]   2026-04-24 — renderLNB 직접 호출 → activateTab() 경유로 변경
+   *
+   * [AS-IS] renderLNB(found.gnbIndex, found.item.id, false) 직접 호출
+   *         → 탭 없이 콘텐츠 단일 교체
+   * [TO-BE] 탭 존재 시 activateTab(), 미존재 시 openTab() 호출
+   *         GNB 활성 상태 동기화는 유지
    * ================================================================ */
   window.addEventListener('popstate', (e) => {
     const pageId = e.state?.pageId;
@@ -416,12 +715,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const found = findMenuItemById(pageId);
     if (!found) return;
 
-    // GNB active 동기화
+    // GNB active 동기화 (기존 유지)
     document.querySelectorAll('.gnb-item').forEach((el, i) => {
       el.classList.toggle('active', i === found.gnbIndex);
     });
-    // LNB 재렌더 + 해당 버튼 active (pushHistory=false → URL 재기록 없음)
+
+    // [AS-IS] renderLNB(found.gnbIndex, found.item.id, false);
+    // [TO-BE] 탭 매니저 경유
     renderLNB(found.gnbIndex, found.item.id, false);
+    const existing = _tabs.find(t => t.id === pageId);
+    if (existing) {
+      // URL은 이미 popstate로 세팅됨 → activateTab 내부 pushState 방지 필요
+      _activeTabId = pageId;
+      renderTabBar();
+      showTabContent(pageId);
+    } else {
+      openTab(found.item.id, found.item.title);
+    }
   });
 
   /* ================================================================
@@ -445,17 +755,11 @@ document.addEventListener('DOMContentLoaded', () => {
       DOM.gnb.appendChild(li);
     });
 
-    /* [이슈R1] URL 파라미터 대응 초기 진입 처리
-     * [AS-IS] 항상 index 0 고정
-     * [TO-BE] initialPageId 존재 시 해당 GNB/LNB 우선 활성화
-     *         매칭 실패 시 index 0 폴백
-     */
     const gnbItems = document.querySelectorAll('.gnb-item');
     if (initialPageId) {
       const found = findMenuItemById(initialPageId);
       if (found) {
         gnbItems[found.gnbIndex]?.classList.add('active');
-        // 초기 진입: URL이 이미 있으므로 replaceState (pushHistory=false)
         renderLNB(found.gnbIndex, found.item.id, false);
         return;
       }
@@ -464,12 +768,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderLNB(0, null, true);
   }
 
-  /**
-   * renderLNB
-   * @param {number}      idx          - MENU_CONFIG GNB 인덱스
-   * @param {string|null} activeItemId - URL/popstate에서 지정된 활성 itemId (없으면 첫 번째)
-   * @param {boolean}     pushHistory  - loadPage에 전달할 pushHistory 플래그
-   */
   function renderLNB(idx, activeItemId = null, pushHistory = true) {
     DOM.lnb.innerHTML = '';
     const group = MENU_CONFIG[idx];
@@ -497,13 +795,15 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.textContent = item.title;
         btn.dataset.id = item.id;
 
-        if (!firstBtn)                         firstBtn  = { btn, item };
+        if (!firstBtn)                                firstBtn  = { btn, item };
         if (activeItemId && item.id === activeItemId) targetBtn = { btn, item };
 
         btn.addEventListener('click', () => {
           document.querySelectorAll('.lnb-item').forEach(el => el.classList.remove('active'));
           btn.classList.add('active');
-          loadPage(item.id, item.title, true); // LNB 직접 클릭 → pushState
+          // [AS-IS] loadPage(item.id, item.title, true);
+          // [TO-BE] openTab() — 탭 매니저 경유
+          openTab(item.id, item.title);
         });
 
         groupDiv.appendChild(btn);
@@ -511,11 +811,12 @@ document.addEventListener('DOMContentLoaded', () => {
       DOM.lnb.appendChild(groupDiv);
     });
 
-    // activeItemId 지정 시 해당 버튼, 없으면 첫 번째 버튼 자동 선택
     const selected = targetBtn ?? firstBtn;
     if (selected) {
       selected.btn.classList.add('active');
-      loadPage(selected.item.id, selected.item.title, pushHistory);
+      // [AS-IS] loadPage(selected.item.id, selected.item.title, pushHistory);
+      // [TO-BE] openTab() 경유 (초기 진입 및 popstate 복원)
+      openTab(selected.item.id, selected.item.title);
     }
   }
 
@@ -561,9 +862,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ================================================================
    * [이슈R1] 초기 진입 — URL 파라미터 파싱 후 renderMenus 호출
-   * [AS-IS] renderMenus() — 파라미터 없이 항상 첫 번째 메뉴
-   * [TO-BE] ?page=xxx 파싱 → 해당 메뉴 직접 렌더링
-   *         새로고침 / 직접 URL 입력 / 이메일 링크 공유 모든 케이스 대응
    * ================================================================ */
   const initPageId = new URLSearchParams(window.location.search).get('page') ?? null;
   renderMenus(initPageId);
