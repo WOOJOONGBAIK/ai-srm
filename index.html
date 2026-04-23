@@ -1,13 +1,3 @@
-<!--
-* Project: [AI-SRM]
-* File: [index.html]
-* Description: [AI-SRM landing page - 리비전 #11: 최종 통합본]
-* --------------------------------------------------------------------------
-* 변경 일자 작성자 변경 내용 요약
-* --------------------------------------------------------------------------
-* 2026-04-23 #11 다국어 지원, 고대비/색약 모드, 시계 최적화, 이벤트 위임 개선
-* 2026-04-23 #12 파일 이름 변경: portal.html -> index.html
--->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -16,21 +6,20 @@
 <title>AI SRM Portal</title>
 <style>
   :root {
-    --primary-color: #005EB8;
-    --primary-dark: #003d82;
+    /* HD현대 브랜드 컬러 반영 */
+    --primary-color: #008138; 
+    --primary-dark: #006b2e;
     --bg-body: #f0f2f5;
     --bg-card: #ffffff;
     --text-main: #333333;
     --text-sub: #666666;
     --border-color: #e0e0e0;
-    --status-green: #28a745;
     --transition-speed: 0.3s;
   }
 
   /* 고대비 모드 */
   body.high-contrast {
     --primary-color: #ffff00;
-    --primary-dark: #e6e600;
     --bg-body: #000000;
     --bg-card: #1a1a1a;
     --text-main: #ffffff;
@@ -41,8 +30,6 @@
   /* 색약모드 */
   body.color-blind {
     --primary-color: #d55e00; 
-    --status-green: #009e73;
-    --bg-body: #e6e6e6;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
@@ -61,41 +48,37 @@
   .mode-switch button { 
     padding: 6px 12px; cursor: pointer; border: 1px solid var(--border-color); 
     background: var(--bg-card); color: var(--text-main); border-radius: 4px; font-weight: bold;
-    transition: all 0.2s ease;
   }
-  .mode-switch button:hover { background: var(--primary-color); color: #fff; transform: translateY(-1px); }
-  body.high-contrast .mode-switch button:hover { color: #000; }
+  .mode-switch button:hover { background: var(--primary-color); color: #fff; }
 
   /* Search Section */
   .search-container { max-width: 1200px; margin: 30px auto 0; padding: 0 20px; }
-  .search-bar { display: flex; background: var(--bg-card); border: 2px solid var(--primary-color); border-radius: 30px; overflow: hidden; transition: box-shadow 0.3s; }
-  .search-bar:focus-within { box-shadow: 0 0 15px rgba(0,94,184,0.3); }
-  .search-bar input { flex: 1; border: none; padding: 15px 25px; outline: none; font-size: 16px; background: transparent; color: var(--text-main); }
-  .search-btn { background: var(--primary-color); color: #fff; border: none; padding: 0 30px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+  .search-bar { display: flex; background: var(--bg-card); border: 2px solid var(--primary-color); border-radius: 30px; overflow: hidden; }
+  .search-bar input { flex: 1; border: none; padding: 15px 25px; outline: none; font-size: 16px; background: transparent; }
+  .search-btn { background: var(--primary-color); color: #fff; border: none; padding: 0 30px; cursor: pointer; font-weight: bold; }
 
   /* Layout & Cards */
   .main-layout { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 25px; max-width: 1200px; margin: 30px auto; padding: 0 20px; }
   .card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 480px; transition: transform 0.3s, box-shadow 0.3s; }
   .card:hover { transform: translateY(-8px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-  .card-header { padding: 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.01); }
+  .card-header { padding: 20px; border-bottom: 1px solid var(--border-color); }
   .card-header h3 { color: var(--primary-color); font-size: 18px; font-weight: 700; }
   .card-body { padding: 25px; flex: 1; }
 
   /* Login Form */
   .login-input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); color: var(--text-main); }
-  .login-btn { width: 100%; padding: 16px; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-  .login-links { margin-top: 20px; font-size: 13.5px; line-height: 2.4; }
+  .login-btn { width: 100%; padding: 16px; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+  .login-links { margin-top: 20px; font-size: 13.5px; line-height: 2.2; }
   .login-links a { color: var(--text-sub); text-decoration: none; display: block; cursor: pointer; transition: 0.2s; }
   .login-links a:hover { color: var(--primary-color); padding-left: 5px; }
 
   /* Modal */
   .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(2px); }
   .modal.show { display: block; opacity: 1; }
-  .modal-content { background: var(--bg-card); margin: 8% auto; padding: 35px; border-radius: 16px; width: 550px; position: relative; transform: translateY(-30px); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-  .modal.show .modal-content { transform: translateY(0); }
+  .modal-content { background: var(--bg-card); margin: 8% auto; padding: 35px; border-radius: 16px; width: 550px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
   .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 25px; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; }
   .close-modal { position: absolute; right: 25px; top: 20px; font-size: 28px; cursor: pointer; color: var(--text-sub); }
-  .guide-step { background: rgba(0,94,184,0.05); padding: 15px; margin-bottom: 12px; border-left: 5px solid var(--primary-color); border-radius: 0 8px 8px 0; }
+  .guide-step { background: rgba(0,129,56,0.05); padding: 15px; margin-bottom: 12px; border-left: 5px solid var(--primary-color); border-radius: 0 8px 8px 0; }
 
   .footer { text-align: center; padding: 40px; font-size: 13px; color: #888; border-top: 1px solid var(--border-color); margin-top: 50px; }
 
@@ -107,9 +90,9 @@
 <header class="header">
   <div class="logo">AI-SRM PORTAL</div>
   <div class="utility-group">
-    <div id="current-info" class="location-info">서울, KR | 2026-04-23 21:05</div>
+    <div id="current-info" class="location-info">Seoul, KR | Loading...</div>
     <div class="mode-switch">
-      <select id="langSelect" aria-label="언어 선택" style="padding: 5px; border-radius: 4px;">
+      <select id="langSelect" style="padding: 5px; border-radius: 4px;">
         <option value="ko">한국어 (KR)</option>
         <option value="en">English (US)</option>
       </select>
@@ -130,15 +113,14 @@
   <section class="card">
     <div class="card-header"><h3 data-ko="로그인" data-en="Login">로그인</h3></div>
     <div class="card-body">
-      <label for="loginId" style="display:block; font-size:13px; margin-bottom:5px;" data-ko="아이디" data-en="User ID">아이디</label>
       <input type="text" id="loginId" class="login-input" placeholder="아이디" data-i18n-placeholder="id">
-      <label for="loginPw" style="display:block; font-size:13px; margin-bottom:5px;" data-ko="비밀번호" data-en="Password">비밀번호</label>
       <input type="password" id="loginPw" class="login-input" placeholder="비밀번호" data-i18n-placeholder="pw">
       <button class="login-btn" id="loginBtn" data-ko="로그인" data-en="Sign In">로그인</button>
+      
       <div class="login-links">
-        <a id="regLink" role="button" tabindex="0">▶ <span data-ko="신규 협력사 등록 안내" data-en="New Partner Registration">신규 협력사 등록 안내</span></a>
-        <a id="errLink" role="button" tabindex="0">▶ <span data-ko="로그인 오류/비밀번호 초기화 안내" data-en="Login Help / PW Reset">로그인 오류/비밀번호 초기화 안내</span></a>
-        <a id="siteVisitLink" role="button" tabindex="0" style="font-weight: bold; color: var(--primary-color);">▶ <span data-ko="사업장 출입 신청 바로가기" data-en="Site Visit Application">사업장 출입 신청 바로가기</span></a>
+        <a id="applyLink" style="font-weight: bold; color: var(--primary-color);">▶ <span data-ko="신규 협력사 등록 신청" data-en="Apply for Partnership">신규 협력사 등록 신청</span></a>
+        <a id="regLink">▶ <span data-ko="신규 협력사 등록 안내" data-en="Registration Guide">신규 협력사 등록 안내</span></a>
+        <a id="errLink">▶ <span data-ko="로그인 문제 해결" data-en="Login Help">로그인 문제 해결</span></a>
       </div>
     </div>
   </section>
@@ -146,10 +128,9 @@
   <section class="card">
     <div class="card-header"><h3 data-ko="공지사항" data-en="Notice">공지사항</h3></div>
     <div class="card-body">
-      <div style="font-size: 14.5px; font-weight: bold; margin-bottom: 5px;" data-ko="[공지] 2026년 상반기 정기 보안 점검 안내" data-en="[Notice] 2026 1H Security Audit"> [공지] 2026년 상반기 정기 보안 점검 안내 </div>
-      <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 15px;">2026-04-20</p>
-      <hr style="margin-bottom: 20px; opacity: 0.1;">
-      <p style="font-size: 13.5px; color: var(--text-sub); line-height: 1.6;" data-ko="시스템 고도화 작업으로 인해 주말 간 접속이 지연될 수 있습니다." data-en="Access may be delayed during the weekend due to system upgrades.">시스템 고도화 작업으로 인해 주말 간 접속이 지연될 수 있습니다.</p>
+      <div style="font-size: 14.5px; font-weight: bold; margin-bottom: 5px;">[공지] AI-SRM 정기 보안 점검 안내</div>
+      <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 15px;">2026-04-23</p>
+      <p style="font-size: 13.5px; color: var(--text-sub); line-height: 1.6;" data-ko="서버 안정화를 위한 정기 점검이 진행될 예정입니다." data-en="Regular maintenance is scheduled for server stability.">서버 안정화를 위한 정기 점검이 진행될 예정입니다.</p>
     </div>
   </section>
 
@@ -158,8 +139,7 @@
     <div class="card-body">
       <ul style="list-style: none; font-size: 14px; line-height: 2.5;">
         <li>📁 <span data-ko="2026 협력사 가이드북" data-en="2026 Partner Guide">2026 협력사 가이드북</span></li>
-        <li>📁 <span data-ko="전자계약 메뉴얼(국문/영문)" data-en="E-Contract Manual (KR/EN)">전자계약 메뉴얼(국문/영문)</span></li>
-        <li>📁 <span data-ko="윤리경영 실천 가이드라인" data-en="Ethics Management Guide">윤리경영 실천 가이드라인</span></li>
+        <li>📁 <span data-ko="전자계약 매뉴얼" data-en="E-Contract Manual">전자계약 매뉴얼</span></li>
       </ul>
     </div>
   </section>
@@ -167,93 +147,81 @@
 
 <div id="regModal" class="modal">
   <div class="modal-content">
-    <span class="close-modal" id="regClose" role="button" tabindex="0">&times;</span>
-    <div class="modal-header" data-ko="신규 협력사 등록 절차" data-en="New Partner Registration Process">신규 협력사 등록 절차</div>
+    <span class="close-modal" id="regClose">&times;</span>
+    <div class="modal-header" data-ko="신규 협력사 등록 절차" data-en="Registration Process">신규 협력사 등록 절차</div>
     <div id="regStepContainer" class="modal-body"></div>
   </div>
 </div>
 
-<div id="errModal" class="modal">
-  <div class="modal-content">
-    <span class="close-modal" id="errClose" role="button" tabindex="0">&times;</span>
-    <div class="modal-header" data-ko="로그인 문제 해결" data-en="Login Help">로그인 문제 해결</div>
-    <div id="errStepContainer" class="modal-body"></div>
-  </div>
-</div>
-
-<footer class="footer">&copy; 2026 AI-SRM Portal System. All Rights Reserved.</footer>
+<footer class="footer">&copy; 2026 AI-SRM Portal. All Rights Reserved.</footer>
 
 <script>
-  /* 1. i18n 데이터 중앙 관리 (복합 텍스트용) */
   const i18nData = {
     ko: {
       search: "무엇을 도와드릴까요?",
       id: "아이디",
       pw: "비밀번호",
-      regSteps: ["사업자 정보 인증 및 기본정보 입력", "희망 소싱그룹(품목) 선택", "거래 조건 및 담당자 정보 입력", "개인정보 수집·이용 동의", "신청 완료 및 검토 대기"],
-      errHelp: ["비밀번호 5회 오류 시 계정 잠금", "계정 잠금 해제는 관리자 문의 필수", "초기 비밀번호 변경 권장"]
+      regSteps: ["기본 정보 입력", "서류 제출", "심사 진행", "최종 승인"],
+      applyMsg: "신규 등록 신청 페이지로 이동하시겠습니까?"
     },
     en: {
       search: "How can we help you?",
       id: "User ID",
       pw: "Password",
-      regSteps: ["Business Verification", "Sourcing Group Selection", "Contact Details Entry", "Privacy Policy Agreement", "Submission Complete"],
-      errHelp: ["Locked after 5 failed attempts", "Contact Admin to unlock", "Recommend initial password change"]
+      regSteps: ["Enter Info", "Submit Docs", "Reviewing", "Final Approval"],
+      applyMsg: "Would you like to proceed to the registration page?"
     }
   };
 
-  /* 2. 다국어 전환 핵심 함수 */
   function updateLanguage() {
     const lang = document.getElementById('langSelect').value;
-    
-    // A. [일반 텍스트 복구] data-ko/en 속성을 가진 모든 요소 처리
     document.querySelectorAll('[data-ko]').forEach(el => {
       el.textContent = el.getAttribute(`data-${lang}`);
     });
-
-    // B. [Placeholder 처리] 
     const placeholders = i18nData[lang];
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.getAttribute('data-i18n-placeholder');
       el.placeholder = placeholders[key];
     });
-
-    // C. [모달 동적 리스트 처리]
     renderModalSteps(lang);
   }
 
   function renderModalSteps(lang) {
-    document.getElementById('regStepContainer').innerHTML = i18nData[lang].regSteps
-      .map((step, i) => `<div class="guide-step"><strong>STEP ${i+1}</strong>: ${step}</div>`).join('');
-    document.getElementById('errStepContainer').innerHTML = i18nData[lang].errHelp
-      .map(help => `<p>• ${help}</p>`).join('');
+    const container = document.getElementById('regStepContainer');
+    if(container) {
+      container.innerHTML = i18nData[lang].regSteps
+        .map((step, i) => `<div class="guide-step"><strong>STEP ${i+1}</strong>: ${step}</div>`).join('');
+    }
   }
 
-  /* 3. 시계 최적화 (Rev #8 로직 유지) */
-  let clockInterval;
+  /* 2. 시간 영문으로 fix (en-US 포맷) */
   function updateClock() {
     const now = new Date();
-    document.getElementById('current-info').textContent = `서울, KR | ${now.toLocaleString('ko-KR')}`;
+    const options = { 
+        year: 'numeric', month: 'short', day: 'numeric', 
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false 
+    };
+    document.getElementById('current-info').textContent = `Seoul, KR | ${now.toLocaleString('en-US', options)}`;
   }
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) clearInterval(clockInterval);
-    else { updateClock(); clockInterval = setInterval(updateClock, 1000); }
-  });
 
-  /* 4. 이벤트 위임 (Rev #8 로직 유지) */
+  /* 1. 로그인 시 main으로 연결 (어디서든 작동하는 상대 경로) */
   document.addEventListener('click', (e) => {
-    const target = e.target.closest('a, button, .close-modal, .modal');
+    const target = e.target.closest('a, button, .close-modal');
     if (!target) return;
 
-    if (target.id === 'regLink') openModal('regModal');
-    else if (target.id === 'errLink') openModal('errModal');
-    else if (target.id === 'searchBtn' || target.id === 'siteVisitLink') alert("준비 중인 기능입니다.");
-    else if (target.id === 'loginBtn') location.href = 'index.html';
+    if (target.id === 'loginBtn') {
+      // 로컬이든 넷틀리파이든 현재 폴더의 main.html로 이동
+      location.href = 'main.html';
+    } 
+    else if (target.id === 'applyLink') {
+      const lang = document.getElementById('langSelect').value;
+      if(confirm(i18nData[lang].applyMsg)) alert("신규 신청 페이지 연결 중...");
+    }
+    else if (target.id === 'regLink') openModal('regModal');
     else if (target.classList.contains('close-modal')) closeModal(target.closest('.modal').id);
-    else if (target.classList.contains('modal')) closeModal(target.id);
   });
 
-  /* 5. 기타 유틸리티 */
   function openModal(id) {
     const m = document.getElementById(id);
     m.style.display = "block";
@@ -265,29 +233,14 @@
     setTimeout(() => m.style.display = "none", 300);
   }
 
-  // 모드 전환
-  document.getElementById('contrastBtn').addEventListener('click', () => {
-    document.body.classList.toggle('high-contrast');
-    document.body.classList.remove('color-blind');
-  });
-  document.getElementById('colorblindBtn').addEventListener('click', () => {
-    document.body.classList.toggle('color-blind');
-    document.body.classList.remove('high-contrast');
-  });
+  document.getElementById('contrastBtn').addEventListener('click', () => document.body.classList.toggle('high-contrast'));
+  document.getElementById('colorblindBtn').addEventListener('click', () => document.body.classList.toggle('color-blind'));
+  document.getElementById('langSelect').addEventListener('change', updateLanguage);
 
   // 초기화
-  document.getElementById('langSelect').addEventListener('change', updateLanguage);
   updateLanguage();
   updateClock();
-  clockInterval = setInterval(updateClock, 1000);
-
-  // 키보드 엔터 지원
-  document.addEventListener('keydown', (e) => {
-    if ((e.key === 'Enter' || e.key === ' ') && e.target.role === 'button') {
-      e.preventDefault();
-      e.target.click();
-    }
-  });
+  setInterval(updateClock, 1000);
 </script>
 </body>
 </html>
