@@ -115,6 +115,8 @@
     <div class="card-body">
       <input type="text" id="loginId" class="login-input" placeholder="아이디" data-i18n-placeholder="id">
       <input type="password" id="loginPw" class="login-input" placeholder="비밀번호" data-i18n-placeholder="pw">
+      <input type="text" id="input-name" class="login-input" placeholder="이름">
+      <input type="text" id="input-dept" class="login-input" placeholder="부서">
       <button class="login-btn" id="loginBtn" data-ko="로그인" data-en="Sign In">로그인</button>
       
       <div class="login-links">
@@ -205,14 +207,23 @@
     document.getElementById('current-info').textContent = `Seoul, KR | ${now.toLocaleString('en-US', options)}`;
   }
 
+  function handleLogin() {
+    const userName = document.getElementById('input-name').value;
+    const userDept = document.getElementById('input-dept').value;
+
+    localStorage.setItem('userName', userName);
+    localStorage.setItem('userDept', userDept);
+
+    location.href = 'main.html';
+  }
+
   /* 1. 로그인 시 main으로 연결 (어디서든 작동하는 상대 경로) */
   document.addEventListener('click', (e) => {
     const target = e.target.closest('a, button, .close-modal');
     if (!target) return;
 
     if (target.id === 'loginBtn') {
-      // 로컬이든 넷틀리파이든 현재 폴더의 main.html로 이동
-      location.href = 'main.html';
+      handleLogin();
     } 
     else if (target.id === 'applyLink') {
       const lang = document.getElementById('langSelect').value;
