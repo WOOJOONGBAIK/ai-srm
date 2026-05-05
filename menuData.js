@@ -36,6 +36,14 @@ export const menuData = [
           { id: 'mst-common-code', title: '공통 코드 관리' },
           { id: 'mst-wh-code', title: '창고/위치 코드' }
         ]
+      },
+      {
+        id: 'mst-vendor',
+        title: '벤더 마스터',
+        items: [
+          { id: 'mst-vnd-list', title: '벤더 마스터 조회' },
+          { id: 'mst-vnd-new',  title: '벤더 마스터 등록' }
+        ]
       }
     ]
   },

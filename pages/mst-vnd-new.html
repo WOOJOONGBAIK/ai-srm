@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+/* ── 벤더 등록 폼 전용 스타일 ── */
+.vnd-form-wrap {
+  max-width: 900px;
+}
+
+/* SAP 스타일 탭 */
+.vnd-form-tabs {
+  display: flex; border-bottom: 2px solid var(--border-color);
+  margin-bottom: 0; gap: 0;
+}
+.vnd-form-tab {
+  padding: 12px 22px; font-size: 13px; font-weight: 700;
+  color: var(--text-sub); cursor: pointer;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+  transition: 0.15s; display: flex; align-items: center; gap: 7px;
+}
+.vnd-form-tab:hover { color: var(--text-main); background: var(--bg-gray); }
+.vnd-form-tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); background: transparent; }
+.vnd-form-tab .tab-badge {
+  font-size: 10px; background: var(--bg-gray); color: var(--text-sub);
+  padding: 1px 6px; border-radius: 8px; font-weight: 600;
+}
+.vnd-form-tab.active .tab-badge { background: rgba(0,94,184,0.1); color: var(--primary-color); }
+
+.vnd-form-panel { display: none; padding: 24px 0; }
+.vnd-form-panel.active { display: block; }
+
+/* SAP 섹션 */
+.sap-section {
+  background: var(--panel-bg); border: 1px solid var(--border-color);
+  border-radius: 10px; padding: 20px 24px; margin-bottom: 16px;
+}
+.sap-section-hdr {
+  font-size: 12px; font-weight: 800; color: var(--primary-color);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 16px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex; align-items: center; gap: 8px;
+}
+.sap-section-hdr .sap-tcode {
+  font-family: monospace; font-size: 10px; background: rgba(0,94,184,0.08);
+  color: var(--primary-color); padding: 2px 6px; border-radius: 4px;
+}
+
+/* 필드 */
+.sap-form-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 24px;
+}
+.sap-form-grid.col3 { grid-template-columns: repeat(3, 1fr); }
+.sap-form-grid.col1 { grid-template-columns: 1fr; }
+.sap-field { display: flex; flex-direction: column; gap: 5px; }
+.sap-field.span2 { grid-column: span 2; }
+.sap-field.span3 { grid-column: span 3; }
+.sap-label {
+  font-size: 11px; font-weight: 700; color: var(--text-sub);
+  display: flex; align-items: center; gap: 4px;
+}
+.sap-label .sap-fname { font-family: monospace; font-size: 10px; opacity: 0.55; }
+.sap-label .req { color: #e11d48; font-size: 12px; }
+.sap-input, .sap-select {
+  padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 7px;
+  font-size: 13px; background: var(--panel-bg); color: var(--text-main);
+  outline: none; transition: border 0.15s; font-family: inherit; width: 100%;
+}
+.sap-input:focus, .sap-select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(0,94,184,0.08); }
+.sap-input.readonly { background: var(--bg-gray); color: var(--text-sub); cursor: default; }
+.sap-hint { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+.sap-checkbox-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.sap-checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary-color); flex-shrink: 0; }
+.sap-checkbox-row label { font-size: 13px; color: var(--text-main); cursor: pointer; }
+
+/* 하단 액션 바 */
+.vnd-form-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0; border-top: 1px solid var(--border-color); margin-top: 8px;
+}
+.vnd-form-footer .foot-left { font-size: 12px; color: var(--text-sub); }
+.vnd-form-footer .foot-right { display: flex; gap: 10px; }
+
+/* 진행 스텝 표시 (탭별) */
+.step-indicator {
+  display: flex; align-items: center; gap: 0; margin-bottom: 20px;
+  background: var(--bg-gray); border-radius: 8px; padding: 10px 20px;
+  border: 1px solid var(--border-color); overflow: hidden;
+}
+.step-item {
+  display: flex; align-items: center; gap: 6px; flex: 1;
+  font-size: 12px; font-weight: 600; color: var(--text-sub);
+  padding: 4px 8px; border-radius: 6px;
+}
+.step-item.active { color: var(--primary-color); background: rgba(0,94,184,0.08); }
+.step-item.done   { color: #16a34a; }
+.step-num {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid currentColor;
+  display: flex; align-items: center; justify-content: center; font-size: 10px;
+  flex-shrink: 0; font-weight: 800;
+}
+.step-item.done .step-num { background: #16a34a; color: #fff; border-color: #16a34a; }
+.step-item.active .step-num { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+.step-sep { color: var(--border-color); padding: 0 4px; font-size: 16px; }
+</style>
+</head>
+<body>
+<div id="page-mst-vnd-new"></div>
+</body>
+</html>
