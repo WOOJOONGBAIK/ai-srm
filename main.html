@@ -351,28 +351,35 @@
       }
 -->
 <script type="module">
+import { menuData } from './menuData.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
   /* ================================================================
-   * MENU_CONFIG — 단일 수정 지점 (이슈1 기적용)
+   * MENU_CONFIG — menuData.js 단일 소스 (인라인 제거)
    * ================================================================ */
-  const MENU_CONFIG = [
-    { id: 'dashboard',   title: '대시보드',     icon: '📊', subMenus: [{ id: 'db-1',  title: '종합현황',   items: [{ id: 'db-real',    title: '실시간 지표'  }, { id: 'db-kpi',     title: '핵심 KPI'     }] }] },
-    { id: 'master',      title: '기준정보',     icon: '⚙️', subMenus: [{ id: 'mst-1', title: '마스터관리', items: [{ id: 'mst-item',   title: '품목 마스터'  }, { id: 'mst-bom',    title: 'BOM 관리'      }] }] },
-    { id: 'vendor',      title: '협력사관리',   icon: '🤝', subMenus: [{ id: 'vn-1',  title: '협력사운영', items: [{ id: 'vn-reg',     title: '업체등록'     }, { id: 'vn-eval',    title: '정기평가'     }] }] },
-    { id: 'pr',          title: '구매요청',     icon: '📝', subMenus: [{ id: 'pr-1',  title: 'PR관리',     items: [{ id: 'pr-new',     title: 'PR 등록'      }, { id: 'pr-list',    title: 'PR 진행현황'  }] }] },
-    { id: 'contract',    title: '계약관리',     icon: '📜', subMenus: [{ id: 'ct-1',  title: '전자계약',   items: [{ id: 'ct-sign',    title: '계약서 서명'  }, { id: 'ct-history', title: '계약이력'     }] }] },
-    { id: 'po',          title: '발주관리',     icon: '🛒', subMenus: [{ id: 'po-1',  title: 'PO관리',     items: [{ id: 'po-issue',   title: '발주 발행'    }, { id: 'po-status',  title: '발주 현황'    }] }] },
-    { id: 'delivery',    title: '납기관리',     icon: '🚚', subMenus: [{ id: 'dl-1',  title: '출하관리',   items: [{ id: 'dl-asn',     title: 'ASN 전송'     }, { id: 'dl-delay',   title: '지연 분석'    }] }] },
-    { id: 'outsourcing', title: '사급관리',     icon: '📦', subMenus: [{ id: 'os-1',  title: '사급자재',   items: [{ id: 'os-move',    title: '자재 출고'    }, { id: 'os-stock',   title: '업체 재고'    }] }] },
-    { id: 'production',  title: '생산계획',     icon: '🏭', subMenus: [{ id: 'pd-1',  title: '생산운영',   items: [{ id: 'pd-mps',     title: 'MPS 계획'     }, { id: 'pd-work',    title: '작업 지시'    }] }] },
-    { id: 'quality',     title: '품질관리',     icon: '✅', subMenus: [{ id: 'qa-1',  title: '검사관리',   items: [{ id: 'qa-in',      title: '수입 검사'    }, { id: 'qa-claim',   title: '품질 클레임'  }] }] },
-    { id: 'customs',     title: '수출입통관',   icon: '🌐', subMenus: [{ id: 'cu-1',  title: '통관지원',   items: [{ id: 'cu-imp',     title: '수입신고'     }, { id: 'cu-tax',     title: '관세 환급'    }] }] },
-    { id: 'shipping',    title: '선적관리',     icon: '🚢', subMenus: [{ id: 'sh-1',  title: '포워딩',     items: [{ id: 'sh-book',    title: '부킹 관리'    }, { id: 'sh-doc',     title: '선적 서류'    }] }] },
-    { id: 'project',     title: '프로젝트관리', icon: '📅', subMenus: [{ id: 'pj-1',  title: 'PMS',        items: [{ id: 'pj-wbs',     title: 'WBS 관리'     }, { id: 'pj-cost',    title: '원가 분석'    }] }] },
-    { id: 'tech',        title: '기술자료',     icon: '📂', subMenus: [{ id: 'tc-1',  title: '기술보안',   items: [{ id: 'tc-dwg',     title: '도면 공유'    }, { id: 'tc-eco',     title: '설계 변경'    }] }] }
-  ];
+  const MENU_CONFIG = menuData;
+
+  /* ================================================================
+   * PAGE_FILE_MAP — menu item ID → pages/ 파일명 매핑
+   * ID와 파일명이 다른 항목만 등록 (없으면 ID = 파일명)
+   * ================================================================ */
+  const PAGE_FILE_MAP = {
+    'pr-create':       'pr-new',
+    'pr-status':       'pr-list',
+    'pr-approve':      'pr-approve-list',
+    'po-issue':        'po-new',
+    'po-status':       'po-list',
+    'po-change':       'po-list',
+    'ct-unit-price':   'ct-list',
+    'ct-digital-sign': 'ct-sign-queue',
+    'ct-history':      'ct-list',
+    'dlv-asn':         'dlv-asn-list',
+    'dlv-track':       'dlv-asn-list',
+    'dlv-delay':       'dlv-delay-analysis',
+    'qa-incoming':     'qa-iqc-list',
+    'qa-claim':        'qa-claim-list',
+  };
 
   /* ================================================================
    * DOM 참조
@@ -622,13 +629,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     _activeController = controller;
 
+    /* ── PAGE_FILE_MAP: item ID → 실제 파일명 변환 ── */
+    const fileId = PAGE_FILE_MAP[itemId] ?? itemId;
+
     /* ── [P2-A] 이전 활성 탭의 동적 style은 closeTab()에서 처리
      *           신규 탭 로딩 시에는 style 누적 방지만 수행 ── */
     document.head.querySelectorAll(`[data-page-id="${itemId}"]`).forEach(el => el.remove());
 
     try {
       /* ── Step 1: HTML 마크업 로드 ── */
-      const res = await fetch(`pages/${itemId}.html`, { signal: controller.signal });
+      const res = await fetch(`pages/${fileId}.html`, { signal: controller.signal });
       let html = '';
 
       if (res.ok) {
@@ -652,7 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="padding:32px;border:2px dashed var(--border-color);border-radius:8px;
                display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-sub);">
             <span style="font-size:40px;">🚧</span>
-            <span style="font-size:14px;font-weight:600;">pages/${itemId}.html</span>
+            <span style="font-size:14px;font-weight:600;">pages/${fileId}.html</span>
             <span style="font-size:13px;">해당 파일을 생성하면 자동으로 로딩됩니다.</span>
           </div>`;
       }
@@ -671,7 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
       /* ── Step 2: ES Module 동적 import ── */
       // [P2-B] MODULE_CACHE_BUSTER 사용
       try {
-        const mod = await import(`./pages/scripts/${itemId}.js?t=${MODULE_CACHE_BUSTER}`);
+        const mod = await import(`./pages/scripts/${fileId}.js?t=${MODULE_CACHE_BUSTER}`);
         if (typeof mod.default === 'function') {
           const cleanup = (typeof mod.cleanup === 'function') ? mod.cleanup : null;
           const t = _tabs.find(t => t.id === itemId);
@@ -681,7 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (modErr) {
         const msg = modErr?.message ?? '';
         if (!msg.includes('Failed to fetch') && !msg.includes('404')) {
-          console.warn(`[Router] pages/scripts/${itemId}.js 오류:`, modErr);
+          console.warn(`[Router] pages/scripts/${fileId}.js 오류:`, modErr);
         }
       }
 
@@ -863,6 +873,14 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ================================================================
    * [이슈R1] 초기 진입 — URL 파라미터 파싱 후 renderMenus 호출
    * ================================================================ */
+  /* 로그인 시 저장한 사용자 정보 표시 */
+  const userName = localStorage.getItem('userName');
+  const userDept = localStorage.getItem('userDept');
+  if (userName) {
+    document.getElementById('display-name').textContent =
+      (userDept ? `[${userDept}] ` : '') + userName + ' 님';
+  }
+
   const initPageId = new URLSearchParams(window.location.search).get('page') ?? null;
   renderMenus(initPageId);
 

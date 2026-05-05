@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+/* ── 벤더 마스터 목록 전용 스타일 ── */
+.vnd-modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 3000;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(2px);
+  align-items: center; justify-content: center;
+}
+.vnd-modal-overlay.open { display: flex; }
+.vnd-modal {
+  background: var(--panel-bg); border-radius: 14px;
+  width: min(900px, 96vw); max-height: 90vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  border: 1px solid var(--border-color);
+}
+.vnd-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+}
+.vnd-modal-head h2 { font-size: 16px; font-weight: 800; color: var(--text-main); }
+.vnd-modal-head .sap-tx {
+  font-size: 11px; font-weight: 700; color: var(--text-sub);
+  background: var(--bg-gray); padding: 3px 8px; border-radius: 4px;
+  letter-spacing: 0.5px; font-family: monospace;
+}
+.vnd-modal-close {
+  width: 30px; height: 30px; border-radius: 6px; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-sub);
+  transition: background 0.15s;
+}
+.vnd-modal-close:hover { background: var(--bg-gray); color: var(--text-main); }
+
+/* 탭 */
+.vnd-tabs { display: flex; border-bottom: 1px solid var(--border-color); padding: 0 24px; flex-shrink: 0; }
+.vnd-tab {
+  padding: 11px 18px; font-size: 13px; font-weight: 600;
+  color: var(--text-sub); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: 0.15s; margin-bottom: -1px;
+}
+.vnd-tab:hover { color: var(--text-main); }
+.vnd-tab.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+
+.vnd-tab-body { overflow-y: auto; flex: 1; padding: 20px 24px; }
+.vnd-tab-panel { display: none; }
+.vnd-tab-panel.active { display: block; }
+
+/* SAP 스타일 필드 그리드 */
+.sap-form-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px;
+}
+.sap-form-grid.col3 { grid-template-columns: repeat(3, 1fr); }
+.sap-field { display: flex; flex-direction: column; gap: 4px; }
+.sap-field.span2 { grid-column: span 2; }
+.sap-field.span3 { grid-column: span 3; }
+.sap-label { font-size: 11px; font-weight: 700; color: var(--text-sub); letter-spacing: 0.3px; }
+.sap-label .sap-fname { font-family: monospace; font-size: 10px; opacity: 0.6; margin-left: 4px; }
+.sap-label .req { color: #e11d48; }
+.sap-input, .sap-select {
+  padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px;
+  font-size: 13px; background: var(--panel-bg); color: var(--text-main);
+  outline: none; transition: border 0.15s; font-family: inherit;
+}
+.sap-input:focus, .sap-select:focus { border-color: var(--primary-color); }
+.sap-input[readonly], .sap-input.readonly { background: var(--bg-gray); color: var(--text-sub); }
+.sap-section-title {
+  font-size: 12px; font-weight: 800; color: var(--primary-color);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin: 16px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border-color);
+}
+.sap-section-title:first-child { margin-top: 0; }
+.sap-checkbox-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+.sap-checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary-color); }
+.sap-checkbox-row label { font-size: 13px; color: var(--text-main); cursor: pointer; }
+
+/* 모달 푸터 */
+.vnd-modal-foot {
+  padding: 14px 24px; border-top: 1px solid var(--border-color);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.vnd-modal-foot .foot-info { font-size: 11px; color: var(--text-sub); }
+.vnd-modal-foot .foot-actions { display: flex; gap: 8px; }
+
+/* 상태 배지 */
+.badge-active  { background: #f0fdf4; color: #16a34a; }
+.badge-blocked { background: #fff7ed; color: #c2410c; }
+.badge-deleted { background: #fafafa; color: #737373; }
+[data-theme='dark'] .badge-active  { background: #14532d; color: #4ade80; }
+[data-theme='dark'] .badge-blocked { background: #431407; color: #fb923c; }
+[data-theme='dark'] .badge-deleted { background: #1e293b; color: #94a3b8; }
+
+/* confirm 팝업 */
+.vnd-confirm-overlay {
+  display: none; position: fixed; inset: 0; z-index: 4000;
+  background: rgba(0,0,0,0.5); align-items: center; justify-content: center;
+}
+.vnd-confirm-overlay.open { display: flex; }
+.vnd-confirm-box {
+  background: var(--panel-bg); border-radius: 12px; padding: 28px 32px;
+  width: 360px; text-align: center; border: 1px solid var(--border-color);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.2);
+}
+.vnd-confirm-box .conf-icon { font-size: 36px; margin-bottom: 12px; }
+.vnd-confirm-box .conf-title { font-size: 16px; font-weight: 800; margin-bottom: 8px; color: var(--text-main); }
+.vnd-confirm-box .conf-msg { font-size: 13px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.6; }
+.vnd-confirm-box .conf-btns { display: flex; gap: 8px; justify-content: center; }
+</style>
+</head>
+<body>
+<div id="page-mst-vnd-list"></div>
+
+<!-- 조회/변경 모달 -->
+<div class="vnd-modal-overlay" id="vnd-modal-overlay">
+  <div class="vnd-modal" id="vnd-modal">
+    <div class="vnd-modal-head">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <h2 id="vnd-modal-title">벤더 마스터 상세</h2>
+        <span class="sap-tx" id="vnd-modal-tx">XK03</span>
+      </div>
+      <button class="vnd-modal-close" id="vnd-modal-close">✕</button>
+    </div>
+    <div class="vnd-tabs">
+      <div class="vnd-tab active" data-tab="general">일반 데이터</div>
+      <div class="vnd-tab" data-tab="company">회사코드 데이터</div>
+      <div class="vnd-tab" data-tab="purch">구매조직 데이터</div>
+    </div>
+    <div class="vnd-tab-body">
+      <!-- Tab 1: 일반 데이터 -->
+      <div class="vnd-tab-panel active" id="tab-general">
+        <div class="sap-section-title">식별 정보</div>
+        <div class="sap-form-grid">
+          <div class="sap-field">
+            <label class="sap-label">벤더 번호 <span class="sap-fname">LIFNR</span></label>
+            <input class="sap-input" id="f-lifnr" readonly>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">계정 그룹 <span class="sap-fname">KTOKK</span><span class="req">*</span></label>
+            <select class="sap-select" id="f-ktokk">
+              <option value="KRED">KRED – 국내 일반 협력사</option>
+              <option value="KFOR">KFOR – 해외 협력사</option>
+              <option value="KSER">KSER – 서비스 공급사</option>
+              <option value="KOTH">KOTH – 기타</option>
+            </select>
+          </div>
+        </div>
+        <div class="sap-section-title">기본 정보</div>
+        <div class="sap-form-grid">
+          <div class="sap-field span2">
+            <label class="sap-label">회사명 <span class="sap-fname">NAME1</span><span class="req">*</span></label>
+            <input class="sap-input" id="f-name1" maxlength="35">
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">검색어 <span class="sap-fname">SORTL</span></label>
+            <input class="sap-input" id="f-sortl" maxlength="10">
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">사업자등록번호 <span class="sap-fname">STCD1</span></label>
+            <input class="sap-input" id="f-stcd1" placeholder="000-00-00000">
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">법인번호 <span class="sap-fname">STCD2</span></label>
+            <input class="sap-input" id="f-stcd2" placeholder="000000-0000000">
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">언어 <span class="sap-fname">SPRAS</span></label>
+            <select class="sap-select" id="f-spras">
+              <option value="KO">KO – 한국어</option>
+              <option value="EN">EN – English</option>
+              <option value="JA">JA – 日本語</option>
+              <option value="ZH">ZH – 中文</option>
+              <option value="DE">DE – Deutsch</option>
+            </select>
+          </div>
+        </div>
+        <div class="sap-section-title">주소 정보</div>
+        <div class="sap-form-grid col3">
+          <div class="sap-field">
+            <label class="sap-label">국가 <span class="sap-fname">LAND1</span><span class="req">*</span></label>
+            <select class="sap-select" id="f-land1">
+              <option value="KR">KR – 대한민국</option>
+              <option value="US">US – 미국</option>
+              <option value="JP">JP – 일본</option>
+              <option value="CN">CN – 중국</option>
+              <option value="DE">DE – 독일</option>
+              <option value="VN">VN – 베트남</option>
+              <option value="TW">TW – 대만</option>
+              <option value="SG">SG – 싱가포르</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">도시 <span class="sap-fname">ORT01</span></label>
+            <input class="sap-input" id="f-ort01">
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">우편번호 <span class="sap-fname">PSTLZ</span></label>
+            <input class="sap-input" id="f-pstlz">
+          </div>
+          <div class="sap-field span3">
+            <label class="sap-label">주소 <span class="sap-fname">STRAS</span></label>
+            <input class="sap-input" id="f-stras">
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">전화번호 <span class="sap-fname">TELF1</span></label>
+            <input class="sap-input" id="f-telf1">
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">팩스 <span class="sap-fname">TELFX</span></label>
+            <input class="sap-input" id="f-telfx">
+          </div>
+        </div>
+        <div class="sap-section-title">관리 플래그</div>
+        <div class="sap-checkbox-row">
+          <input type="checkbox" id="f-lifsd">
+          <label for="f-lifsd">중앙 삭제 플래그 (LIFSD) — 삭제 대상으로 표시</label>
+        </div>
+        <div class="sap-checkbox-row">
+          <input type="checkbox" id="f-sperr">
+          <label for="f-sperr">중앙 전기 블록 (SPERR) — 모든 거래 차단</label>
+        </div>
+      </div>
+
+      <!-- Tab 2: 회사코드 데이터 -->
+      <div class="vnd-tab-panel" id="tab-company">
+        <div class="sap-section-title">회사코드 기본</div>
+        <div class="sap-form-grid">
+          <div class="sap-field">
+            <label class="sap-label">회사코드 <span class="sap-fname">BUKRS</span><span class="req">*</span></label>
+            <select class="sap-select" id="f-bukrs">
+              <option value="1000">1000 – HD현대 주식회사</option>
+              <option value="1100">1100 – HD현대일렉트릭</option>
+              <option value="1200">1200 – HD현대중공업</option>
+              <option value="1300">1300 – HD현대건설기계</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">조정계정 <span class="sap-fname">AKONT</span><span class="req">*</span></label>
+            <select class="sap-select" id="f-akont">
+              <option value="211000">211000 – 매입채무</option>
+              <option value="211100">211100 – 미지급금</option>
+              <option value="211200">211200 – 선급금</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">지급조건 <span class="sap-fname">ZTERM</span></label>
+            <select class="sap-select" id="f-zterm-b">
+              <option value="Z000">Z000 – 즉시지급</option>
+              <option value="Z030">Z030 – 30일 후 지급</option>
+              <option value="Z060">Z060 – 60일 후 지급</option>
+              <option value="Z090">Z090 – 90일 후 지급</option>
+              <option value="ZN45">ZN45 – 익월 45일</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">지급방법 <span class="sap-fname">ZWELS</span></label>
+            <select class="sap-select" id="f-zwels">
+              <option value="T">T – 계좌이체</option>
+              <option value="C">C – 수표</option>
+              <option value="B">B – 외환송금</option>
+              <option value="E">E – 전자결제</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">대체 지급인 <span class="sap-fname">LNRZA</span></label>
+            <input class="sap-input" id="f-lnrza" placeholder="벤더 번호">
+          </div>
+        </div>
+        <div class="sap-section-title">검증 옵션</div>
+        <div class="sap-checkbox-row">
+          <input type="checkbox" id="f-reprf">
+          <label for="f-reprf">중복 인보이스 체크 (REPRF) — 동일 인보이스 번호 이중 전표 방지</label>
+        </div>
+      </div>
+
+      <!-- Tab 3: 구매조직 데이터 -->
+      <div class="vnd-tab-panel" id="tab-purch">
+        <div class="sap-section-title">구매조직 기본</div>
+        <div class="sap-form-grid">
+          <div class="sap-field">
+            <label class="sap-label">구매조직 <span class="sap-fname">EKORG</span><span class="req">*</span></label>
+            <select class="sap-select" id="f-ekorg">
+              <option value="1000">1000 – 중앙구매조직</option>
+              <option value="1100">1100 – 중공업 구매조직</option>
+              <option value="1200">1200 – 건설기계 구매조직</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">발주통화 <span class="sap-fname">WAERS</span><span class="req">*</span></label>
+            <select class="sap-select" id="f-waers">
+              <option value="KRW">KRW – 대한민국 원</option>
+              <option value="USD">USD – 미국 달러</option>
+              <option value="EUR">EUR – 유로</option>
+              <option value="JPY">JPY – 일본 엔</option>
+              <option value="CNY">CNY – 중국 위안</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">지급조건 <span class="sap-fname">ZTERM</span></label>
+            <select class="sap-select" id="f-zterm-m">
+              <option value="Z000">Z000 – 즉시지급</option>
+              <option value="Z030">Z030 – 30일 후 지급</option>
+              <option value="Z060">Z060 – 60일 후 지급</option>
+              <option value="Z090">Z090 – 90일 후 지급</option>
+              <option value="ZN45">ZN45 – 익월 45일</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">최소발주금액 <span class="sap-fname">MINBW</span></label>
+            <input class="sap-input" id="f-minbw" type="number" min="0" step="10000">
+          </div>
+        </div>
+        <div class="sap-section-title">인코텀즈 (Incoterms 2020)</div>
+        <div class="sap-form-grid">
+          <div class="sap-field">
+            <label class="sap-label">인코텀즈 1 <span class="sap-fname">INCO1</span></label>
+            <select class="sap-select" id="f-inco1">
+              <option value="">— 미설정 —</option>
+              <option value="EXW">EXW – 공장 인도</option>
+              <option value="FCA">FCA – 운송인 인도</option>
+              <option value="FAS">FAS – 선측 인도</option>
+              <option value="FOB">FOB – 본선 인도</option>
+              <option value="CFR">CFR – 운임 포함</option>
+              <option value="CIF">CIF – 운임·보험 포함</option>
+              <option value="CPT">CPT – 운임 지급 인도</option>
+              <option value="CIP">CIP – 운임·보험 지급 인도</option>
+              <option value="DPU">DPU – 양하 인도</option>
+              <option value="DAP">DAP – 목적지 인도</option>
+              <option value="DDP">DDP – 관세 지급 인도</option>
+            </select>
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">인코텀즈 장소 <span class="sap-fname">INCO2</span></label>
+            <input class="sap-input" id="f-inco2" placeholder="예: 부산항, 인도공장">
+          </div>
+          <div class="sap-field">
+            <label class="sap-label">확인 관리 키 <span class="sap-fname">BSTAE</span></label>
+            <select class="sap-select" id="f-bstae">
+              <option value="">— 미설정 —</option>
+              <option value="BEST">BEST – 주문 확인</option>
+              <option value="0001">0001 – 발송 통보</option>
+              <option value="0002">0002 – 입고 확인</option>
+            </select>
+          </div>
+        </div>
+        <div class="sap-section-title">입고/검증 옵션</div>
+        <div class="sap-checkbox-row">
+          <input type="checkbox" id="f-webre">
+          <label for="f-webre">입고기반 인보이스 검증 (WEBRE) — GR-Based IV</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="vnd-modal-foot">
+      <span class="foot-info" id="vnd-modal-info"></span>
+      <div class="foot-actions">
+        <button class="pg-btn" id="vnd-modal-cancel">닫기</button>
+        <button class="pg-btn primary" id="vnd-modal-save" style="display:none">저장 (F9)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 삭제 확인 팝업 -->
+<div class="vnd-confirm-overlay" id="vnd-confirm-overlay">
+  <div class="vnd-confirm-box">
+    <div class="conf-icon">🗑️</div>
+    <div class="conf-title">삭제 플래그 설정</div>
+    <div class="conf-msg" id="conf-msg"></div>
+    <div class="conf-btns">
+      <button class="pg-btn" id="conf-cancel">취소</button>
+      <button class="pg-btn danger" id="conf-ok">삭제 플래그 설정</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
