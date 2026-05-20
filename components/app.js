@@ -1,8 +1,19 @@
 import { CRUDManager, FormValidator } from './crud.js';
 import * as UI from './components.js';
+import { supabase } from '../lib/supabase.js';
 
 // Supabase 인스턴스 (실제 설정 필요)
-const supabase = /* supabase 초기화 객체 */;
+/* [2026-05-21] 수정 시작 - 작성자: AI Agent
+   사유: placeholder 표현식이 그대로 남아 JS SyntaxError가 발생하여,
+         공용 Supabase 클라이언트 단일 출처(lib/supabase.js)를 사용하도록 수정
+--------------------------------------------------------------------------
+// [AS-IS] 기존 코드 (주석 처리)
+// const supabase = / * supabase 초기화 객체 * /;
+
+// [TO-BE] 신규 코드
+// import { supabase } from '../lib/supabase.js';
+/* --------------------------------------------------------------------------
+   [2026-05-21] 수정 종료 */
 
 const noticeManager = new CRUDManager('notices', supabase);
 const faqManager = new CRUDManager('faqs', supabase);

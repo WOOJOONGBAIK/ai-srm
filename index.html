@@ -3,255 +3,532 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI SRM Portal</title>
+<title>AISRM</title>
+<!--
+============================================================
+History Log
+------------------------------------------------------------
+| 날짜       | 작성자   | 변경 사유                                |
+| 2026-05-21 | AI Agent | [LANDING] 전문 SRM 관제형 랜딩 재구성     |
+| 2026-05-21 | AI Agent | [LANDING-R2] 내부/외부 랜딩 화면 완전 분리 |
+| 2026-05-21 | AI Agent | [LANDING-R3] 최고 수준 SRM 게이트웨이 재설계 |
+| 2026-05-21 | AI Agent | [LANDING-R4] 간결한 SRM 포털 랜딩으로 재정리 |
+|            |          | SSO 중심, 자동 로그아웃, 공개/권한 콘텐츠 필터 |
+| 2026-05-21 | AI Agent | [BRAND] 특정 회사명 제거 및 AISRM 명칭 통일 |
+| 2026-05-21 | AI Agent | [LANDING-R5] 상세/세션연장/등록/지원 모달 추가 |
+============================================================
+-->
 <style>
   :root {
-    /* HD현대 브랜드 컬러 반영 */
-    --primary-color: #008138; 
-    --primary-dark: #006b2e;
-    --bg-body: #f0f2f5;
-    --bg-card: #ffffff;
-    --text-main: #333333;
-    --text-sub: #666666;
-    --border-color: #e0e0e0;
-    --transition-speed: 0.3s;
+    --primary: #00843d;
+    --primary-dark: #006f33;
+    --blue: #005eb8;
+    --bg: #f3f6f9;
+    --panel: #ffffff;
+    --line: #d8e0e8;
+    --text: #1f2933;
+    --sub: #607080;
+    --muted: #f7f9fb;
+    --danger: #b42318;
+    --shadow: 0 6px 18px rgba(31, 41, 51, 0.07);
   }
 
-  /* 고대비 모드 */
-  body.high-contrast {
-    --primary-color: #ffff00;
-    --bg-body: #000000;
-    --bg-card: #1a1a1a;
-    --text-main: #ffffff;
-    --text-sub: #ffff00;
-    --border-color: #ffffff;
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+  body { min-height: 100vh; background: var(--bg); color: var(--text); }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+
+  .topbar {
+    height: 64px; padding: 0 28px; background: var(--panel);
+    border-bottom: 3px solid var(--primary);
+    display: flex; align-items: center; justify-content: space-between; gap: 18px;
+    box-shadow: 0 2px 8px rgba(31, 41, 51, 0.05);
   }
-
-  /* 색약모드 */
-  body.color-blind {
-    --primary-color: #d55e00; 
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-logo {
+    width: 36px; height: 36px; border-radius: 4px; background: var(--primary);
+    color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 12px;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
-  body { background: var(--bg-body); color: var(--text-main); transition: background var(--transition-speed); min-height: 100vh; overflow-x: hidden; }
-
-  /* Header */
-  .header { 
-    background: var(--bg-card); padding: 0 2rem; height: 70px; 
-    display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 2px solid var(--primary-color);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  .brand-title { font-size: 21px; font-weight: 900; color: var(--primary); letter-spacing: 0; }
+  .brand-sub { font-size: 12px; color: var(--sub); margin-top: 2px; font-weight: 700; }
+  .top-right { display: flex; align-items: center; gap: 14px; color: var(--sub); font-size: 12px; flex-wrap: wrap; justify-content: flex-end; }
+  .top-link { border: none; background: transparent; color: var(--blue); font-size: 12px; font-weight: 800; padding: 0; }
+  .top-link.active { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+  .top-sep { color: #a8b3be; }
+  .timer { font-weight: 900; color: var(--danger); }
+  .logout-btn {
+    height: 30px; padding: 0 10px; border: 1px solid var(--line);
+    background: var(--panel); border-radius: 4px; color: var(--sub); font-size: 12px; font-weight: 800;
   }
-  .logo { font-size: 24px; font-weight: 800; color: var(--primary-color); letter-spacing: -1px; }
-  .utility-group { display: flex; align-items: center; gap: 20px; font-size: 13px; }
-
-  .mode-switch button { 
-    padding: 6px 12px; cursor: pointer; border: 1px solid var(--border-color); 
-    background: var(--bg-card); color: var(--text-main); border-radius: 4px; font-weight: bold;
+  .logout-btn:disabled { opacity: 0.45; cursor: default; }
+  .utility-btn {
+    height: 30px; padding: 0 9px; border: none; background: transparent;
+    color: var(--blue); font-size: 12px; font-weight: 800;
   }
-  .mode-switch button:hover { background: var(--primary-color); color: #fff; }
+  .utility-btn:disabled { color: var(--sub); opacity: 0.45; cursor: default; }
 
-  /* Search Section */
-  .search-container { max-width: 1200px; margin: 30px auto 0; padding: 0 20px; }
-  .search-bar { display: flex; background: var(--bg-card); border: 2px solid var(--primary-color); border-radius: 30px; overflow: hidden; }
-  .search-bar input { flex: 1; border: none; padding: 15px 25px; outline: none; font-size: 16px; background: transparent; }
-  .search-btn { background: var(--primary-color); color: #fff; border: none; padding: 0 30px; cursor: pointer; font-weight: bold; }
+  .shell { max-width: 1180px; margin: 0 auto; padding: 24px 28px 34px; }
+  .portal-note { margin-bottom: 10px; font-size: 12px; color: var(--sub); }
+  .layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 18px; align-items: start; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .panel-head {
+    min-height: 50px; padding: 14px 16px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .panel-title { font-size: 15px; font-weight: 900; }
+  .panel-body { padding: 16px; }
+  .desc { font-size: 13px; color: var(--sub); line-height: 1.65; }
 
-  /* Layout & Cards */
-  .main-layout { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 25px; max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-  .card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 480px; transition: transform 0.3s, box-shadow 0.3s; }
-  .card:hover { transform: translateY(-8px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-  .card-header { padding: 20px; border-bottom: 1px solid var(--border-color); }
-  .card-header h3 { color: var(--primary-color); font-size: 18px; font-weight: 700; }
-  .card-body { padding: 25px; flex: 1; }
+  .login-title { font-size: 14px; font-weight: 900; margin-bottom: 10px; }
+  .login-input {
+    width: 100%; height: 40px; border: 1px solid var(--line); border-radius: 4px;
+    padding: 0 10px; margin-bottom: 10px; background: var(--panel);
+  }
+  .login-btn {
+    width: 100%; height: 42px; border: none; border-radius: 4px;
+    background: var(--primary); color: #fff; font-weight: 900;
+  }
+  .login-help { margin-top: 12px; font-size: 12px; color: var(--sub); line-height: 1.55; }
+  .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .mini-btn {
+    height: 34px; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--panel); color: var(--blue); font-size: 12px; font-weight: 800;
+  }
+  .main-link {
+    display: none; width: 100%; height: 38px; margin-top: 10px; border: 1px solid var(--primary);
+    border-radius: 4px; background: #fff; color: var(--primary); font-weight: 900;
+  }
+  .main-link.visible { display: block; }
 
-  /* Login Form */
-  .login-input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); color: var(--text-main); }
-  .login-btn { width: 100%; padding: 16px; background: var(--primary-color); color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
-  .login-links { margin-top: 20px; font-size: 13.5px; line-height: 2.2; }
-  .login-links a { color: var(--text-sub); text-decoration: none; display: block; cursor: pointer; transition: 0.2s; }
-  .login-links a:hover { color: var(--primary-color); padding-left: 5px; }
+  .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+  .notice-list, .board-list { display: grid; gap: 8px; }
+  .list-item {
+    width: 100%; text-align: left; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 5px; background: var(--panel);
+    padding: 11px 12px;
+  }
+  .list-item:hover { border-color: var(--primary); }
+  .item-title { font-size: 13px; font-weight: 900; line-height: 1.45; }
+  .item-meta { margin-top: 5px; font-size: 12px; color: var(--sub); line-height: 1.45; }
+  .empty {
+    padding: 18px; border: 1px dashed var(--line); border-radius: 5px;
+    background: var(--muted); color: var(--sub); font-size: 13px; line-height: 1.6;
+  }
+  .status { font-size: 12px; color: var(--sub); }
+  .status strong { color: var(--primary); }
 
-  /* Modal */
-  .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(2px); }
-  .modal.show { display: block; opacity: 1; }
-  .modal-content { background: var(--bg-card); margin: 8% auto; padding: 35px; border-radius: 16px; width: 550px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-  .modal-header { font-size: 22px; font-weight: bold; margin-bottom: 25px; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; }
-  .close-modal { position: absolute; right: 25px; top: 20px; font-size: 28px; cursor: pointer; color: var(--text-sub); }
-  .guide-step { background: rgba(0,129,56,0.05); padding: 15px; margin-bottom: 12px; border-left: 5px solid var(--primary-color); border-radius: 0 8px 8px 0; }
+  .footer {
+    max-width: 1180px; margin: 0 auto; padding: 18px 28px 28px;
+    font-size: 12px; color: var(--sub); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .modal {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(16, 24, 32, 0.48); padding: 28px; overflow-y: auto;
+  }
+  .modal.show { display: block; }
+  .modal-box {
+    width: min(620px, 100%); margin: 7vh auto; background: var(--panel);
+    border-radius: 6px; border: 1px solid var(--line); box-shadow: 0 22px 44px rgba(0,0,0,0.2);
+  }
+  .modal-head {
+    padding: 15px 18px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .modal-title { font-size: 16px; font-weight: 900; }
+  .modal-close { border: none; background: transparent; color: var(--sub); font-size: 22px; line-height: 1; }
+  .modal-body { padding: 18px; color: var(--sub); font-size: 13px; line-height: 1.65; }
+  .modal-meta { margin-bottom: 12px; color: var(--sub); font-size: 12px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 18px 18px; }
+  .modal-actions button {
+    min-height: 34px; padding: 0 12px; border-radius: 4px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); font-size: 12px; font-weight: 800;
+  }
+  .modal-actions .primary-action { border: none; background: var(--primary); color: #fff; }
+  .support-list { display: grid; gap: 10px; }
+  .support-item { padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--muted); }
+  .support-item strong { display: block; color: var(--text); margin-bottom: 4px; }
 
-  .footer { text-align: center; padding: 40px; font-size: 13px; color: #888; border-top: 1px solid var(--border-color); margin-top: 50px; }
-
-  @media (max-width: 1024px) { .main-layout { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) {
+    .topbar { height: auto; min-height: 64px; padding: 14px 18px; flex-direction: column; align-items: flex-start; }
+    .layout, .content-grid { grid-template-columns: 1fr; }
+    .shell { padding: 18px; }
+    .footer { padding: 18px; }
+  }
 </style>
 </head>
-<body id="mainBody">
-
-<header class="header">
-  <div class="logo">AI-SRM PORTAL</div>
-  <div class="utility-group">
-    <div id="current-info" class="location-info">Seoul, KR | Loading...</div>
-    <div class="mode-switch">
-      <select id="langSelect" style="padding: 5px; border-radius: 4px;">
-        <option value="ko">한국어 (KR)</option>
-        <option value="en">English (US)</option>
-      </select>
-      <button id="contrastBtn" data-ko="고대비" data-en="Contrast">고대비</button>
-      <button id="colorblindBtn" data-ko="색약모드" data-en="ColorBlind">색약모드</button>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">SRM</div>
+    <div>
+      <div class="brand-title" id="brandTitle">AISRM</div>
+      <div class="brand-sub" id="brandSub">Supplier Relationship Management Portal</div>
     </div>
+  </div>
+  <div class="top-right">
+    <button class="top-link active" id="internalLink" data-portal="internal">사내용</button>
+    <span class="top-sep">|</span>
+    <button class="top-link" id="externalLink" data-portal="external">사외용</button>
+    <span class="top-sep">|</span>
+    <span id="currentTime">--:--:--</span>
+    <span>자동 로그아웃 <b class="timer" id="logoutTimer">--:--</b></span>
+    <button class="utility-btn" id="extendSessionBtn" disabled>연장</button>
+    <button class="utility-btn" id="helpDeskBtn">Help Desk</button>
+    <button class="logout-btn" id="logoutBtn" disabled>로그오프</button>
   </div>
 </header>
 
-<div class="search-container">
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="무엇을 도와드릴까요?" data-i18n-placeholder="search">
-    <button class="search-btn" id="searchBtn" data-ko="검색" data-en="Search">검색</button>
-  </div>
-</div>
+<main class="shell">
+  <div class="portal-note" id="portalNote"></div>
 
-<main class="main-layout">
-  <section class="card">
-    <div class="card-header"><h3 data-ko="로그인" data-en="Login">로그인</h3></div>
-    <div class="card-body">
-      <input type="text" id="loginId" class="login-input" placeholder="아이디" data-i18n-placeholder="id">
-      <input type="password" id="loginPw" class="login-input" placeholder="비밀번호" data-i18n-placeholder="pw">
-      <input type="text" id="input-name" class="login-input" placeholder="이름">
-      <input type="text" id="input-dept" class="login-input" placeholder="부서">
-      <button class="login-btn" id="loginBtn" data-ko="로그인" data-en="Sign In">로그인</button>
-      
-      <div class="login-links">
-        <a id="applyLink" style="font-weight: bold; color: var(--primary-color);">▶ <span data-ko="신규 협력사 등록 신청" data-en="Apply for Partnership">신규 협력사 등록 신청</span></a>
-        <a id="regLink">▶ <span data-ko="신규 협력사 등록 안내" data-en="Registration Guide">신규 협력사 등록 안내</span></a>
-        <a id="errLink">▶ <span data-ko="로그인 문제 해결" data-en="Login Help">로그인 문제 해결</span></a>
+  <section class="layout">
+    <aside class="panel">
+      <div class="panel-head">
+        <div class="panel-title" id="loginPanelTitle">SSO 로그인</div>
       </div>
-    </div>
+      <div class="panel-body" id="loginArea"></div>
+    </aside>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title" id="introTitle">SRM 소개</div>
+        <div class="status" id="loginStatus">로그인 전</div>
+      </div>
+      <div class="panel-body">
+        <p class="desc" id="introDesc"></p>
+      </div>
+    </section>
   </section>
 
-  <section class="card">
-    <div class="card-header"><h3 data-ko="공지사항" data-en="Notice">공지사항</h3></div>
-    <div class="card-body">
-      <div style="font-size: 14.5px; font-weight: bold; margin-bottom: 5px;">[공지] AI-SRM 정기 보안 점검 안내</div>
-      <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 15px;">2026-04-23</p>
-      <p style="font-size: 13.5px; color: var(--text-sub); line-height: 1.6;" data-ko="서버 안정화를 위한 정기 점검이 진행될 예정입니다." data-en="Regular maintenance is scheduled for server stability.">서버 안정화를 위한 정기 점검이 진행될 예정입니다.</p>
-    </div>
-  </section>
+  <section class="content-grid">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">공지사항</div>
+      </div>
+      <div class="panel-body">
+        <div class="notice-list" id="noticeList"></div>
+      </div>
+    </section>
 
-  <section class="card">
-    <div class="card-header"><h3 data-ko="자료실" data-en="Archive">자료실</h3></div>
-    <div class="card-body">
-      <ul style="list-style: none; font-size: 14px; line-height: 2.5;">
-        <li>📁 <span data-ko="2026 협력사 가이드북" data-en="2026 Partner Guide">2026 협력사 가이드북</span></li>
-        <li>📁 <span data-ko="전자계약 매뉴얼" data-en="E-Contract Manual">전자계약 매뉴얼</span></li>
-      </ul>
-    </div>
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title">게시판</div>
+      </div>
+      <div class="panel-body">
+        <div class="board-list" id="boardList"></div>
+      </div>
+    </section>
   </section>
 </main>
 
-<div id="regModal" class="modal">
-  <div class="modal-content">
-    <span class="close-modal" id="regClose">&times;</span>
-    <div class="modal-header" data-ko="신규 협력사 등록 절차" data-en="Registration Process">신규 협력사 등록 절차</div>
-    <div id="regStepContainer" class="modal-body"></div>
+<footer class="footer">
+  <span>&copy; 2026 AISRM. All Rights Reserved.</span>
+  <span>Help Desk 02-1234-5678 · Chrome/Edge 최신 버전 권장</span>
+</footer>
+
+<div class="modal" id="detailModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="detailTitle">상세</div>
+      <button class="modal-close" data-close-modal="detailModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta" id="detailMeta"></div>
+      <div id="detailContent"></div>
+    </div>
+    <div class="modal-actions">
+      <button data-close-modal="detailModal">닫기</button>
+    </div>
   </div>
 </div>
 
-<footer class="footer">&copy; 2026 AI-SRM Portal. All Rights Reserved.</footer>
+<div class="modal" id="guideModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="guideTitle">안내</div>
+      <button class="modal-close" data-close-modal="guideModal">&times;</button>
+    </div>
+    <div class="modal-body" id="guideContent"></div>
+    <div class="modal-actions">
+      <button data-close-modal="guideModal">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="sessionModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">자동 로그아웃 안내</div>
+      <button class="modal-close" data-close-modal="sessionModal">&times;</button>
+    </div>
+    <div class="modal-body">세션 만료가 임박했습니다. 계속 사용하려면 세션을 연장하세요.</div>
+    <div class="modal-actions">
+      <button data-close-modal="sessionModal">닫기</button>
+      <button class="primary-action" id="modalExtendBtn">세션 연장</button>
+    </div>
+  </div>
+</div>
 
 <script>
-  const i18nData = {
-    ko: {
-      search: "무엇을 도와드릴까요?",
-      id: "아이디",
-      pw: "비밀번호",
-      regSteps: ["기본 정보 입력", "서류 제출", "심사 진행", "최종 승인"],
-      applyMsg: "신규 등록 신청 페이지로 이동하시겠습니까?"
+  /* [2026-05-21] 수정 시작 - 작성자: AI Agent
+     사유: 공지/게시판 상세보기, 세션 연장, 사외용 신규등록 흐름,
+           Help Desk/인증지원 모달, target/isPublic 기반 필터링 반영
+  --------------------------------------------------------------------------
+  // [AS-IS] 기존 코드 (주석 처리)
+  // 공지/게시판은 [title, meta] 배열로만 표현되어 상세, 대상, 공개여부,
+  // 첨부/작성자/게시기간 같은 운영 속성을 표현할 수 없었다.
+
+  // [TO-BE] 신규 코드 */
+  const SESSION_SECONDS = 30 * 60;
+  const SESSION_WARNING_SECONDS = 5 * 60;
+
+  const portalContent = {
+    internal: {
+      title: 'AISRM',
+      subtitle: '구매, 계약, 납기, 품질, 협력사 관리를 위한 사내용 SRM 포털',
+      note: '데모 전환: 사내용 포털입니다. 로그인 전에는 공개 공지와 공개 게시글만 표시됩니다.',
+      loginTitle: 'SSO 로그인',
+      intro: 'AISRM은 구매요청, 견적, 전자계약, 발주, 납기, 품질, 협력사 평가 업무를 통합 관리하는 사내용 공급망 협업 시스템입니다. 인증 후에는 담당 권한에 맞는 업무 메뉴와 게시물이 제공됩니다.',
+      loginHtml: `
+        <div class="login-title">사내용 SSO</div>
+        <button class="login-btn" id="ssoLoginBtn">SSO 로그인</button>
+        <button class="main-link" id="internalMainLink" data-main-link="true">메인으로 이동</button>
+        <div class="login-help">내부 임직원은 SSO 인증 후 업무 메인 화면으로 이동합니다.</div>
+      `
     },
-    en: {
-      search: "How can we help you?",
-      id: "User ID",
-      pw: "Password",
-      regSteps: ["Enter Info", "Submit Docs", "Reviewing", "Final Approval"],
-      applyMsg: "Would you like to proceed to the registration page?"
+    external: {
+      title: 'AISRM Supplier Portal',
+      subtitle: '협력사 입찰, 계약, 납품, 품질 대응을 위한 사외용 SRM 포털',
+      note: '데모 전환: 사외용 포털입니다. 로그인 전에는 협력사 공개 공지와 등록/이용 안내만 표시됩니다.',
+      loginTitle: '협력사 로그인',
+      intro: 'AISRM Supplier Portal은 협력사가 견적요청, 전자계약, 발주 확인, 납품 예정 통보, 품질 대응 업무를 수행하는 사외용 협업 포털입니다. 인증 후에는 해당 협력사에 허용된 업무와 게시물이 제공됩니다.',
+      loginHtml: `
+        <label class="login-title" for="vendorCode">협력사 계정</label>
+        <input class="login-input" id="vendorCode" placeholder="벤더코드 또는 사업자번호">
+        <input class="login-input" id="vendorPw" type="password" placeholder="비밀번호">
+        <button class="login-btn" id="supplierLoginBtn">로그인</button>
+        <button class="main-link" id="externalMainLink" data-main-link="true">메인으로 이동</button>
+        <div class="action-row">
+          <button class="mini-btn" data-guide="supplierApply">신규등록 신청</button>
+          <button class="mini-btn" data-guide="supplierStatus">등록상태 조회</button>
+        </div>
+        <button class="mini-btn" style="width:100%;margin-top:8px;" data-guide="supplierDocs">필수서류 안내</button>
+        <div class="login-help">신규 협력사는 등록 신청 및 심사 완료 후 계정을 발급받습니다.</div>
+      `
     }
   };
 
-  function updateLanguage() {
-    const lang = document.getElementById('langSelect').value;
-    document.querySelectorAll('[data-ko]').forEach(el => {
-      el.textContent = el.getAttribute(`data-${lang}`);
-    });
-    const placeholders = i18nData[lang];
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-      const key = el.getAttribute('data-i18n-placeholder');
-      el.placeholder = placeholders[key];
-    });
-    renderModalSteps(lang);
+  const posts = [
+    { id: 'n-001', type: 'notice', target: 'internal', isPublic: true, title: 'AI-SRM 정기 보안 점검 안내', meta: '2026-04-23 · 22:00-24:00 KST', author: '시스템관리자', period: '2026-04-23 ~ 2026-04-24', views: 128, attachments: ['점검영향범위.pdf'], content: '정기 보안 패치와 인증 모듈 점검을 진행합니다. 점검 시간 중 일부 메뉴 접속이 지연될 수 있습니다.' },
+    { id: 'n-002', type: 'notice', target: 'internal', isPublic: true, title: 'SSO/OTP 인증 오류 조치 안내', meta: '브라우저 캐시 삭제 및 OTP 재등록 절차', author: 'Help Desk', period: '상시', views: 94, attachments: ['SSO_OTP_가이드.pdf'], content: 'SSO 로그인 실패 시 브라우저 캐시 삭제, OTP 시간 동기화, 인증 앱 재등록 순서로 조치하십시오.' },
+    { id: 'n-003', type: 'notice', target: 'internal', isPublic: false, title: '구매요청 승인 지연 건 조치 요청', meta: '사내용 · 구매전략팀', author: '구매전략팀', period: '2026-05-01 ~ 2026-05-10', views: 42, attachments: ['승인지연목록.xlsx'], content: '승인 대기 3일 초과 건은 담당 부서에서 사유를 확인하고 금주 내 처리 바랍니다.' },
+    { id: 'n-004', type: 'notice', target: 'internal', isPublic: false, title: '전자계약 만료 예정 계약 점검', meta: '사내용 · 계약관리팀', author: '계약관리팀', period: '2026-05-01 ~ 2026-05-31', views: 37, attachments: ['계약만료예정.xlsx'], content: '만료 60일 이내 단가계약은 갱신 여부를 확인하고 필요 시 RFQ 또는 갱신 품의를 진행하십시오.' },
+    { id: 'n-101', type: 'notice', target: 'external', isPublic: true, title: '신규 협력사 등록 절차 안내', meta: '회사정보, 서류제출, 심사, 벤더코드 발급', author: '협력사관리팀', period: '상시', views: 233, attachments: ['신규등록_매뉴얼.pdf'], content: '신규 협력사는 회사 기본정보, 사업자등록증, 통장사본, 인증서, ESG 자가진단서를 제출해야 합니다.' },
+    { id: 'n-102', type: 'notice', target: 'external', isPublic: true, title: '전자계약 인증서 갱신 안내', meta: '공동인증서 만료 전 갱신 필요', author: '계약지원', period: '상시', views: 188, attachments: ['전자계약_인증서_가이드.pdf'], content: '전자계약 서명을 위해 공동인증서 유효기간을 확인하고 만료 전 갱신하십시오.' },
+    { id: 'n-103', type: 'notice', target: 'external', isPublic: false, title: '초청 RFQ 견적 제출 요청', meta: '사외용 · 해당 협력사', author: '소싱담당자', period: '2026-05-01 ~ 2026-05-07', views: 18, attachments: ['RFQ_제출양식.xlsx'], content: '초청된 RFQ의 견적 제출 마감일을 확인하고 단가, 납기, 기술 조건을 입력하십시오.' },
+    { id: 'n-104', type: 'notice', target: 'external', isPublic: false, title: '납품 예정 통보 ASN 등록 요청', meta: '사외용 · 해당 협력사', author: '납기관리팀', period: '2026-05-01 ~ 2026-05-15', views: 21, attachments: ['ASN_등록가이드.pdf'], content: '발주서별 납품 예정일, 수량, 운송장 정보를 ASN 화면에서 사전 등록하십시오.' },
+    { id: 'b-001', type: 'board', target: 'internal', isPublic: true, title: 'SRM 사용 권장 브라우저 안내', meta: 'Chrome, Edge 최신 버전', author: '시스템관리자', period: '상시', views: 77, attachments: [], content: 'AISRM은 Chrome 및 Edge 최신 버전에 최적화되어 있습니다. 구형 브라우저에서는 일부 화면이 정상 표시되지 않을 수 있습니다.' },
+    { id: 'b-002', type: 'board', target: 'internal', isPublic: true, title: 'Help Desk 운영시간 안내', meta: '평일 09:00-18:00', author: 'Help Desk', period: '상시', views: 65, attachments: [], content: '장애 문의는 평일 09:00부터 18:00까지 접수합니다. 긴급 장애는 대표번호로 문의하십시오.' },
+    { id: 'b-003', type: 'board', target: 'internal', isPublic: false, title: '구매 표준 프로세스 개정 안내', meta: '사내용 게시판', author: '구매기획', period: '2026-05-01 ~ 2026-06-30', views: 31, attachments: ['구매표준프로세스_v2.pdf'], content: '구매요청, RFQ, 계약 전환 기준이 개정되었습니다. 신규 프로세스는 다음 월요일부터 적용됩니다.' },
+    { id: 'b-101', type: 'board', target: 'external', isPublic: true, title: '협력사 포털 이용 가이드', meta: '로그인, 인증서, 브라우저 설정', author: '협력사지원', period: '상시', views: 146, attachments: ['협력사포털_이용가이드.pdf'], content: '협력사 포털의 로그인, 인증서 등록, RFQ 조회, 전자계약 서명, ASN 등록 절차를 안내합니다.' },
+    { id: 'b-102', type: 'board', target: 'external', isPublic: true, title: '납품 라벨 및 포장 기준 일반 안내', meta: '공개용 기준서', author: '품질지원', period: '상시', views: 119, attachments: ['포장라벨_기준서.pdf'], content: '납품 라벨 표기 항목, 포장 단위, 바코드 부착 위치 등 기본 기준을 안내합니다.' },
+    { id: 'b-103', type: 'board', target: 'external', isPublic: false, title: '발주서 확인 및 납품 일정 등록 안내', meta: '사외용 게시판', author: '납기관리팀', period: '2026-05-01 ~ 2026-05-31', views: 22, attachments: ['PO_ASN_절차.pdf'], content: '발주서를 확인한 후 납품 예정일과 수량을 ASN으로 등록하십시오. 변경 필요 시 담당자에게 사전 문의 바랍니다.' }
+  ];
+
+  const guideContent = {
+    supplierApply: ['신규등록 신청', '1. 회사 기본정보를 입력합니다.<br>2. 사업자등록증, 통장사본, 인증서, ESG 자가진단서를 첨부합니다.<br>3. 담당 부서 심사 후 벤더코드가 발급됩니다.'],
+    supplierStatus: ['등록상태 조회', '사업자번호와 접수번호를 기준으로 심사 진행상태를 조회합니다.<br>데모에서는 실제 조회 대신 안내 화면만 제공합니다.'],
+    supplierDocs: ['필수서류 안내', '<div class="support-list"><div class="support-item"><strong>공통</strong>사업자등록증, 법인인감증명, 통장사본</div><div class="support-item"><strong>품질/ESG</strong>품질인증서, ESG 자가진단서, 안전보건 확인서</div><div class="support-item"><strong>전자계약</strong>공동인증서, 담당자 위임 정보</div></div>'],
+    helpDesk: ['Help Desk / 인증 지원', '<div class="support-list"><div class="support-item"><strong>SSO 오류</strong>계정 잠김, 비밀번호 만료, 조직 권한 문제는 내부 Help Desk로 문의하세요.</div><div class="support-item"><strong>OTP 초기화</strong>휴대폰 변경 또는 OTP 분실 시 본인 확인 후 재등록합니다.</div><div class="support-item"><strong>인증서 갱신</strong>전자계약 서명 전 공동인증서 유효기간을 확인하세요.</div><div class="support-item"><strong>브라우저 설정</strong>Chrome/Edge 최신 버전, 팝업 허용, 캐시 삭제를 권장합니다.</div></div>']
+  };
+
+  let currentPortal = localStorage.getItem('landingPortal') || 'internal';
+  let isLoggedIn = localStorage.getItem('landingLoggedIn') === 'true';
+  let remainingSeconds = Number(localStorage.getItem('landingRemainingSeconds') || SESSION_SECONDS);
+  let timerId = null;
+  let sessionWarningShown = false;
+
+  function render() {
+    const data = portalContent[currentPortal];
+    document.getElementById('brandTitle').textContent = data.title;
+    document.getElementById('brandSub').textContent = data.subtitle;
+    document.getElementById('portalNote').textContent = data.note;
+    document.getElementById('loginPanelTitle').textContent = data.loginTitle;
+    document.getElementById('introDesc').textContent = data.intro;
+    document.getElementById('loginArea').innerHTML = data.loginHtml;
+    document.getElementById('loginStatus').innerHTML = isLoggedIn ? '<strong>로그인 상태</strong>' : '로그인 전';
+    document.getElementById('logoutBtn').disabled = !isLoggedIn;
+    document.getElementById('extendSessionBtn').disabled = !isLoggedIn;
+    document.querySelectorAll('[data-portal]').forEach(btn => btn.classList.toggle('active', btn.dataset.portal === currentPortal));
+
+    renderList('noticeList', 'notice');
+    renderList('boardList', 'board');
+
+    const mainLink = document.querySelector('[data-main-link="true"]');
+    if (mainLink) mainLink.classList.toggle('visible', isLoggedIn);
   }
 
-  function renderModalSteps(lang) {
-    const container = document.getElementById('regStepContainer');
-    if(container) {
-      container.innerHTML = i18nData[lang].regSteps
-        .map((step, i) => `<div class="guide-step"><strong>STEP ${i+1}</strong>: ${step}</div>`).join('');
+  function visiblePosts(type) {
+    return posts.filter(post =>
+      post.type === type &&
+      post.target === currentPortal &&
+      (post.isPublic || isLoggedIn)
+    );
+  }
+
+  function renderList(id, type) {
+    const items = visiblePosts(type);
+    const container = document.getElementById(id);
+    if (items.length === 0) {
+      container.innerHTML = '<div class="empty">표시할 게시물이 없습니다.</div>';
+      return;
     }
+    container.innerHTML = items.map(item => `
+      <button class="list-item" data-post-id="${item.id}">
+        <div class="item-title">${item.title}</div>
+        <div class="item-meta">${item.meta}</div>
+      </button>
+    `).join('');
   }
 
-  /* 2. 시간 영문으로 fix (en-US 포맷) */
+  function openPost(id) {
+    const post = posts.find(item => item.id === id);
+    if (!post || (!post.isPublic && !isLoggedIn)) return;
+    document.getElementById('detailTitle').textContent = post.title;
+    document.getElementById('detailMeta').textContent = `${post.author} · ${post.period} · 조회 ${post.views}`;
+    document.getElementById('detailContent').innerHTML = `
+      <p>${post.content}</p>
+      <p style="margin-top:12px;"><strong>첨부파일</strong>: ${post.attachments.length ? post.attachments.join(', ') : '없음'}</p>
+    `;
+    openModal('detailModal');
+  }
+
+  function login() {
+    isLoggedIn = true;
+    remainingSeconds = SESSION_SECONDS;
+    sessionWarningShown = false;
+    localStorage.setItem('landingLoggedIn', 'true');
+    localStorage.setItem('landingPortal', currentPortal);
+    localStorage.setItem('loginType', currentPortal);
+    localStorage.setItem('userName', currentPortal === 'internal' ? 'SRM 내부 사용자' : '협력사 사용자');
+    localStorage.setItem('userDept', currentPortal === 'internal' ? '구매전략팀' : '협력사 포털');
+    startTimer();
+    render();
+  }
+
+  function logout() {
+    isLoggedIn = false;
+    remainingSeconds = SESSION_SECONDS;
+    sessionWarningShown = false;
+    localStorage.removeItem('landingLoggedIn');
+    localStorage.removeItem('landingRemainingSeconds');
+    document.getElementById('logoutTimer').textContent = '--:--';
+    render();
+  }
+
+  function extendSession() {
+    if (!isLoggedIn) return;
+    remainingSeconds = SESSION_SECONDS;
+    sessionWarningShown = false;
+    localStorage.setItem('landingRemainingSeconds', String(remainingSeconds));
+    updateTimerLabel();
+    closeModal('sessionModal');
+  }
+
+  function goMain() {
+    location.href = `main.html?portal=${currentPortal}`;
+  }
+
+  function startTimer() {
+    clearInterval(timerId);
+    updateTimerLabel();
+    if (!isLoggedIn) return;
+    timerId = setInterval(() => {
+      remainingSeconds -= 1;
+      localStorage.setItem('landingRemainingSeconds', String(remainingSeconds));
+      updateTimerLabel();
+      if (remainingSeconds <= SESSION_WARNING_SECONDS && !sessionWarningShown) {
+        sessionWarningShown = true;
+        openModal('sessionModal');
+      }
+      if (remainingSeconds <= 0) {
+        clearInterval(timerId);
+        alert('자동 로그아웃 되었습니다.');
+        logout();
+      }
+    }, 1000);
+  }
+
+  function updateTimerLabel() {
+    const el = document.getElementById('logoutTimer');
+    if (!isLoggedIn) {
+      el.textContent = '--:--';
+      return;
+    }
+    const min = String(Math.max(0, Math.floor(remainingSeconds / 60))).padStart(2, '0');
+    const sec = String(Math.max(0, remainingSeconds % 60)).padStart(2, '0');
+    el.textContent = `${min}:${sec}`;
+  }
+
   function updateClock() {
-    const now = new Date();
-    const options = { 
-        year: 'numeric', month: 'short', day: 'numeric', 
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false 
-    };
-    document.getElementById('current-info').textContent = `Seoul, KR | ${now.toLocaleString('en-US', options)}`;
+    document.getElementById('currentTime').textContent = new Date().toLocaleTimeString('ko-KR');
   }
 
-  function handleLogin() {
-    const userName = document.getElementById('input-name').value;
-    const userDept = document.getElementById('input-dept').value;
-
-    localStorage.setItem('userName', userName);
-    localStorage.setItem('userDept', userDept);
-
-    location.href = 'main.html';
+  function openGuide(key) {
+    const guide = guideContent[key];
+    if (!guide) return;
+    document.getElementById('guideTitle').textContent = guide[0];
+    document.getElementById('guideContent').innerHTML = guide[1];
+    openModal('guideModal');
   }
-
-  /* 1. 로그인 시 main으로 연결 (어디서든 작동하는 상대 경로) */
-  document.addEventListener('click', (e) => {
-    const target = e.target.closest('a, button, .close-modal');
-    if (!target) return;
-
-    if (target.id === 'loginBtn') {
-      handleLogin();
-    } 
-    else if (target.id === 'applyLink') {
-      const lang = document.getElementById('langSelect').value;
-      if(confirm(i18nData[lang].applyMsg)) alert("신규 신청 페이지 연결 중...");
-    }
-    else if (target.id === 'regLink') openModal('regModal');
-    else if (target.classList.contains('close-modal')) closeModal(target.closest('.modal').id);
-  });
 
   function openModal(id) {
-    const m = document.getElementById(id);
-    m.style.display = "block";
-    setTimeout(() => m.classList.add('show'), 10);
+    document.getElementById(id).classList.add('show');
   }
+
   function closeModal(id) {
-    const m = document.getElementById(id);
-    m.classList.remove('show');
-    setTimeout(() => m.style.display = "none", 300);
+    document.getElementById(id).classList.remove('show');
   }
 
-  document.getElementById('contrastBtn').addEventListener('click', () => document.body.classList.toggle('high-contrast'));
-  document.getElementById('colorblindBtn').addEventListener('click', () => document.body.classList.toggle('color-blind'));
-  document.getElementById('langSelect').addEventListener('change', updateLanguage);
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('button');
+    if (!target) return;
+    if (target.dataset.portal) {
+      currentPortal = target.dataset.portal;
+      localStorage.setItem('landingPortal', currentPortal);
+      isLoggedIn = false;
+      localStorage.removeItem('landingLoggedIn');
+      render();
+      startTimer();
+    } else if (target.id === 'ssoLoginBtn' || target.id === 'supplierLoginBtn') {
+      login();
+    } else if (target.id === 'logoutBtn') {
+      logout();
+    } else if (target.dataset.mainLink === 'true') {
+      goMain();
+    } else if (target.dataset.postId) {
+      openPost(target.dataset.postId);
+    } else if (target.dataset.guide) {
+      openGuide(target.dataset.guide);
+    } else if (target.id === 'helpDeskBtn') {
+      openGuide('helpDesk');
+    } else if (target.id === 'extendSessionBtn' || target.id === 'modalExtendBtn') {
+      extendSession();
+    } else if (target.dataset.closeModal) {
+      closeModal(target.dataset.closeModal);
+    }
+  });
 
-  // 초기화
-  updateLanguage();
+  render();
   updateClock();
+  startTimer();
   setInterval(updateClock, 1000);
+  /* --------------------------------------------------------------------------
+     [2026-05-21] 수정 종료 */
 </script>
 </body>
 </html>

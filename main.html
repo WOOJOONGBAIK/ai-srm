@@ -23,6 +23,7 @@
   | 2026-04-24 | AI-Rev  | [TAB]    워크스페이스 탭 매니저 추가     |
   |            |         |          LNB 클릭 → 탭 생성(최대 10개)  |
   |            |         |          탭 클릭 전환 / X버튼 닫기       |
+  | 2026-05-21 | AI Agent| [FIX]    탭 렌더링 insertBefore 오류 수정 |
   ============================================================
   -->
   <style>
@@ -472,8 +473,17 @@ document.addEventListener('DOMContentLoaded', () => {
         closeTab(tab.id);
       });
 
-      // 탭바 내 배지 앞에 삽입
-      DOM.tabBar.insertBefore(btn, DOM.tabLimitBadge);
+      /* [2026-05-21] 수정 시작 - 작성자: AI Agent
+         사유: tabLimitBadge가 tabBar의 자식이 아니라 형제 엘리먼트라
+               insertBefore 실행 시 NotFoundError가 발생하는 문제 수정
+      --------------------------------------------------------------------------
+      // [AS-IS] 기존 코드 (주석 처리)
+      // DOM.tabBar.insertBefore(btn, DOM.tabLimitBadge);
+
+      // [TO-BE] 신규 코드 */
+      DOM.tabBar.appendChild(btn);
+      /* --------------------------------------------------------------------------
+         [2026-05-21] 수정 종료 */
     });
 
     // 10개 초과 배지 표시
