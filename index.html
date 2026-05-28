@@ -16,6 +16,7 @@ History Log
 |            |          | SSO 중심, 자동 로그아웃, 공개/권한 콘텐츠 필터 |
 | 2026-05-21 | AI Agent | [BRAND] 특정 회사명 제거 및 AISRM 명칭 통일 |
 | 2026-05-21 | AI Agent | [LANDING-R5] 상세/세션연장/등록/지원 모달 추가 |
+| 2026-05-29 | AI Agent | [HISRM-LIKE] HISRM형 첫 화면 구조 및 보안 보완 |
 ============================================================
 -->
 <style>
@@ -158,9 +159,97 @@ History Log
     .shell { padding: 18px; }
     .footer { padding: 18px; }
   }
+
+  /* [2026-05-29] 수정 시작 - 작성자: AI Agent
+     사유: HISRM형 로그인 랜딩 구조 반영 및 첫 화면 정보 밀도 개선
+  --------------------------------------------------------------------------
+  // [AS-IS] 기존 .topbar/.shell/.content-grid 기반 2단 카드형 랜딩 스타일은 상단에 보존.
+
+  // [TO-BE] HISRM형 통합 SRM 첫 화면 스타일 */
+  .hisrm-header {
+    min-height: 78px; padding: 0 42px; background: #fff;
+    border-bottom: 1px solid #d6dde6; display: flex; align-items: center;
+    justify-content: space-between; gap: 24px;
+  }
+  .hisrm-logo-wrap { display: flex; flex-direction: column; gap: 5px; }
+  .hisrm-system-name { font-size: 22px; font-weight: 900; color: #103b6d; }
+  .hisrm-company { font-size: 12px; color: var(--sub); font-weight: 800; }
+  .hisrm-top-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; font-size: 12px; color: var(--sub); }
+  .language-group { display: flex; align-items: center; gap: 4px; padding-right: 10px; border-right: 1px solid var(--line); }
+  .language-btn {
+    min-width: 38px; height: 28px; border: 1px solid transparent; border-radius: 3px;
+    background: transparent; color: var(--sub); font-size: 12px; font-weight: 800; text-align: center;
+  }
+  .language-btn.active, .language-btn:hover { border-color: #9fb6cc; color: #103b6d; background: #f4f8fb; }
+
+  .hisrm-page { min-height: calc(100vh - 78px); background: #eef3f7; }
+  .hisrm-hero {
+    background: linear-gradient(135deg, #0b4478 0%, #126c9f 52%, #00a0a8 100%);
+    color: #fff;
+  }
+  .hisrm-hero-inner {
+    max-width: 1180px; margin: 0 auto; padding: 42px 28px 34px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 342px; gap: 32px; align-items: center;
+  }
+  .welcome-kicker { font-size: 13px; font-weight: 900; opacity: 0.86; margin-bottom: 12px; }
+  .welcome-title { font-size: 34px; line-height: 1.28; font-weight: 900; }
+  .welcome-title span { color: #b8f4ff; }
+  .welcome-copy { margin-top: 16px; max-width: 650px; font-size: 14px; line-height: 1.7; opacity: 0.9; }
+  .security-copy { margin-top: 18px; font-size: 12px; line-height: 1.6; opacity: 0.78; }
+
+  .hisrm-login-card {
+    background: #fff; color: var(--text); border-radius: 4px; border-top: 4px solid #1b76bc;
+    box-shadow: 0 16px 30px rgba(0, 28, 56, 0.22); overflow: hidden;
+  }
+  .hisrm-login-head { padding: 17px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .hisrm-login-head strong { font-size: 20px; color: #103b6d; }
+  .portal-toggle { display: flex; gap: 4px; }
+  .portal-toggle .top-link {
+    height: 26px; padding: 0 8px; border: 1px solid var(--line); border-radius: 3px;
+    background: #fff; text-decoration: none; color: var(--sub);
+  }
+  .portal-toggle .top-link.active { background: #103b6d; color: #fff; border-color: #103b6d; }
+  .hisrm-login-body { padding: 18px 20px 20px; }
+  .input-label { display: block; margin: 9px 0 6px; font-size: 12px; font-weight: 900; color: #415366; }
+  .full-mini-btn { width: 100%; margin-top: 8px; }
+
+  .hisrm-content { max-width: 1180px; margin: 0 auto; padding: 24px 28px 34px; }
+  .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .quick-card {
+    min-height: 92px; padding: 15px 16px; border: 1px solid #d6dde6; border-radius: 4px;
+    background: #fff; text-align: left; box-shadow: 0 4px 10px rgba(31, 41, 51, 0.04);
+  }
+  .quick-card:hover { border-color: #1b76bc; }
+  .quick-card strong { display: block; margin-bottom: 8px; color: #103b6d; font-size: 15px; }
+  .quick-card span { color: var(--sub); font-size: 12px; line-height: 1.55; }
+  .policy-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; padding: 12px;
+    background: #fff; border: 1px solid #d6dde6; border-radius: 4px;
+  }
+  .policy-link { padding: 6px 10px; border-right: 1px solid var(--line); color: #335b7d; font-size: 12px; font-weight: 900; }
+  .policy-link:last-child { border-right: none; }
+  .hisrm-board-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .hisrm-footer {
+    max-width: 1180px; margin: 0 auto; padding: 0 28px 28px;
+    color: var(--sub); font-size: 12px; line-height: 1.7;
+  }
+
+  @media (max-width: 900px) {
+    .hisrm-header { padding: 16px 18px; align-items: flex-start; flex-direction: column; }
+    .hisrm-hero-inner { grid-template-columns: 1fr; padding: 30px 18px 24px; }
+    .welcome-title { font-size: 26px; }
+    .hisrm-content { padding: 18px; }
+    .quick-grid, .hisrm-board-grid { grid-template-columns: 1fr; }
+  }
+  /* --------------------------------------------------------------------------
+     [2026-05-29] 수정 종료 */
 </style>
 </head>
 <body>
+<!-- [2026-05-29] 수정 시작 - 작성자: AI Agent
+     사유: HISRM형 첫 화면 구조로 전환하기 위해 기존 상단/본문 마크업 보존 후 신규 마크업 추가
+--------------------------------------------------------------------------
+// [AS-IS] 기존 코드 (주석 처리)
 <header class="topbar">
   <div class="brand">
     <div class="brand-logo">SRM</div>
@@ -229,6 +318,100 @@ History Log
   <span>&copy; 2026 AISRM. All Rights Reserved.</span>
   <span>Help Desk 02-1234-5678 · Chrome/Edge 최신 버전 권장</span>
 </footer>
+-->
+
+<!-- [TO-BE] 신규 코드 -->
+<header class="hisrm-header">
+  <div class="hisrm-logo-wrap">
+    <div class="hisrm-system-name" id="brandTitle">AISRM Integrated SRM System</div>
+    <div class="hisrm-company" id="brandSub">Supplier Relationship Management Portal</div>
+  </div>
+  <div class="hisrm-top-tools">
+    <div class="language-group" aria-label="language">
+      <button class="language-btn active">KOR</button>
+      <button class="language-btn">ENG</button>
+      <button class="language-btn">中文</button>
+    </div>
+    <span id="currentTime">--:--:--</span>
+    <span>자동 로그아웃 <b class="timer" id="logoutTimer">--:--</b></span>
+    <button class="utility-btn" id="extendSessionBtn" disabled>연장</button>
+    <button class="utility-btn" id="helpDeskBtn">HELP DESK</button>
+    <button class="logout-btn" id="logoutBtn" disabled>로그오프</button>
+  </div>
+</header>
+
+<main class="hisrm-page">
+  <section class="hisrm-hero">
+    <div class="hisrm-hero-inner">
+      <div>
+        <div class="welcome-kicker">HD Hyundai Style SRM Gateway</div>
+        <h1 class="welcome-title">AISRM 통합 SRM 시스템에<br><span>오신 것을 환영합니다.</span></h1>
+        <p class="welcome-copy" id="introDesc"></p>
+        <p class="security-copy">
+          본 사이트는 인가된 사용자만 사용할 수 있으며, 사용자 접속 이력과 시스템 사용 기록이 관리됩니다.
+        </p>
+      </div>
+
+      <aside class="hisrm-login-card">
+        <div class="hisrm-login-head">
+          <strong id="loginPanelTitle">LOGIN</strong>
+          <div class="portal-toggle">
+            <button class="top-link active" id="internalLink" data-portal="internal">사내용</button>
+            <button class="top-link" id="externalLink" data-portal="external">사외용</button>
+          </div>
+        </div>
+        <div class="hisrm-login-body">
+          <div class="status" id="loginStatus">로그인 전</div>
+          <div id="loginArea"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="hisrm-content">
+    <div class="portal-note" id="portalNote"></div>
+    <div class="quick-grid">
+      <button class="quick-card" data-guide="supplierApply"><strong>업체 등록신청</strong><span>AISRM은 업체 등록 후 사용할 수 있습니다.</span></button>
+      <button class="quick-card" data-guide="supplierDocs"><strong>인증서 안내</strong><span>시스템 거래를 위한 공동인증서 및 필수서류 안내입니다.</span></button>
+      <button class="quick-card" data-guide="helpDesk"><strong>동반성장 Hot Line</strong><span>협력사 문의와 VOC 접수 채널을 안내합니다.</span></button>
+      <button class="quick-card" id="helpDeskQuickBtn"><strong>담당자 안내</strong><span>시스템 사용 도움을 위한 담당자 정보를 확인합니다.</span></button>
+    </div>
+
+    <nav class="policy-row" aria-label="policy links">
+      <button class="policy-link" data-guide="purchasePolicy">구매정책</button>
+      <button class="policy-link" data-guide="purchaseProcess">구매절차</button>
+      <button class="policy-link" data-guide="supplierCode">협력사 행동규범</button>
+      <button class="policy-link" data-guide="fairTrade">공정거래 실천사항</button>
+    </nav>
+
+    <section class="hisrm-board-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">공지사항</div>
+        </div>
+        <div class="panel-body">
+          <div class="notice-list" id="noticeList"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">게시판</div>
+        </div>
+        <div class="panel-body">
+          <div class="board-list" id="boardList"></div>
+        </div>
+      </section>
+    </section>
+  </section>
+</main>
+
+<footer class="hisrm-footer">
+  <div>HELP DESK 02-1234-5678 · Chrome/Edge 최신 버전 권장 · 개인정보보호정책 · 이용약관</div>
+  <div>&copy; 2026 AISRM. ALL RIGHTS RESERVED.</div>
+</footer>
+<!-- --------------------------------------------------------------------------
+   [2026-05-29] 수정 종료 -->
 
 <div class="modal" id="detailModal">
   <div class="modal-box">
