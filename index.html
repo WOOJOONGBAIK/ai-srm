@@ -17,6 +17,7 @@ History Log
 | 2026-05-21 | AI Agent | [BRAND] 특정 회사명 제거 및 AISRM 명칭 통일 |
 | 2026-05-21 | AI Agent | [LANDING-R5] 상세/세션연장/등록/지원 모달 추가 |
 | 2026-05-29 | AI Agent | [HISRM-LIKE] HISRM형 첫 화면 구조 및 보안 보완 |
+| 2026-05-29 | AI Agent | [COPY] 참고 시스템명 노출 문구 제거            |
 ============================================================
 -->
 <style>
@@ -346,7 +347,16 @@ History Log
   <section class="hisrm-hero">
     <div class="hisrm-hero-inner">
       <div>
-        <div class="welcome-kicker">HD Hyundai Style SRM Gateway</div>
+        <!-- [2026-05-29] 수정 시작 - 작성자: AI Agent
+             사유: 참고 시스템명 노출 문구 제거
+        --------------------------------------------------------------------------
+        // [AS-IS] 기존 코드 (주석 처리)
+        // <div class="welcome-kicker">참고 시스템 스타일 문구</div>
+
+        // [TO-BE] 신규 코드 -->
+        <div class="welcome-kicker">Integrated SRM Gateway</div>
+        <!-- --------------------------------------------------------------------------
+           [2026-05-29] 수정 종료 -->
         <h1 class="welcome-title">AISRM 통합 SRM 시스템에<br><span>오신 것을 환영합니다.</span></h1>
         <p class="welcome-copy" id="introDesc"></p>
         <p class="security-copy">
