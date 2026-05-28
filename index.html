@@ -121,6 +121,7 @@ History Log
   }
   .status { font-size: 12px; color: var(--sub); }
   .status strong { color: var(--primary); }
+  .status.logged-in { color: var(--primary); font-weight: 900; }
 
   .footer {
     max-width: 1180px; margin: 0 auto; padding: 18px 28px 28px;
@@ -152,6 +153,7 @@ History Log
   .support-list { display: grid; gap: 10px; }
   .support-item { padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--muted); }
   .support-item strong { display: block; color: var(--text); margin-bottom: 4px; }
+  .attachment-line { margin-top: 12px; }
 
   @media (max-width: 900px) {
     .topbar { height: auto; min-height: 64px; padding: 14px 18px; flex-direction: column; align-items: flex-start; }
@@ -374,7 +376,7 @@ History Log
       <button class="quick-card" data-guide="supplierApply"><strong>업체 등록신청</strong><span>AISRM은 업체 등록 후 사용할 수 있습니다.</span></button>
       <button class="quick-card" data-guide="supplierDocs"><strong>인증서 안내</strong><span>시스템 거래를 위한 공동인증서 및 필수서류 안내입니다.</span></button>
       <button class="quick-card" data-guide="helpDesk"><strong>동반성장 Hot Line</strong><span>협력사 문의와 VOC 접수 채널을 안내합니다.</span></button>
-      <button class="quick-card" id="helpDeskQuickBtn"><strong>담당자 안내</strong><span>시스템 사용 도움을 위한 담당자 정보를 확인합니다.</span></button>
+      <button class="quick-card" data-guide="helpDesk" id="helpDeskQuickBtn"><strong>담당자 안내</strong><span>시스템 사용 도움을 위한 담당자 정보를 확인합니다.</span></button>
     </div>
 
     <nav class="policy-row" aria-label="policy links">
@@ -468,10 +470,12 @@ History Log
   // [TO-BE] 신규 코드 */
   const SESSION_SECONDS = 30 * 60;
   const SESSION_WARNING_SECONDS = 5 * 60;
+  const SESSION_EXPIRES_AT_KEY = 'landingSessionExpiresAt';
+  const VALID_PORTALS = ['internal', 'external'];
 
   const portalContent = {
     internal: {
-      title: 'AISRM',
+      title: 'AISRM Integrated SRM System',
       subtitle: '구매, 계약, 납기, 품질, 협력사 관리를 위한 사내용 SRM 포털',
       note: '데모 전환: 사내용 포털입니다. 로그인 전에는 공개 공지와 공개 게시글만 표시됩니다.',
       loginTitle: 'SSO 로그인',
@@ -490,8 +494,9 @@ History Log
       loginTitle: '협력사 로그인',
       intro: 'AISRM Supplier Portal은 협력사가 견적요청, 전자계약, 발주 확인, 납품 예정 통보, 품질 대응 업무를 수행하는 사외용 협업 포털입니다. 인증 후에는 해당 협력사에 허용된 업무와 게시물이 제공됩니다.',
       loginHtml: `
-        <label class="login-title" for="vendorCode">협력사 계정</label>
+        <label class="input-label" for="vendorCode">협력사 계정</label>
         <input class="login-input" id="vendorCode" placeholder="벤더코드 또는 사업자번호">
+        <label class="input-label" for="vendorPw">비밀번호</label>
         <input class="login-input" id="vendorPw" type="password" placeholder="비밀번호">
         <button class="login-btn" id="supplierLoginBtn">로그인</button>
         <button class="main-link" id="externalMainLink" data-main-link="true">메인으로 이동</button>
@@ -499,7 +504,7 @@ History Log
           <button class="mini-btn" data-guide="supplierApply">신규등록 신청</button>
           <button class="mini-btn" data-guide="supplierStatus">등록상태 조회</button>
         </div>
-        <button class="mini-btn" style="width:100%;margin-top:8px;" data-guide="supplierDocs">필수서류 안내</button>
+        <button class="mini-btn full-mini-btn" data-guide="supplierDocs">필수서류 안내</button>
         <div class="login-help">신규 협력사는 등록 신청 및 심사 완료 후 계정을 발급받습니다.</div>
       `
     }
@@ -526,12 +531,56 @@ History Log
     supplierApply: ['신규등록 신청', '1. 회사 기본정보를 입력합니다.<br>2. 사업자등록증, 통장사본, 인증서, ESG 자가진단서를 첨부합니다.<br>3. 담당 부서 심사 후 벤더코드가 발급됩니다.'],
     supplierStatus: ['등록상태 조회', '사업자번호와 접수번호를 기준으로 심사 진행상태를 조회합니다.<br>데모에서는 실제 조회 대신 안내 화면만 제공합니다.'],
     supplierDocs: ['필수서류 안내', '<div class="support-list"><div class="support-item"><strong>공통</strong>사업자등록증, 법인인감증명, 통장사본</div><div class="support-item"><strong>품질/ESG</strong>품질인증서, ESG 자가진단서, 안전보건 확인서</div><div class="support-item"><strong>전자계약</strong>공동인증서, 담당자 위임 정보</div></div>'],
-    helpDesk: ['Help Desk / 인증 지원', '<div class="support-list"><div class="support-item"><strong>SSO 오류</strong>계정 잠김, 비밀번호 만료, 조직 권한 문제는 내부 Help Desk로 문의하세요.</div><div class="support-item"><strong>OTP 초기화</strong>휴대폰 변경 또는 OTP 분실 시 본인 확인 후 재등록합니다.</div><div class="support-item"><strong>인증서 갱신</strong>전자계약 서명 전 공동인증서 유효기간을 확인하세요.</div><div class="support-item"><strong>브라우저 설정</strong>Chrome/Edge 최신 버전, 팝업 허용, 캐시 삭제를 권장합니다.</div></div>']
+    helpDesk: ['Help Desk / 인증 지원', '<div class="support-list"><div class="support-item"><strong>SSO 오류</strong>계정 잠김, 비밀번호 만료, 조직 권한 문제는 내부 Help Desk로 문의하세요.</div><div class="support-item"><strong>OTP 초기화</strong>휴대폰 변경 또는 OTP 분실 시 본인 확인 후 재등록합니다.</div><div class="support-item"><strong>인증서 갱신</strong>전자계약 서명 전 공동인증서 유효기간을 확인하세요.</div><div class="support-item"><strong>브라우저 설정</strong>Chrome/Edge 최신 버전, 팝업 허용, 캐시 삭제를 권장합니다.</div></div>'],
+    purchasePolicy: ['구매정책', '협력사 선정, 견적, 계약, 납품, 정산의 기본 정책을 안내합니다.'],
+    purchaseProcess: ['구매절차', '구매요청, RFQ, 업체선정, 계약, 발주, 입고, 대금지급 순서로 업무가 진행됩니다.'],
+    supplierCode: ['협력사 행동규범', '윤리, 품질, 안전보건, ESG, 정보보호 기준을 준수해야 합니다.'],
+    fairTrade: ['공정거래 실천사항', '투명하고 공정한 거래 질서 확립을 위한 실천사항을 안내합니다.']
   };
 
-  let currentPortal = localStorage.getItem('landingPortal') || 'internal';
+  /* [2026-05-29] 수정 시작 - 작성자: AI Agent
+     사유: localStorage 포털값 검증 및 실제 만료시각 기반 세션 계산 적용
+  --------------------------------------------------------------------------
+  // [AS-IS] 기존 코드 (주석 처리)
+  // let currentPortal = localStorage.getItem('landingPortal') || 'internal';
+  // let isLoggedIn = localStorage.getItem('landingLoggedIn') === 'true';
+  // let remainingSeconds = Number(localStorage.getItem('landingRemainingSeconds') || SESSION_SECONDS);
+
+  // [TO-BE] 신규 코드 */
+  function normalizePortal(portal) {
+    return VALID_PORTALS.includes(portal) ? portal : 'internal';
+  }
+
+  function getRemainingSeconds() {
+    const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_AT_KEY));
+    if (!Number.isFinite(expiresAt) || expiresAt <= 0) return SESSION_SECONDS;
+    return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+  }
+
+  function setSessionExpiry(seconds) {
+    const expiresAt = Date.now() + seconds * 1000;
+    localStorage.setItem(SESSION_EXPIRES_AT_KEY, String(expiresAt));
+    localStorage.setItem('landingRemainingSeconds', String(seconds));
+  }
+
+  function clearSessionStorage() {
+    localStorage.removeItem('landingLoggedIn');
+    localStorage.removeItem('landingRemainingSeconds');
+    localStorage.removeItem(SESSION_EXPIRES_AT_KEY);
+    localStorage.removeItem('loginType');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userDept');
+  }
+
+  let currentPortal = normalizePortal(localStorage.getItem('landingPortal'));
   let isLoggedIn = localStorage.getItem('landingLoggedIn') === 'true';
-  let remainingSeconds = Number(localStorage.getItem('landingRemainingSeconds') || SESSION_SECONDS);
+  let remainingSeconds = isLoggedIn ? getRemainingSeconds() : SESSION_SECONDS;
+  if (isLoggedIn && remainingSeconds <= 0) {
+    isLoggedIn = false;
+    clearSessionStorage();
+  }
+  /* --------------------------------------------------------------------------
+     [2026-05-29] 수정 종료 */
   let timerId = null;
   let sessionWarningShown = false;
 
@@ -543,7 +592,9 @@ History Log
     document.getElementById('loginPanelTitle').textContent = data.loginTitle;
     document.getElementById('introDesc').textContent = data.intro;
     document.getElementById('loginArea').innerHTML = data.loginHtml;
-    document.getElementById('loginStatus').innerHTML = isLoggedIn ? '<strong>로그인 상태</strong>' : '로그인 전';
+    const loginStatus = document.getElementById('loginStatus');
+    loginStatus.textContent = isLoggedIn ? '로그인 상태' : '로그인 전';
+    loginStatus.classList.toggle('logged-in', isLoggedIn);
     document.getElementById('logoutBtn').disabled = !isLoggedIn;
     document.getElementById('extendSessionBtn').disabled = !isLoggedIn;
     document.querySelectorAll('[data-portal]').forEach(btn => btn.classList.toggle('active', btn.dataset.portal === currentPortal));
@@ -566,16 +617,27 @@ History Log
   function renderList(id, type) {
     const items = visiblePosts(type);
     const container = document.getElementById(id);
+    container.textContent = '';
     if (items.length === 0) {
-      container.innerHTML = '<div class="empty">표시할 게시물이 없습니다.</div>';
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = '표시할 게시물이 없습니다.';
+      container.appendChild(empty);
       return;
     }
-    container.innerHTML = items.map(item => `
-      <button class="list-item" data-post-id="${item.id}">
-        <div class="item-title">${item.title}</div>
-        <div class="item-meta">${item.meta}</div>
-      </button>
-    `).join('');
+    items.forEach(item => {
+      const button = document.createElement('button');
+      const title = document.createElement('div');
+      const meta = document.createElement('div');
+      button.className = 'list-item';
+      button.dataset.postId = item.id;
+      title.className = 'item-title';
+      title.textContent = item.title;
+      meta.className = 'item-meta';
+      meta.textContent = item.meta;
+      button.append(title, meta);
+      container.appendChild(button);
+    });
   }
 
   function openPost(id) {
@@ -583,10 +645,16 @@ History Log
     if (!post || (!post.isPublic && !isLoggedIn)) return;
     document.getElementById('detailTitle').textContent = post.title;
     document.getElementById('detailMeta').textContent = `${post.author} · ${post.period} · 조회 ${post.views}`;
-    document.getElementById('detailContent').innerHTML = `
-      <p>${post.content}</p>
-      <p style="margin-top:12px;"><strong>첨부파일</strong>: ${post.attachments.length ? post.attachments.join(', ') : '없음'}</p>
-    `;
+    const detailContent = document.getElementById('detailContent');
+    const content = document.createElement('p');
+    const attachment = document.createElement('p');
+    const attachmentTitle = document.createElement('strong');
+    detailContent.textContent = '';
+    content.textContent = post.content;
+    attachment.className = 'attachment-line';
+    attachmentTitle.textContent = '첨부파일';
+    attachment.append(attachmentTitle, `: ${post.attachments.length ? post.attachments.join(', ') : '없음'}`);
+    detailContent.append(content, attachment);
     openModal('detailModal');
   }
 
@@ -599,6 +667,7 @@ History Log
     localStorage.setItem('loginType', currentPortal);
     localStorage.setItem('userName', currentPortal === 'internal' ? 'SRM 내부 사용자' : '협력사 사용자');
     localStorage.setItem('userDept', currentPortal === 'internal' ? '구매전략팀' : '협력사 포털');
+    setSessionExpiry(remainingSeconds);
     startTimer();
     render();
   }
@@ -607,8 +676,7 @@ History Log
     isLoggedIn = false;
     remainingSeconds = SESSION_SECONDS;
     sessionWarningShown = false;
-    localStorage.removeItem('landingLoggedIn');
-    localStorage.removeItem('landingRemainingSeconds');
+    clearSessionStorage();
     document.getElementById('logoutTimer').textContent = '--:--';
     render();
   }
@@ -617,7 +685,7 @@ History Log
     if (!isLoggedIn) return;
     remainingSeconds = SESSION_SECONDS;
     sessionWarningShown = false;
-    localStorage.setItem('landingRemainingSeconds', String(remainingSeconds));
+    setSessionExpiry(remainingSeconds);
     updateTimerLabel();
     closeModal('sessionModal');
   }
@@ -631,7 +699,7 @@ History Log
     updateTimerLabel();
     if (!isLoggedIn) return;
     timerId = setInterval(() => {
-      remainingSeconds -= 1;
+      remainingSeconds = getRemainingSeconds();
       localStorage.setItem('landingRemainingSeconds', String(remainingSeconds));
       updateTimerLabel();
       if (remainingSeconds <= SESSION_WARNING_SECONDS && !sessionWarningShown) {
@@ -681,10 +749,10 @@ History Log
     const target = e.target.closest('button');
     if (!target) return;
     if (target.dataset.portal) {
-      currentPortal = target.dataset.portal;
+      currentPortal = normalizePortal(target.dataset.portal);
       localStorage.setItem('landingPortal', currentPortal);
       isLoggedIn = false;
-      localStorage.removeItem('landingLoggedIn');
+      clearSessionStorage();
       render();
       startTimer();
     } else if (target.id === 'ssoLoginBtn' || target.id === 'supplierLoginBtn') {
