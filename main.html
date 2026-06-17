@@ -24,6 +24,7 @@
   |            |         |          LNB 클릭 → 탭 생성(최대 10개)  |
   |            |         |          탭 클릭 전환 / X버튼 닫기       |
   | 2026-05-21 | AI Agent| [FIX]    탭 렌더링 insertBefore 오류 수정 |
+  | 2026-06-17 | AI Agent| [UI]     랜딩 페이지 톤앤매너와 메인 통일 |
   ============================================================
   -->
   <style>
@@ -256,13 +257,285 @@
       font-weight: 600; font-size: 14px; transition: 0.2s;
     }
     .prompt-body button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+    /* [2026-06-17] 수정 시작 - 작성자: AI Agent
+       사유: 초기 랜딩 페이지의 운영 SRM 포털 톤앤매너와 메인 업무 화면 시각 일관성 확보
+    --------------------------------------------------------------------------
+    // [AS-IS] 기존 코드 (주석 처리)
+    // 메인 화면은 밝은 앱 대시보드 톤, 둥근 버튼, 이모지 로고/프롬프트 중심 스타일이었다.
+
+    // [TO-BE] 신규 코드 */
+    :root {
+      --primary-color: #103b6d;
+      --primary-hover: #0b2f58;
+      --accent-color: #1b76bc;
+      --teal-accent: #00a0a8;
+      --bg-gray: #eef3f7;
+      --panel-bg: #ffffff;
+      --border-color: #d6dde6;
+      --text-main: #1f2933;
+      --text-sub: #607080;
+      --header-height: 78px;
+    }
+
+    [data-theme='dark'] {
+      --primary-color: #78b8ff;
+      --primary-hover: #a5cffc;
+      --accent-color: #62c8ff;
+      --teal-accent: #5eead4;
+      --bg-gray: #0f172a;
+      --panel-bg: #152235;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-sub: #cbd5e1;
+    }
+
+    body {
+      background: var(--bg-gray);
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, sans-serif;
+    }
+
+    header {
+      min-height: var(--header-height);
+      height: var(--header-height);
+      padding: 0 42px;
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: none;
+    }
+    .header-left { gap: 34px; min-width: 0; }
+    .logo {
+      min-width: 238px;
+      color: var(--primary-color);
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 1.2;
+    }
+    .logo::after {
+      content: 'Integrated SRM System';
+      display: block;
+      margin-top: 5px;
+      color: var(--text-sub);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .gnb-list { gap: 2px; }
+    .gnb-item {
+      min-height: 32px;
+      padding: 8px 12px;
+      border-radius: 3px;
+      color: #335b7d;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .gnb-item:hover {
+      background: #f4f8fb;
+      color: var(--primary-color);
+    }
+    .gnb-item.active {
+      background: var(--primary-color);
+      color: #fff;
+    }
+    .header-right { gap: 12px; }
+    .util-group { gap: 4px; padding-right: 12px; }
+    .util-item {
+      min-height: 30px;
+      padding: 6px 9px;
+      border-radius: 3px;
+      color: var(--text-sub);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .util-item:hover { background: #f4f8fb; color: var(--primary-color); }
+    .user-info { color: var(--text-main); font-size: 12px; font-weight: 900; }
+    .btn-logout {
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-sub);
+      background: var(--panel-bg);
+    }
+
+    .main-container {
+      height: calc(100vh - var(--header-height));
+      background: var(--bg-gray);
+    }
+    aside {
+      width: 248px;
+      padding: 22px 16px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border-color);
+    }
+    .lnb-title {
+      margin-bottom: 16px;
+      padding: 0 8px 12px;
+      border-bottom: 2px solid var(--accent-color);
+      color: var(--primary-color);
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 0;
+      opacity: 1;
+    }
+    .lnb-sub-title {
+      margin: 16px 0 8px 8px;
+      color: #415366;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: none;
+      opacity: 1;
+    }
+    .lnb-item {
+      min-height: 36px;
+      padding: 9px 11px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .lnb-item:hover {
+      background: #f4f8fb;
+      border-color: #c7d6e4;
+      color: var(--primary-color);
+      transform: none;
+    }
+    .lnb-item.active {
+      background: #103b6d;
+      color: #fff;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .workspace {
+      padding: 18px 24px 24px;
+      background: var(--bg-gray);
+    }
+    .tab-bar { min-height: 34px; }
+    .tab-empty-hint {
+      padding: 0 4px 8px;
+      color: var(--text-sub);
+      font-size: 12px;
+      font-weight: 800;
+      opacity: 0.72;
+    }
+    .tab-item {
+      height: 34px;
+      padding: 0 12px 0 14px;
+      border-radius: 4px 4px 0 0;
+      background: #e6edf4;
+      color: #415366;
+      font-weight: 800;
+      top: 1px;
+    }
+    .tab-item:hover { background: #fff; color: var(--primary-color); }
+    .tab-item.active {
+      background: var(--panel-bg);
+      color: var(--primary-color);
+      border-top: 3px solid var(--accent-color);
+    }
+    .tab-limit-badge {
+      height: 34px;
+      border-radius: 4px 4px 0 0;
+      font-weight: 800;
+    }
+
+    .content-area {
+      padding: 26px;
+      border-radius: 4px;
+      border-color: var(--border-color);
+      box-shadow: 0 4px 10px rgba(31, 41, 51, 0.04);
+    }
+    .content-loading { border-radius: 4px; }
+    .main-empty-state {
+      min-height: 460px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      border: 1px dashed var(--border-color);
+      background: #f7f9fb;
+      color: var(--text-sub);
+      text-align: center;
+    }
+    .main-empty-state h1 {
+      color: var(--primary-color);
+      font-size: 22px;
+      font-weight: 900;
+    }
+    .main-empty-state p {
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .floating-prompt {
+      width: 560px;
+      bottom: 28px;
+      border-radius: 4px;
+      box-shadow: 0 16px 30px rgba(0, 28, 56, 0.18), 0 0 0 1px var(--border-color);
+    }
+    .floating-prompt.minimized { width: 250px; }
+    .prompt-header {
+      padding: 12px 16px;
+      background: var(--panel-bg);
+    }
+    .prompt-header:hover { background: #f4f8fb; }
+    .prompt-title {
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .prompt-body { padding: 12px; }
+    .prompt-body textarea {
+      height: 42px;
+      border-radius: 3px;
+      background: #f7f9fb;
+      font-size: 13px;
+    }
+    .prompt-body button {
+      border-radius: 3px;
+      background: var(--primary-color);
+      font-weight: 900;
+    }
+    .prompt-body button:hover {
+      background: var(--primary-hover);
+      transform: none;
+    }
+
+    @media (max-width: 1100px) {
+      header {
+        height: auto;
+        min-height: var(--header-height);
+        padding: 14px 18px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .header-left, .header-right { width: 100%; justify-content: space-between; }
+      .main-container { height: calc(100vh - 112px); }
+    }
+    /* --------------------------------------------------------------------------
+       [2026-06-17] 수정 종료 */
   </style>
 </head>
 <body data-theme="light">
 
 <header>
   <div class="header-left">
-    <button class="logo" id="btn-reload">🚀 AI-SRM</button>
+    <!-- [2026-06-17] 수정 시작 - 작성자: AI Agent
+         사유: 랜딩 페이지와 동일한 AISRM 운영 포털 브랜드 톤 적용
+    --------------------------------------------------------------------------
+    // [AS-IS] 기존 코드 (주석 처리)
+    // <button class="logo" id="btn-reload">🚀 AI-SRM</button>
+
+    // [TO-BE] 신규 코드 -->
+    <button class="logo" id="btn-reload">AISRM</button>
+    <!-- --------------------------------------------------------------------------
+       [2026-06-17] 수정 종료 -->
     <nav><ul class="gnb-list" id="gnb-container"></ul></nav>
   </div>
   <div class="header-right">
@@ -298,19 +571,40 @@
         <div class="loading-spinner"></div>
       </div>
       <div id="content-body">
-        <h1 style="font-size:24px; font-weight:700; margin-bottom:8px;">메뉴를 선택해주세요.</h1>
-        <p style="color:var(--text-sub); font-size:15px;">AI-SRM 시스템의 상세 기능을 확인하실 수 있습니다.</p>
-        <div style="height:800px; margin-top:40px; border:2px dashed var(--border-color); border-radius:8px;
-             display:flex; align-items:center; justify-content:center; color:var(--text-sub);">
-          콘텐츠 영역 스크롤 테스트
-        </div>
+        <!-- [2026-06-17] 수정 시작 - 작성자: AI Agent
+             사유: 초기 랜딩 페이지 톤과 맞는 메인 업무 화면 대기 상태 적용
+        --------------------------------------------------------------------------
+        // [AS-IS] 기존 코드 (주석 처리)
+        // <h1 style="font-size:24px; font-weight:700; margin-bottom:8px;">메뉴를 선택해주세요.</h1>
+        // <p style="color:var(--text-sub); font-size:15px;">AI-SRM 시스템의 상세 기능을 확인하실 수 있습니다.</p>
+        // <div style="height:800px; margin-top:40px; border:2px dashed var(--border-color); border-radius:8px;
+        //      display:flex; align-items:center; justify-content:center; color:var(--text-sub);">
+        //   콘텐츠 영역 스크롤 테스트
+        // </div>
+
+        // [TO-BE] 신규 코드 -->
+        <section class="main-empty-state">
+          <h1>AISRM 업무 메뉴를 선택해주세요.</h1>
+          <p>좌측 메뉴에서 구매, 계약, 발주, 납기, 품질 업무 화면을 열 수 있습니다.</p>
+        </section>
+        <!-- --------------------------------------------------------------------------
+           [2026-06-17] 수정 종료 -->
       </div>
       <div class="content-error" id="content-error"></div>
     </main>
 
     <div class="floating-prompt" id="ai-prompt">
       <button class="prompt-header" id="btn-prompt-toggle" aria-label="프롬프트 창 최소화/확장">
-        <span style="font-size:13px; font-weight:800; color:var(--primary-color); display:flex; align-items:center; gap:6px;">✨ AI SRM ASSISTANT</span>
+        <!-- [2026-06-17] 수정 시작 - 작성자: AI Agent
+             사유: 랜딩 페이지와 맞지 않는 장식 이모지 및 인라인 스타일 정리
+        --------------------------------------------------------------------------
+        // [AS-IS] 기존 코드 (주석 처리)
+        // <span style="font-size:13px; font-weight:800; color:var(--primary-color); display:flex; align-items:center; gap:6px;">✨ AI SRM ASSISTANT</span>
+
+        // [TO-BE] 신규 코드 -->
+        <span class="prompt-title">AISRM ASSISTANT</span>
+        <!-- --------------------------------------------------------------------------
+           [2026-06-17] 수정 종료 -->
         <span style="font-size:10px; color:var(--text-sub);">▼</span>
       </button>
       <div class="prompt-body">
@@ -549,9 +843,22 @@ document.addEventListener('DOMContentLoaded', () => {
       // 닫힌 탭이 활성 탭이었으면 → 직전 탭(또는 첫 탭) 활성화
       if (_tabs.length === 0) {
         _activeTabId = null;
+        /* [2026-06-17] 수정 시작 - 작성자: AI Agent
+           사유: 모든 탭 종료 후 표시되는 기본 화면도 랜딩 톤앤매너와 통일
+        --------------------------------------------------------------------------
+        // [AS-IS] 기존 코드 (주석 처리)
+        // DOM.contentBody.innerHTML = `
+        //   <h1 style="font-size:24px;font-weight:700;margin-bottom:8px;">메뉴를 선택해주세요.</h1>
+        //   <p style="color:var(--text-sub);font-size:15px;">AI-SRM 시스템의 상세 기능을 확인하실 수 있습니다.</p>`;
+
+        // [TO-BE] 신규 코드 */
         DOM.contentBody.innerHTML = `
-          <h1 style="font-size:24px;font-weight:700;margin-bottom:8px;">메뉴를 선택해주세요.</h1>
-          <p style="color:var(--text-sub);font-size:15px;">AI-SRM 시스템의 상세 기능을 확인하실 수 있습니다.</p>`;
+          <section class="main-empty-state">
+            <h1>AISRM 업무 메뉴를 선택해주세요.</h1>
+            <p>좌측 메뉴에서 구매, 계약, 발주, 납기, 품질 업무 화면을 열 수 있습니다.</p>
+          </section>`;
+        /* --------------------------------------------------------------------------
+           [2026-06-17] 수정 종료 */
         DOM.contentBody.style.display = 'block';
         DOM.contentLoad.classList.remove('active');
       } else {
@@ -666,15 +973,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html = doc.body.innerHTML;
       } else {
+        /* [2026-06-17] 수정 시작 - 작성자: AI Agent
+           사유: 미구현 페이지 안내 화면에서 장식 이모지와 기존 앱 톤 제거
+        --------------------------------------------------------------------------
+        // [AS-IS] 기존 코드 (주석 처리)
+        // html = `
+        //   <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">${itemTitle}</h1>
+        //   <p style="color:var(--text-sub);font-size:14px;margin-bottom:32px;">이 페이지는 아직 구현 중입니다.</p>
+        //   <div style="padding:32px;border:2px dashed var(--border-color);border-radius:8px;
+        //        display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-sub);">
+        //     <span style="font-size:40px;">🚧</span>
+        //     <span style="font-size:14px;font-weight:600;">pages/${fileId}.html</span>
+        //     <span style="font-size:13px;">해당 파일을 생성하면 자동으로 로딩됩니다.</span>
+        //   </div>`;
+
+        // [TO-BE] 신규 코드 */
         html = `
-          <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">${itemTitle}</h1>
-          <p style="color:var(--text-sub);font-size:14px;margin-bottom:32px;">이 페이지는 아직 구현 중입니다.</p>
-          <div style="padding:32px;border:2px dashed var(--border-color);border-radius:8px;
-               display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-sub);">
-            <span style="font-size:40px;">🚧</span>
-            <span style="font-size:14px;font-weight:600;">pages/${fileId}.html</span>
-            <span style="font-size:13px;">해당 파일을 생성하면 자동으로 로딩됩니다.</span>
-          </div>`;
+          <section class="main-empty-state">
+            <h1>${itemTitle}</h1>
+            <p>이 페이지는 아직 구현 중입니다. pages/${fileId}.html 파일을 생성하면 자동으로 로딩됩니다.</p>
+          </section>`;
+        /* --------------------------------------------------------------------------
+           [2026-06-17] 수정 종료 */
       }
 
       /* ── 탭 객체에 HTML 캐시 저장 ── */
@@ -794,7 +1114,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const titleDiv = document.createElement('div');
     titleDiv.className = 'lnb-title';
-    titleDiv.textContent = `${group.icon} ${group.title}`;
+    /* [2026-06-17] 수정 시작 - 작성자: AI Agent
+       사유: 랜딩 페이지와 통일된 운영 포털 톤을 위해 좌측 메뉴 제목의 장식 이모지 제거
+    --------------------------------------------------------------------------
+    // [AS-IS] 기존 코드 (주석 처리)
+    // titleDiv.textContent = `${group.icon} ${group.title}`;
+
+    // [TO-BE] 신규 코드 */
+    titleDiv.textContent = group.title;
+    /* --------------------------------------------------------------------------
+       [2026-06-17] 수정 종료 */
     DOM.lnb.appendChild(titleDiv);
 
     let firstBtn  = null;
