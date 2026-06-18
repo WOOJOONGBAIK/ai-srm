@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<!--
+=====================================================================
+ TPMS Partner - 기술자료 라이프사이클 협력사 포털 (사외용)
+ 특허출원 10-2026-0081369 구현 PoC
+=====================================================================
+ History Log
+ ---------------------------------------------------------------
+ | 버전 | 날짜       | 작성자 | 사유                                              |
+ | v1.0 | 2026-06-12 | Claude | 최초 작성 (협력사 측 PoC 구현)                    |
+ | v2.0 | 2026-06-13 | Claude | 리뷰 반영(상업 출시 수준):                        |
+ |      |            |        |  [1] crypto.subtle 미동작(file://) 대비 순수JS    |
+ |      |            |        |      SHA-256 폴백 (node crypto 교차검증 완료)     |
+ |      |            |        |  [2] 제출 파일 해시를 공용 DB에 기록 → 원사업자   |
+ |      |            |        |      측 무결성 교차검증의 기준값으로 사용          |
+ |      |            |        |  [5] localStorage 공용 DB로 원사업자 포털과 연동  |
+ |      |            |        |  [6] 제출 후 자동통과(setTimeout) 제거 →          |
+ |      |            |        |      원사업자 검수·인가 결과를 실시간 수신/표시    |
+ ---------------------------------------------------------------
+ 청구항 매핑
+  요구서 전자 수신 + 명시적 열람확인(교부완료 시점 기록) ... 청구항 6
+  기술자료 제출 시 SHA-256 무결성 해시 산출 ................ 청구항 5 연계
+  5단계 라이프사이클 상태 추적 ............................. 청구항 1
+  폐기 증명서(Vault 증적) 조회·검증 ........................ 청구항 5
+  NDA 상태 표시 ............................................ 청구항 7 연계
+ ---------------------------------------------------------------
+ [구동 안내] 원사업자 포털과의 실시간 연동 및 crypto.subtle 정상 동작을 위해
+   동일 출처(origin)에서 로컬 웹서버로 두 파일을 함께 구동 권장.
+=====================================================================
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TPMS Partner | 기술자료 협력사 포털</title>
+<link rel="stylesheet" href="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.css">
+<link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css">
+<link rel="stylesheet" href="../shared/grid/tpms-grid.css">
+<style>
+:root{
+  --head:#2A3242; --head2:#39455C; --accent:#C9A227; --accent2:#8C6F12;
+  --blue:#2B4C8C; --bg:#F4F4F1; --surface:#FFFFFF; --line:#DCDDD8; --line2:#ECEDE9;
+  --ink:#22262E; --muted:#6B7180; --soft:#9AA0AC;
+  --block:#B3261E; --blockbg:#FBEAE8; --allow:#1E7A46; --allowbg:#E7F4EC;
+  --warn:#9A6700; --warnbg:#FFF4DA; --vault:#5B4B8A; --vaultbg:#EFEBF8;
+  --mono:'Consolas','Courier New',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Pretendard','Malgun Gothic','맑은 고딕',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.55}
+header{background:var(--head);color:#fff;padding:0 24px;height:54px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50}
+header .logo{font-size:16px;font-weight:800;letter-spacing:.5px}
+header .logo span{color:var(--accent);font-weight:700}
+header .scope{font-size:10px;font-weight:700;letter-spacing:1.5px;background:var(--accent);color:#2A2510;padding:3px 8px;border-radius:3px}
+header .who{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11.5px;color:#C9CFDA}
+.dot{width:8px;height:8px;border-radius:50%;background:#7FE3A8}
+.dot.mem{background:#FFB454}
+nav{background:var(--head2);padding:0 24px;display:flex;gap:2px;position:sticky;top:54px;z-index:49;overflow-x:auto}
+nav button{background:none;border:none;color:#BFC7D6;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap}
+nav button:hover{color:#fff}
+nav button.on{color:#fff;border-bottom-color:var(--accent)}
+nav button .pill{display:inline-block;min-width:17px;height:17px;line-height:17px;text-align:center;font-size:10px;background:var(--accent);color:#2A2510;border-radius:9px;margin-left:5px;padding:0 4px;font-weight:800}
+main{max-width:1180px;margin:0 auto;padding:20px 24px 60px}
+.tab{display:none}.tab.on{display:block}
+h2{font-size:15px;font-weight:800;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+h2 .cl{font-size:10px;font-weight:700;color:var(--accent2);background:#F7F1DC;padding:2px 7px;border-radius:3px}
+.grid{display:grid;gap:14px}
+.g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:1fr 1fr}
+@media(max-width:900px){.g3{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px}
+.kpi .num{font-size:26px;font-weight:800}
+.kpi .lbl{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#F7F8F5;border-bottom:2px solid var(--line);padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);white-space:nowrap}
+td{border-bottom:1px solid var(--line2);padding:8px 10px;vertical-align:top}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.b-new{background:#F7F1DC;color:var(--accent2)} .b-read{background:#E4EDFB;color:var(--blue)}
+.b-sub{background:var(--warnbg);color:var(--warn)} .b-rev{background:#F7F1DC;color:#8C6F12}
+.b-use{background:var(--allowbg);color:var(--allow)} .b-disp{background:var(--vaultbg);color:var(--vault)}
+.b-block{background:var(--blockbg);color:var(--block)}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 4px}
+select,input[type=file]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:4px;font-size:13px;font-family:inherit;background:#fff}
+.btn{display:inline-block;border:none;border-radius:4px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-p{background:var(--head);color:#fff} .btn-p:hover:not(:disabled){background:#39455C}
+.btn-g{background:var(--accent);color:#2A2510} .btn-g:hover:not(:disabled){background:#B8921F}
+.btn-s{background:#fff;color:var(--head);border:1px solid var(--line)}
+.btn-sm{padding:5px 10px;font-size:11.5px}
+.note{font-size:11.5px;color:var(--muted);background:#F7F8F5;border-left:3px solid var(--line);padding:8px 12px;border-radius:0 4px 4px 0;margin:8px 0}
+.gate{border:1.5px solid var(--line);border-radius:6px;padding:12px;margin-top:8px}
+.gate.ok{border-color:var(--allow);background:var(--allowbg)} .gate.no{border-color:var(--block);background:var(--blockbg)}
+.gate.v{border-color:var(--vault);background:var(--vaultbg)} .gate.w{border-color:var(--warn);background:var(--warnbg)}
+.gate .t{font-weight:800;font-size:12.5px;margin-bottom:4px}
+.gate div{font-size:12px}
+.mono{font-family:var(--mono);font-size:11px;word-break:break-all}
+.steps{display:flex;margin:8px 0 4px}
+.step{flex:1;text-align:center;font-size:10.5px;font-weight:700;color:var(--soft);padding:7px 2px;background:#EEEFEA;border-right:2px solid #fff}
+.step:first-child{border-radius:4px 0 0 4px}.step:last-child{border-radius:0 4px 4px 0;border-right:none}
+.step.done{background:var(--head2);color:#fff}
+.step.cur{background:var(--accent);color:#2A2510}
+.step.no{background:var(--block);color:#fff}
+.doc{border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:12px;background:#fff}
+.doc .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.doc .hd b{font-size:13.5px}
+.doc dl{display:grid;grid-template-columns:110px 1fr;gap:3px 10px;margin-top:10px;font-size:12.5px}
+.doc dt{color:var(--muted);font-weight:700;font-size:11.5px}
+.doc dd{margin:0}
+.right{margin-left:auto}
+.empty{color:var(--soft);text-align:center;padding:24px 0;font-size:12px}
+hr{border:none;border-top:1px solid var(--line2);margin:14px 0}
+footer{text-align:center;color:var(--soft);font-size:11px;padding:20px}
+.legal{font-size:11px;color:var(--muted);background:#FBFBF8;border:1px dashed var(--line);border-radius:4px;padding:8px 10px;margin-top:10px}
+#toast{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:200}
+.toast{background:var(--head);color:#fff;padding:11px 16px;border-radius:6px;font-size:12.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.22);border-left:4px solid var(--accent);max-width:340px;animation:slideIn .2s}
+.toast.ok{border-left-color:var(--allow)} .toast.no{border-left-color:var(--block)}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">TPMS <span>Partner</span></div>
+  <div class="scope">EXTERNAL · 협력사 포털</div>
+  <div class="who"><span class="dot" id="syncDot"></span><span id="syncTxt">Local DB</span> · 로그인: 대한정밀(주) · BP1001 · NDA <b id="ndaTop"></b></div>
+</header>
+<nav id="nav"></nav>
+<main>
+
+<!-- ===== 수신함 ===== -->
+<div class="tab on" id="tab-inbox">
+  <div class="grid g3">
+    <div class="card kpi"><div class="lbl">수신 요구서</div><div class="num" id="k-in">0</div></div>
+    <div class="card kpi"><div class="lbl">제출 완료</div><div class="num" id="k-sent" style="color:var(--allow)">0</div></div>
+    <div class="card kpi"><div class="lbl">폐기 증명 수령</div><div class="num" id="k-cert" style="color:var(--vault)">0</div></div>
+  </div>
+  <h2>기술자료 제공 요구서 수신함 <span class="cl">청구항 6 · 명시적 열람확인 = 서면 교부 완료 시점</span></h2>
+  <div class="note">[열람 확인] 클릭 시점이 하도급법상 서면 교부 완료 시점으로 원사업자 감사 로그에 기록됨. 열람 확인 전에는 자료 제출이 차단됨.</div>
+  <div id="inbox"></div>
+</div>
+
+<!-- ===== 자료 제출 ===== -->
+<div class="tab" id="tab-submit">
+  <h2>기술자료 제출 <span class="cl">SHA-256 무결성 해시 산출 후 전송</span></h2>
+  <div class="grid g2">
+    <div class="card">
+      <label>대상 요구서 (열람 확인 완료 건만 선택 가능)</label>
+      <select id="s-req"></select>
+      <label>제출 파일</label>
+      <input type="file" id="s-file">
+      <div class="note">파일 본문은 서버로 전송되지 않으며(PoC), 브라우저 내에서 SHA-256 해시만 산출하여 제출 증적으로 기록함. 이 해시가 원사업자 측 무결성 교차검증의 기준값이 됨.</div>
+      <button class="btn btn-g" id="btnSubmit" onclick="submitFile()">해시 산출 후 제출</button>
+      <div id="subResult"></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:800;font-size:12.5px;margin-bottom:8px">제출 이력</div>
+      <div id="subGrid" class="tpms-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 라이프사이클 ===== -->
+<div class="tab" id="tab-life">
+  <h2>제공 자료 라이프사이클 추적 <span class="cl">요청→교부→제출→검수→사용→폐기</span></h2>
+  <div class="note">제공한 기술자료가 기재된 사용 목적 범위 내에서만 사용되고 폐기일에 폐기되는지 협력사가 직접 확인 가능 — 상생 신뢰 확보 목적. 원사업자의 검수·인가·폐기 결과가 실시간 반영됨.</div>
+  <div id="lifeList"></div>
+</div>
+
+<!-- ===== 폐기 증명 ===== -->
+<div class="tab" id="tab-cert">
+  <h2>폐기 증명서 (Vault 증적) <span class="cl">청구항 5 · 미유용 입증</span></h2>
+  <div class="note">원사업자 시스템의 Vault DB에 격리 보존된 폐기 증적. DoD 5220.22-M 물리 삭제 + SHA-256 해시 + RFC 3161 타임스탬프로 기술자료가 폐기 후 재사용되지 않았음을 입증함.</div>
+  <div id="certList"><div class="empty">수령한 폐기 증명서 없음</div></div>
+</div>
+
+</main>
+<footer>TPMS Partner PoC v2.0 · 사외용(협력사) · 특허출원 10-2026-0081369 · 동일 출처 로컬 웹서버 구동 시 원사업자 포털과 실시간 연동</footer>
+<div id="toast"></div>
+
+<script src="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.js"></script>
+<script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+<script src="../shared/grid/tpms-grid.js"></script>
+<script>
+/* =====================[v2.0][2026-06-13][Claude][상업 출시 수준 재구성 START]===================== */
+'use strict';
+const ME={bp:'BP1001',name:'대한정밀(주)'};
+
+/* ───────── [1] SHA-256 : crypto.subtle 우선, 미동작 시 순수 JS 폴백 ───────── */
+function _sha256js(bytes){
+  if(typeof bytes==='string'){bytes=new TextEncoder().encode(bytes);}
+  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const l=bytes.length,bl=l*8,wl=((l+8)>>6)+1,p=new Uint8Array(wl*64);
+  p.set(bytes);p[l]=0x80;for(let i=0;i<4;i++)p[wl*64-1-i]=(bl>>>(8*i))&0xff;
+  const w=new Int32Array(64),rr=(x,n)=>(x>>>n)|(x<<(32-n));
+  for(let j=0;j<wl;j++){
+    for(let i=0;i<16;i++){const o=j*64+i*4;w[i]=(p[o]<<24)|(p[o+1]<<16)|(p[o+2]<<8)|p[o+3];}
+    for(let i=16;i<64;i++){const a=rr(w[i-15],7)^rr(w[i-15],18)^(w[i-15]>>>3),b=rr(w[i-2],17)^rr(w[i-2],19)^(w[i-2]>>>10);w[i]=(w[i-16]+a+w[i-7]+b)|0;}
+    let [a,b,c,d,e,f,g,h]=H;
+    for(let i=0;i<64;i++){const S1=rr(e,6)^rr(e,11)^rr(e,25),ch=(e&f)^(~e&g),t1=(h+S1+ch+K[i]+w[i])|0,S0=rr(a,2)^rr(a,13)^rr(a,22),mj=(a&b)^(a&c)^(b&c),t2=(S0+mj)|0;h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;}
+    H=[(H[0]+a)|0,(H[1]+b)|0,(H[2]+c)|0,(H[3]+d)|0,(H[4]+e)|0,(H[5]+f)|0,(H[6]+g)|0,(H[7]+h)|0];
+  }
+  return H.map(x=>(x>>>0).toString(16).padStart(8,'0')).join('');
+}
+let _subtleOK=null;
+async function sha256(data){
+  const bytes=typeof data==='string'?new TextEncoder().encode(data):new Uint8Array(data);
+  if(_subtleOK!==false && window.crypto && crypto.subtle){
+    try{const b=await crypto.subtle.digest('SHA-256',bytes);_subtleOK=true;
+      return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+    catch(e){_subtleOK=false;}
+  }
+  return _sha256js(bytes);
+}
+
+/* ───────── [5] 공용 DB (원사업자 포털과 동일 키) ───────── */
+const DB_KEY='TPMS_DB_v2';
+const Store=(()=>{
+  let mem=null,has=false;
+  try{localStorage.setItem('__t','1');localStorage.removeItem('__t');has=true;}catch(e){has=false;}
+  return{has,mode:has?'Local DB':'인메모리(file://)',
+    read(){if(has){try{const r=localStorage.getItem(DB_KEY);return r?JSON.parse(r):null;}catch(e){}}return mem;},
+    write(db){db._t=Date.now();if(has){try{localStorage.setItem(DB_KEY,JSON.stringify(db));return;}catch(e){}}mem=db;}};
+})();
+
+/* 공용 시드 — 원사업자 파일과 byte-identical */
+const _H1='f3a1c97b22e04d18a55c6b9d0e7412fa9b3c8d5e6f7a8b9c0d1e2f3a4b5c6d7e';
+const _H2='1a2b3c4d5e6f70819293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9';
+const _VH2='9e8d7c6b5a40312f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f';
+function seed(){
+  return {v:2,_t:0,seq:0,
+    vendors:[
+     {bp:'BP1001',name:'대한정밀(주)',ndaExpire:'2026-12-31',approval:true},
+     {bp:'BP1002',name:'서진테크',ndaExpire:'2026-05-31',approval:true},
+     {bp:'BP1003',name:'한빛산업',ndaExpire:'2027-03-31',approval:false},
+     {bp:'BP1004',name:'유성금속',ndaExpire:'2026-11-30',approval:true}],
+    pos:[{po:'PO-26-0501',item:'A-1234 하우징 가공',bp:'BP1001'}],
+    reqs:[
+     {id:'REQ-001',bp:'BP1001',vendor:'대한정밀(주)',name:'A-1234 하우징 가공도면 Rev.C',purpose:'수입검사 시 치수 품질 검증을 위한 도면 확인',code:'PURPOSE_QA',conf:0.91,roles:['QA_품질검사원:READ'],right:'협력사 귀속 (열람만 허용)',comp:'무상 (계약단가 포함)',give:'2026-06-05',due:'2026-09-30',status:'IN_USE',readAt:'2026-06-05T09:12:44Z',submittedAt:'2026-06-05T09:30:10Z',submittedFile:'A1234_housing_revC.pdf',submittedHash:_H1,channelHash:_H1,receivedHash:_H1,integrity:'PASS',approvedAt:'2026-06-05T11:00:00Z',disposedAt:null,vaultId:null,revoked:false,cert:null},
+     {id:'REQ-002',bp:'BP1001',vendor:'대한정밀(주)',name:'B-5678 브래킷 공정조건서',purpose:'양산 이관 검토를 위한 공정조건 확인',code:'PURPOSE_MFG',conf:0.85,roles:[],right:'협력사 귀속 (열람만 허용)',comp:'무상 (계약단가 포함)',give:'2026-04-01',due:'2026-06-01',status:'DISPOSED',readAt:'2026-04-01T10:01:02Z',submittedAt:'2026-04-01T10:22:31Z',submittedFile:'B5678_process.xlsx',submittedHash:_H2,channelHash:_H2,receivedHash:_H2,integrity:'PASS',approvedAt:'2026-04-02T09:00:00Z',disposedAt:'2026-06-01T00:05:11Z',vaultId:'VLT-001',revoked:false,cert:{vaultId:'VLT-001',disposedAt:'2026-06-01T00:05:11Z',hash:_VH2,tsa:'RFC3161-TSA-20260601000511'}},
+     {id:'REQ-003',bp:'BP1001',vendor:'대한정밀(주)',name:'C-9012 표면처리 사양서',purpose:'신규 개발품 시제 제작을 위한 사양 검토',code:'PURPOSE_DEV',conf:0.88,roles:['RND_개발설계:READ','RND_개발설계:WRITE'],right:'협력사 귀속 (열람만 허용)',comp:'무상 (계약단가 포함)',give:'2026-06-11',due:'2026-12-31',status:'ISSUED',readAt:null,submittedAt:null,submittedFile:null,submittedHash:null,channelHash:null,receivedHash:null,integrity:null,approvedAt:null,disposedAt:null,vaultId:null,revoked:false,cert:null}
+    ],
+    vault:[{vaultId:'VLT-001',reqId:'REQ-002',name:'B-5678 브래킷 공정조건서',vendor:'대한정밀(주)',disposedAt:'2026-06-01T00:05:11Z',origHash:_H2,hash:_VH2,tsa:'RFC3161-TSA-20260601000511'}],
+    audit:[], sessions:[]
+  };
+}
+function DB(){let db=Store.read();if(!db){db=seed();Store.write(db);}return db;}
+function save(db){Store.write(db);}
+/* 협력사 측 감사 이벤트 기록 — seq 동기 채번, 직렬화 큐 */
+let _auditQ=Promise.resolve();
+function audit(event,target,actor){_auditQ=_auditQ.then(()=>_audit(event,target,actor));return _auditQ;}
+async function _audit(event,target,actor){
+  const db=DB();const seqNow=++db.seq;
+  const prev=db.audit.length?db.audit[db.audit.length-1].hash:'GENESIS';
+  const ts=new Date().toISOString();
+  const hash=await sha256(prev+'|'+seqNow+'|'+event+'|'+target+'|'+ts);
+  const fresh=DB();fresh.seq=Math.max(fresh.seq,seqNow);
+  fresh.audit.push({seq:seqNow,ts,event,target,actor,prev,hash});save(fresh);
+}
+
+/* ───────── 협력사 액션 ───────── */
+async function ackRead(id){
+  const db=DB(),d=db.reqs.find(x=>x.id===id);if(!d||d.status!=='ISSUED')return;
+  d.readAt=new Date().toISOString();d.status='READ';save(db);
+  await audit('협력사 열람확인 — 서면 교부 완료 시점 기록',d.name,ME.name);
+  toast(d.id+' 열람 확인 — 교부완료 기록','ok');render();
+}
+async function submitFile(){
+  const btn=el('btnSubmit');btn.disabled=true;
+  try{
+    const id=el('s-req').value,db=DB(),d=db.reqs.find(x=>x.id===id),box=el('subResult'),fi=el('s-file');
+    if(!d){box.innerHTML='<div class="gate no"><div class="t">제출 가능한 요구서 없음</div><div>열람 확인이 완료된 요구서만 제출 가능</div></div>';toast('제출 대상 없음','no');return;}
+    if(!fi.files.length){box.innerHTML='<div class="gate no"><div class="t">파일 미선택</div><div>제출할 파일을 선택하십시오</div></div>';toast('파일 미선택','no');return;}
+    const f=fi.files[0];
+    const hash=await sha256(await f.arrayBuffer());
+    d.status='SUBMITTED';d.submittedAt=new Date().toISOString();d.submittedFile=f.name;
+    d.submittedHash=hash;d.channelHash=hash;       // 전송 구간 해시(원사업자 교차검증 기준값)
+    d.integrity=null;d.receivedHash=null;
+    save(db);
+    await audit('기술자료 제출(SHA-256 해시 동봉) — 원사업자 검수 대기',d.name,ME.name);
+    box.innerHTML=`<div class="gate ok"><div class="t">제출 완료 — 원사업자 검수 대기</div>
+     <div>파일: ${f.name} (${(f.size/1024).toFixed(1)} KB)</div>
+     <div class="mono">SHA-256: ${hash}</div>
+     <div style="margin-top:4px">원사업자가 무결성 교차검증 및 목적성 검수를 인가하면 사용(IN_USE)으로 확정됨. 결과는 본 화면에 실시간 반영됨.</div></div>`;
+    fi.value='';toast(d.id+' 제출 완료','ok');render();
+  } finally{ btn.disabled=false; }
+}
+
+/* ───────── 렌더링 ───────── */
+function el(id){return document.getElementById(id);}
+function toast(msg,kind){const t=document.createElement('div');t.className='toast '+(kind||'');t.textContent=msg;el('toast').appendChild(t);setTimeout(()=>t.remove(),3200);}
+const ORDER=['ISSUED','READ','SUBMITTED','UNDER_REVIEW','IN_USE','DISPOSED'];
+const STEP_LBL=['교부','열람확인','제출','검수','사용','폐기'];
+const BADGE={ISSUED:['열람 대기','b-new'],READ:['열람 확인','b-read'],SUBMITTED:['제출(검수 대기)','b-sub'],UNDER_REVIEW:['무결성검증 완료(인가 대기)','b-rev'],IN_USE:['사용 중','b-use'],DISPOSED:['폐기 완료','b-disp'],BLOCKED:['차단','b-block']};
+function stepsHTML(d){
+  const cur=ORDER.indexOf(d.status);const fail=d.integrity==='FAIL';
+  return '<div class="steps">'+STEP_LBL.map((l,i)=>{
+    let c=i<cur?'done':i===cur?'cur':'';if(fail&&i===3)c='no';
+    return `<div class="step ${c}">${l}</div>`;}).join('')+'</div>';
+}
+function docHTML(d,withAction){
+  const [t,c]=BADGE[d.status]||['-','b-new'];
+  let act='';
+  if(withAction&&d.status==='ISSUED')act=`<button class="btn btn-g btn-sm right" onclick="ackRead('${d.id}')">열람 확인 (교부완료 기록)</button>`;
+  let integ='';
+  if(d.integrity==='PASS')integ='<span class="badge b-use">무결성 교차검증 OK</span>';
+  else if(d.integrity==='FAIL')integ='<span class="badge b-block">무결성 불일치 — 차단</span>';
+  else if(d.status==='SUBMITTED')integ='<span class="badge b-sub">원사업자 검수 대기</span>';
+  return `<div class="doc"><div class="hd"><b>${d.id} · ${d.name}</b><span class="badge ${c}">${t}</span>${integ?' '+integ:''}${act}</div>
+   ${stepsHTML(d)}
+   <dl><dt>사용 목적</dt><dd>${d.purpose} <span class="badge b-read">${d.code}</span></dd>
+   <dt>권리 귀속</dt><dd>${d.right}</dd>
+   <dt>제공 대가</dt><dd>${d.comp}</dd>
+   <dt>제공일 / 폐기일</dt><dd>${d.give} / <b>${d.due}</b></dd>
+   ${d.readAt?`<dt>열람확인 시각</dt><dd class="mono">${d.readAt}</dd>`:''}
+   ${d.submittedHash?`<dt>제출 해시</dt><dd class="mono">${d.submittedHash}</dd>`:''}
+   ${d.approvedAt?`<dt>인가 시각</dt><dd class="mono">${d.approvedAt}</dd>`:''}</dl>
+   ${d.status==='ISSUED'?'<div class="legal">하도급법 제2조의2에 따른 기술자료 제공 요구서임. 열람 확인 시점이 서면 교부 완료 시점으로 기록되며, 기재 목적 외 사용·미폐기 시 원사업자 시스템이 이를 차단·증적함.</div>':''}
+   ${d.revoked&&d.status!=='DISPOSED'?'<div class="gate no" style="margin-top:8px"><div class="t">NDA 만료 — 접근 권한 회수됨</div><div>본 자료에 대한 접근 권한이 일괄 회수되었습니다. 폐기 절차 안내를 확인하십시오.</div></div>':''}
+  </div>`;
+}
+function render(){
+  const db=DB();
+  el('syncTxt').textContent=Store.mode;el('syncDot').classList.toggle('mem',!Store.has);
+  const me=db.vendors.find(v=>v.bp===ME.bp);el('ndaTop').textContent=me?me.ndaExpire:'-';
+  const mine=db.reqs.filter(r=>r.bp===ME.bp);
+  el('k-in').textContent=mine.length;
+  el('k-sent').textContent=mine.filter(d=>['SUBMITTED','UNDER_REVIEW','IN_USE','DISPOSED'].includes(d.status)).length;
+  el('k-cert').textContent=mine.filter(d=>d.cert).length;
+  // 수신함: 처리 대기(교부/열람/제출 가능) 우선
+  el('inbox').innerHTML=mine.length?mine.map(d=>docHTML(d,true)).join(''):'<div class="empty">수신 요구서 없음 — 원사업자가 요구서를 교부하면 표시됨</div>';
+  el('lifeList').innerHTML=mine.length?mine.map(d=>docHTML(d,false)).join(''):'<div class="empty">추적할 자료 없음</div>';
+  // 제출 셀렉트(열람확인 완료 건만)
+  const ready=mine.filter(d=>d.status==='READ');
+  el('s-req').innerHTML=ready.length?ready.map(d=>`<option value="${d.id}">${d.id} ${d.name}</option>`).join(''):'<option value="">열람 확인 완료 건 없음</option>';
+  const newPill=document.querySelector('nav button[data-t="inbox"] .pill');
+  const todo=mine.filter(d=>d.status==='ISSUED').length;
+  if(newPill)newPill.style.display=todo?'inline-block':'none',newPill.textContent=todo;
+  // 제출 이력
+  const subs=mine.filter(d=>d.submittedHash).sort((a,b)=>(b.submittedAt||'').localeCompare(a.submittedAt||''));
+  TPMSGrid.render('subGrid', {
+    rows: subs.map(d => ({
+      ...d,
+      submittedAtText: (d.submittedAt || '').replace('T',' ').slice(0,19),
+      submittedHashShort: d.submittedHash ? `${d.submittedHash.slice(0,16)}...` : '-',
+    })),
+    columns: [
+      {name:'id', header:'요구서', width:105},
+      {name:'submittedFile', header:'파일명', minWidth:180},
+      {name:'submittedAtText', header:'제출 시각', minWidth:150, formatter:v=>`<span class="mono">${TPMSGrid.html(v)}</span>`},
+      {name:'submittedHashShort', header:'SHA-256 (앞 16)', minWidth:150, formatter:v=>`<span class="mono">${TPMSGrid.html(v)}</span>`},
+      {name:'integrity', header:'검수 결과', width:110, formatter:(v,row)=>row.integrity==='PASS'?'<span class="badge b-use">검증 OK</span>':row.integrity==='FAIL'?'<span class="badge b-block">불일치</span>':row.status==='IN_USE'||row.status==='DISPOSED'?'<span class="badge b-use">인가됨</span>':'<span class="badge b-sub">대기</span>'},
+    ],
+    pageOptions: {useClient: true, perPage: 8},
+    emptyMessage: '제출 이력 없음',
+  });
+  // 폐기 증명서
+  const certs=mine.filter(d=>d.cert);
+  el('certList').innerHTML=certs.length?certs.map(d=>`
+    <div class="gate v"><div class="t" style="color:var(--vault)">폐기 증명서 ${d.cert.vaultId} · ${d.name}</div>
+    <dl style="display:grid;grid-template-columns:120px 1fr;gap:3px 10px;font-size:12.5px;margin-top:6px">
+      <dt style="color:var(--muted);font-weight:700">대상 요구서</dt><dd>${d.id}</dd>
+      <dt style="color:var(--muted);font-weight:700">폐기 방식</dt><dd>DoD 5220.22-M 다중 덮어쓰기 물리 삭제 + 메타데이터 격리 보존</dd>
+      <dt style="color:var(--muted);font-weight:700">폐기 시각</dt><dd class="mono">${d.cert.disposedAt}</dd>
+      <dt style="color:var(--muted);font-weight:700">증적 해시</dt><dd class="mono">${d.cert.hash}</dd>
+      <dt style="color:var(--muted);font-weight:700">타임스탬프</dt><dd class="mono">${d.cert.tsa}</dd></dl>
+    <div style="margin-top:8px"><button class="btn btn-s btn-sm" onclick="verifyCert('${d.id}')">증적 무결성 검증</button></div>
+    </div>`).join(''):'<div class="empty">수령한 폐기 증명서 없음</div>';
+}
+async function verifyCert(id){
+  const d=DB().reqs.find(x=>x.id===id);if(!d||!d.cert)return;
+  // Vault 레코드와 증명서 해시 일치 여부 확인
+  const v=DB().vault.find(x=>x.vaultId===d.cert.vaultId);
+  const ok=v&&v.hash===d.cert.hash;
+  toast(ok?'증적 해시 일치 — 폐기 사실 입증됨':'증적 불일치', ok?'ok':'no');
+}
+
+/* ───────── 탭 ───────── */
+const TABS=[['inbox','요구서 수신함'],['submit','자료 제출'],['life','라이프사이클 추적'],['cert','폐기 증명서']];
+el('nav').innerHTML=TABS.map(([k,t],i)=>`<button class="${i===0?'on':''}" data-t="${k}">${t}${k==='inbox'?'<span class="pill" style="display:none">0</span>':''}</button>`).join('');
+el('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+b.dataset.t));
+  setTimeout(render,0);
+});
+
+/* ───────── 크로스탭/포털 실시간 동기화 ───────── */
+let _lastT=0;
+function syncCheck(){const db=Store.read();if(db&&db._t!==_lastT){_lastT=db._t;render();}}
+window.addEventListener('storage',e=>{if(e.key===DB_KEY)syncCheck();});
+setInterval(syncCheck,1500);
+
+/* ───────── 초기화 ───────── */
+(()=>{const db=DB();_lastT=db._t;render();})();
+/* =====================[v2.0][2026-06-13][Claude][상업 출시 수준 재구성 END]===================== */
+</script>
+</body>
+</html>

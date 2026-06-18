@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<!--
+=====================================================================
+ TPMS - 컴플라이언스 기반 기술자료 라이프사이클 관리 시스템 (사내용 / 원사업자)
+ 특허출원 10-2026-0081369 구현 PoC
+=====================================================================
+ History Log
+ ---------------------------------------------------------------
+ | 버전 | 날짜       | 작성자 | 사유                                              |
+ | v1.0 | 2026-06-12 | Claude | 최초 작성 (청구항 1~10 PoC 구현)                  |
+ | v2.0 | 2026-06-13 | Claude | 리뷰 반영(상업 출시 수준):                        |
+ |      |            |        |  [1] crypto.subtle 미동작(file://) 대비 순수JS    |
+ |      |            |        |      SHA-256 폴백 (node crypto 교차검증 완료)     |
+ |      |            |        |  [2] 협력사 제출 해시 ↔ 수신 해시 무결성 교차검증 |
+ |      |            |        |  [3] 감사로그 seq/prev 채번 락(직렬화 큐) 적용    |
+ |      |            |        |  [4] NLP 신뢰도 정규화(중복 가중 제거, 상한 고정) |
+ |      |            |        |  [5] localStorage 공용 DB로 사내/사외 실시간 연동 |
+ |      |            |        |  [6] RECEIVED→IN_USE 명시적 검수·인가 게이트 추가 |
+ |      |            |        |  [7] NDA 만료 시 활성 세션 실시간 강제종료 스트림 |
+ ---------------------------------------------------------------
+ 청구항 매핑
+  S110 요구서 수신/작성 .......... 청구항 1
+  S120 컴플라이언스 사전검증 ..... 청구항 1 (결재이력+NDA 병렬검증, Hard Block)
+  S130 NLP 파싱/정책 생성 ........ 청구항 2,3 (목적코드, 역할-허용 매핑, 이력추천)
+  S140 트랜잭션 허용/차단 ........ 청구항 4,9 (커널/프록시 이중차단, Deny-overrides)
+  S150 2단계 폐기 ................ 청구항 5 (DoD 5220.22-M, SHA-256, Vault 격리)
+  교부/열람확인 기록 ............. 청구항 6
+  ERP 연동(PO/NDA) ............... 청구항 7
+  WORM 감사로그 + RFC3161 ........ 청구항 8
+ ---------------------------------------------------------------
+ [구동 안내] 사내용·사외용 실시간 연동 및 crypto.subtle 정상 동작을 위해
+   동일 출처(origin)에서 로컬 웹서버로 구동 권장:  python -m http.server
+   file:// 직접 실행 시에도 순수 JS 폴백으로 해시·인메모리 동작은 보장됨.
+=====================================================================
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TPMS | 기술자료 라이프사이클 관리 (원사업자)</title>
+<link rel="stylesheet" href="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.css">
+<link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css">
+<link rel="stylesheet" href="../shared/grid/tpms-grid.css">
+<style>
+:root{
+  --navy:#16243D; --navy2:#1F3458; --blue:#2B4C8C; --accent:#3E6FD9;
+  --bg:#F2F4F7; --surface:#FFFFFF; --line:#D9DEE7; --line2:#EAEDF2;
+  --ink:#1A2233; --muted:#66708A; --soft:#8A93A8;
+  --block:#B3261E; --blockbg:#FBEAE8; --allow:#1E7A46; --allowbg:#E7F4EC;
+  --warn:#9A6700; --warnbg:#FFF4DA; --vault:#5B4B8A; --vaultbg:#EFEBF8;
+  --mono:'Consolas','Courier New',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Pretendard','Malgun Gothic','맑은 고딕',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.55}
+header{background:var(--navy);color:#fff;padding:0 24px;height:54px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50}
+header .logo{font-size:16px;font-weight:800;letter-spacing:.5px}
+header .logo span{color:#8FB0F2;font-weight:400}
+header .scope{font-size:10px;font-weight:700;letter-spacing:1.5px;background:#3E6FD9;padding:3px 8px;border-radius:3px}
+header .sync{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:#9FB0CC}
+.dot{width:8px;height:8px;border-radius:50%;background:#7FE3A8;box-shadow:0 0 0 3px rgba(127,227,168,.18)}
+.dot.mem{background:#FFB454;box-shadow:0 0 0 3px rgba(255,180,84,.18)}
+header .reset{background:#2A3A5A;border:1px solid #3A4D72;color:#C9D6EE;font-size:10.5px;padding:4px 9px;border-radius:4px;cursor:pointer;font-family:inherit}
+header .reset:hover{background:#34466B}
+nav{background:var(--navy2);padding:0 24px;display:flex;gap:2px;position:sticky;top:54px;z-index:49;overflow-x:auto}
+nav button{background:none;border:none;color:#AEBDD8;padding:11px 15px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap}
+nav button:hover{color:#fff}
+nav button.on{color:#fff;border-bottom-color:var(--accent)}
+nav button .pill{display:inline-block;min-width:17px;height:17px;line-height:17px;text-align:center;font-size:10px;background:var(--block);color:#fff;border-radius:9px;margin-left:5px;padding:0 4px}
+main{max-width:1280px;margin:0 auto;padding:20px 24px 60px}
+.tab{display:none}.tab.on{display:block}
+h2{font-size:15px;font-weight:800;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+h2 .cl{font-size:10px;font-weight:700;color:var(--accent);background:#EBF0FC;padding:2px 7px;border-radius:3px;letter-spacing:.3px}
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,1fr)} .g2{grid-template-columns:1fr 1fr} .g32{grid-template-columns:3fr 2fr}
+@media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g2,.g32{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px}
+.kpi .num{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.kpi .lbl{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px;letter-spacing:.4px}
+.kpi.blk .num{color:var(--block)} .kpi.alw .num{color:var(--allow)} .kpi.vlt .num{color:var(--vault)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#F6F8FB;border-bottom:2px solid var(--line);padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);letter-spacing:.4px;white-space:nowrap}
+td{border-bottom:1px solid var(--line2);padding:8px 10px;vertical-align:top}
+tr:hover td{background:#FAFBFD}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.b-draft{background:#EEF1F6;color:var(--muted)} .b-issued{background:#E4EDFB;color:#2B4C8C}
+.b-block{background:var(--blockbg);color:var(--block)} .b-read{background:#E4EDFB;color:var(--blue)}
+.b-sub{background:var(--warnbg);color:var(--warn)} .b-rev{background:#F7F1DC;color:#8C6F12}
+.b-use{background:var(--allowbg);color:var(--allow)} .b-disp{background:var(--vaultbg);color:var(--vault)}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 4px;letter-spacing:.3px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:4px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(62,111,217,.12)}
+textarea{resize:vertical;min-height:64px}
+.btn{display:inline-block;border:none;border-radius:4px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-p{background:var(--accent);color:#fff} .btn-p:hover:not(:disabled){background:#335FC4}
+.btn-s{background:#fff;color:var(--blue);border:1px solid var(--line)} .btn-s:hover:not(:disabled){background:#F4F7FC}
+.btn-d{background:var(--block);color:#fff} .btn-d:hover:not(:disabled){background:#9A1F18}
+.btn-ok{background:var(--allow);color:#fff} .btn-ok:hover:not(:disabled){background:#176038}
+.btn-sm{padding:5px 10px;font-size:11.5px}
+.note{font-size:11.5px;color:var(--muted);background:#F6F8FB;border-left:3px solid var(--line);padding:8px 12px;border-radius:0 4px 4px 0;margin:8px 0}
+.gate{border:1.5px solid var(--line);border-radius:6px;padding:12px;margin-top:8px}
+.gate.ok{border-color:var(--allow);background:var(--allowbg)} .gate.no{border-color:var(--block);background:var(--blockbg)}
+.gate.v{border-color:var(--vault);background:var(--vaultbg)} .gate.w{border-color:var(--warn);background:var(--warnbg)}
+.gate .t{font-weight:800;font-size:12.5px;margin-bottom:4px}
+.gate div{font-size:12px}
+.mono{font-family:var(--mono);font-size:11px;word-break:break-all}
+.logbox{background:#0E1626;color:#C9D6EE;border-radius:6px;padding:12px;font-family:var(--mono);font-size:11.5px;max-height:360px;overflow:auto;line-height:1.75}
+.logbox .blk{color:#FF8A80}.logbox .alw{color:#7FE3A8}.logbox .sys{color:#7FA8E8}.logbox .ts{color:#5C6C8C}.logbox .kil{color:#FFB454}
+.tag{font-size:10px;font-weight:700;border-radius:3px;padding:1px 6px;background:#EEF1F6;color:var(--muted);margin-right:4px}
+.conf-bar{height:6px;background:#EEF1F6;border-radius:3px;overflow:hidden;margin-top:4px}
+.conf-bar i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.empty{color:var(--soft);text-align:center;padding:24px 0;font-size:12px}
+hr{border:none;border-top:1px solid var(--line2);margin:14px 0}
+.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);font-weight:700}
+.chk input{width:auto}
+footer{text-align:center;color:var(--soft);font-size:11px;padding:20px}
+#toast{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:200}
+.toast{background:#16243D;color:#fff;padding:11px 16px;border-radius:6px;font-size:12.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.22);border-left:4px solid var(--accent);max-width:340px;animation:slideIn .2s}
+.toast.ok{border-left-color:var(--allow)} .toast.no{border-left-color:var(--block)} .toast.w{border-left-color:var(--warn)}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+.sess{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:4px;margin-bottom:6px;font-size:12px}
+.sess.term{background:var(--blockbg);border-color:var(--block);text-decoration:line-through;color:var(--block)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">TPMS<span> | Technical-data Protection Mgmt.</span></div>
+  <div class="scope">INTERNAL · 원사업자</div>
+  <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">Local DB 연결</span>
+  <button class="reset" onclick="resetDB()">데모 초기화</button></div>
+</header>
+<nav id="nav"></nav>
+<main>
+
+<!-- ===== 대시보드 ===== -->
+<div class="tab on" id="tab-dash">
+  <h2>컴플라이언스 현황 대시보드</h2>
+  <div class="grid g4">
+    <div class="card kpi"><div class="lbl">요구서 총 건수</div><div class="num" id="k-total">0</div></div>
+    <div class="card kpi blk"><div class="lbl">사전검증 차단 (Hard Block)</div><div class="num" id="k-block">0</div></div>
+    <div class="card kpi alw"><div class="lbl">유통/사용 중 자료</div><div class="num" id="k-use">0</div></div>
+    <div class="card kpi vlt"><div class="lbl">폐기 완료 (Vault 증적)</div><div class="num" id="k-disp">0</div></div>
+  </div>
+  <h2 style="margin-top:22px">요구서 라이프사이클 통합 추적 <span class="cl">요청→교부→제출→검수→사용→폐기</span></h2>
+  <div class="card tpms-grid-card"><div id="reqGrid" class="tpms-grid"></div></div>
+</div>
+
+<!-- ===== 요구서 관리 ===== -->
+<div class="tab" id="tab-req">
+  <div class="grid g32">
+    <div>
+      <h2>기술자료 제공 요구서 작성 <span class="cl">S110 · 하도급법 필수기재</span></h2>
+      <div class="card">
+        <div class="grid g2">
+          <div><label>협력사 (BP)</label><select id="f-vendor"></select></div>
+          <div><label>관련 구매오더 (PO)</label><select id="f-po"><option value="">선택 안 함 (수동 작성)</option></select></div>
+        </div>
+        <label>요구 기술자료명 *</label><input id="f-name" placeholder="예: A-1234 하우징 가공도면 Rev.C">
+        <label>사용 목적 (자유 기재) * — NLP 파서 입력값</label>
+        <textarea id="f-purpose" placeholder="예: 수입검사 시 치수 품질 검증을 위한 도면 확인"></textarea>
+        <div class="grid g2">
+          <div><label>권리 귀속 *</label><select id="f-right"><option>협력사 귀속 (열람만 허용)</option><option>공동 귀속</option><option>원사업자 귀속</option></select></div>
+          <div><label>제공 대가 *</label><input id="f-comp" value="무상 (계약단가 포함)"></div>
+        </div>
+        <div class="grid g2">
+          <div><label>제공 요청일 *</label><input type="date" id="f-give"></div>
+          <div><label>반환·폐기일 * — 자동 폐기 스케줄 바인딩</label><input type="date" id="f-due"></div>
+        </div>
+        <hr>
+        <div class="flex"><button class="btn btn-p" id="btnCreate" onclick="createReq()">사전검증 실행 후 등록 (S120)</button>
+        <span class="note" style="margin:0;flex:1;min-width:180px">필수기재 누락·검증 실패 시 트랜잭션 생성 자체가 차단됨(컴플라이언스 강제 내재화)</span></div>
+        <div id="gateResult"></div>
+      </div>
+    </div>
+    <div>
+      <h2>NLP 정책 미리보기 <span class="cl">S130 · 청구항 2,3</span></h2>
+      <div class="card">
+        <div class="note" style="margin-top:0">사용 목적 입력 시 실시간으로 목적코드를 분류하고, 역할-허용 매핑 + 이력 기반 추천으로 ACL을 생성함. 신뢰도는 중복 키워드 가중을 제거한 정규화 점수임.</div>
+        <div id="nlpPreview"><div class="empty">사용 목적을 입력하면 분석 결과가 표시됨</div></div>
+      </div>
+      <h2 style="margin-top:18px">검증 데이터 마스터</h2>
+      <div class="card tpms-grid-card"><div id="vendorGrid" class="tpms-grid"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 검수·인가 ===== -->
+<div class="tab" id="tab-review">
+  <h2>입고 자료 검수·인가 게이트 <span class="cl">청구항 5,6 · 무결성 교차검증 + 명시적 인가</span></h2>
+  <div class="note">협력사가 제출한 자료는 <b>무결성 교차검증(제출 해시 ↔ 수신 해시)</b>과 <b>목적성 검수</b>를 통과해야만 사용(IN_USE)으로 확정됨. 자동 통과는 허용하지 않음(SOD·검수 원칙).</div>
+  <div class="flex" style="margin:6px 0 10px">
+    <span class="chk"><input type="checkbox" id="tamper"> 전송 구간 변조 주입(데모) — 수신 해시를 의도적으로 불일치시켜 차단 시연</span>
+  </div>
+  <div id="reviewList"></div>
+</div>
+
+<!-- ===== 접근통제 ===== -->
+<div class="tab" id="tab-acl">
+  <h2>유통 경로 접근 시뮬레이션 <span class="cl">S140 · 청구항 4,9 — 이중 차단 + Deny-overrides</span></h2>
+  <div class="grid g32">
+    <div class="card">
+      <div class="grid g2">
+        <div><label>대상 기술자료 (사용 중)</label><select id="a-file"></select></div>
+        <div><label>접근 주체 (역할)</label><select id="a-role">
+          <option>QA_품질검사원</option><option>MFG_생산기술</option><option>RND_개발설계</option>
+          <option>PUR_구매담당</option><option>EXT_외부계정</option></select></div>
+      </div>
+      <div class="grid g2">
+        <div><label>접근 경로</label><select id="a-chan">
+          <option value="web">웹 UI (세션 토큰 보유) — 세션 생성</option>
+          <option value="api">API 직접 호출 (토큰 없음) — 리버스 프록시 통제</option>
+          <option value="fs">파일시스템 직접 접근 — 커널 I/O 드라이버 통제</option></select></div>
+        <div><label>요청 행위</label><select id="a-act"><option>READ (열람)</option><option>WRITE (편집)</option><option>COPY (복사/반출)</option></select></div>
+      </div>
+      <div style="margin-top:14px"><button class="btn btn-p" onclick="simAccess()">접근 시도 실행</button></div>
+      <div id="aclResult"></div>
+      <hr>
+      <div style="font-weight:800;font-size:12.5px;margin-bottom:6px">활성 세션 <span class="cl" style="background:#EBF0FC;color:var(--accent)">NDA 만료 시 실시간 강제종료 대상</span></div>
+      <div id="sessList"><div class="empty">활성 세션 없음 — 웹 경로로 접근 허용 시 세션 생성됨</div></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:800;font-size:12.5px;margin-bottom:8px">트랜잭션 제어 로그</div>
+      <div class="logbox" id="aclLog"><span class="sys">[SYSTEM] 커널 레벨 I/O 드라이버 활성 · 리버스 프록시 게이트웨이 활성</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 폐기/Vault ===== -->
+<div class="tab" id="tab-disp">
+  <h2>2단계 폐기 처리 <span class="cl">S150 · 청구항 5 — DoD 5220.22-M + Vault 격리</span></h2>
+  <div class="grid g2">
+    <div class="card">
+      <label>폐기 대상 (사용 중 자료)</label><select id="d-file"></select>
+      <div class="note">① ACL 즉시 초기화(권한 회수) → ② 삭제 전 원본 해시 보존 → ③ DoD 5220.22-M 다중 덮어쓰기 물리 삭제 → ④ 폐기 메타데이터 SHA-256 산출 → ⑤ Vault DB 격리 보존 + 협력사 폐기증명서 발급</div>
+      <button class="btn btn-d" onclick="runDispose()">폐기 절차 실행</button>
+      <div id="dispResult"></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:800;font-size:12.5px;margin-bottom:8px">Vault DB — 폐기 증적 (격리 보존, 수정 불가)</div>
+      <div id="vaultList"><div class="empty">폐기 증적 없음</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 감사로그 ===== -->
+<div class="tab" id="tab-audit">
+  <h2>WORM 통합 감사 로그 <span class="cl">청구항 8 — RFC 3161 TSA + 해시 체인 직렬화</span></h2>
+  <div class="card tpms-grid-card"><div id="auditGrid" class="tpms-grid"></div></div>
+  <div class="flex" style="margin-top:12px">
+    <button class="btn btn-s" onclick="verifyChain()">해시 체인 무결성 검증</button>
+    <button class="btn btn-s" onclick="exportReport()">컴플라이언스 리포트 출력 (JSON)</button>
+    <span id="chainResult" style="font-weight:700"></span>
+  </div>
+</div>
+
+<!-- ===== ERP 연동 ===== -->
+<div class="tab" id="tab-erp">
+  <h2>외부 ERP / 법무 시스템 연동 <span class="cl">청구항 7 — PO 이벤트 · NDA 만료 일괄회수</span></h2>
+  <div class="grid g2">
+    <div class="card">
+      <div style="font-weight:800;font-size:12.5px">PO 발생 이벤트 수신</div>
+      <div class="note">ERP에서 PO 생성 이벤트 수신 시 요구서 초안을 자동 생성하고 요구서 관리 화면의 PO 목록에 반영함</div>
+      <label>품목명</label><input id="e-item" value="B-5678 브래킷 정밀가공">
+      <label>협력사</label><select id="e-vendor"></select>
+      <button class="btn btn-p" style="margin-top:12px" onclick="firePO()">PO 생성 이벤트 발생</button>
+      <div id="poResult"></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:800;font-size:12.5px">NDA 만료 이벤트 — 권한 일괄 회수 + 활성 세션 강제종료</div>
+      <div class="note">법무 시스템 NDA 만료 통지 수신 시 ① 해당 협력사 자료 권한 일괄 회수 ② 진행 중 활성 세션을 S140 계층에서 실시간 Hard Block으로 강제 전환함</div>
+      <label>만료 처리할 협력사</label><select id="e-nda"></select>
+      <button class="btn btn-d" style="margin-top:12px" onclick="fireNDA()">NDA 만료 이벤트 발생</button>
+      <div id="ndaResult"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+<footer>TPMS PoC v2.0 · 사내용(원사업자) · 특허출원 10-2026-0081369 · 동일 출처 로컬 웹서버 구동 시 사외용 포털과 실시간 연동</footer>
+<div id="toast"></div>
+
+<script src="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.js"></script>
+<script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+<script src="../shared/grid/tpms-grid.js"></script>
+<script>
+/* =====================[v2.0][2026-06-13][Claude][상업 출시 수준 재구성 START]===================== */
+'use strict';
+
+/* ───────── [1] SHA-256 : crypto.subtle 우선, 미동작 시 순수 JS 폴백 (file:// 대응) ───────── */
+function _sha256js(bytes){
+  if(typeof bytes==='string'){bytes=new TextEncoder().encode(bytes);}
+  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  let H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const l=bytes.length,bl=l*8,wl=((l+8)>>6)+1,p=new Uint8Array(wl*64);
+  p.set(bytes);p[l]=0x80;for(let i=0;i<4;i++)p[wl*64-1-i]=(bl>>>(8*i))&0xff;
+  const w=new Int32Array(64),rr=(x,n)=>(x>>>n)|(x<<(32-n));
+  for(let j=0;j<wl;j++){
+    for(let i=0;i<16;i++){const o=j*64+i*4;w[i]=(p[o]<<24)|(p[o+1]<<16)|(p[o+2]<<8)|p[o+3];}
+    for(let i=16;i<64;i++){const a=rr(w[i-15],7)^rr(w[i-15],18)^(w[i-15]>>>3),b=rr(w[i-2],17)^rr(w[i-2],19)^(w[i-2]>>>10);w[i]=(w[i-16]+a+w[i-7]+b)|0;}
+    let [a,b,c,d,e,f,g,h]=H;
+    for(let i=0;i<64;i++){const S1=rr(e,6)^rr(e,11)^rr(e,25),ch=(e&f)^(~e&g),t1=(h+S1+ch+K[i]+w[i])|0,S0=rr(a,2)^rr(a,13)^rr(a,22),mj=(a&b)^(a&c)^(b&c),t2=(S0+mj)|0;h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;}
+    H=[(H[0]+a)|0,(H[1]+b)|0,(H[2]+c)|0,(H[3]+d)|0,(H[4]+e)|0,(H[5]+f)|0,(H[6]+g)|0,(H[7]+h)|0];
+  }
+  return H.map(x=>(x>>>0).toString(16).padStart(8,'0')).join('');
+}
+let _subtleOK=null;
+async function sha256(data){
+  const bytes = typeof data==='string' ? new TextEncoder().encode(data) : new Uint8Array(data);
+  if(_subtleOK!==false && window.crypto && crypto.subtle){
+    try{const b=await crypto.subtle.digest('SHA-256',bytes);_subtleOK=true;
+      return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+    catch(e){_subtleOK=false;}
+  }
+  return _sha256js(bytes);
+}
+
+/* ───────── [5] 공용 DB : localStorage(공유) + 인메모리 폴백 + 크로스탭 동기화 ───────── */
+const DB_KEY='TPMS_DB_v2';
+const Store=(()=>{
+  let mem=null, has=false;
+  try{localStorage.setItem('__t','1');localStorage.removeItem('__t');has=true;}catch(e){has=false;}
+  return{
+    has, mode: has?'Local DB 연결':'인메모리 모드(file://)',
+    read(){ if(has){try{const r=localStorage.getItem(DB_KEY);return r?JSON.parse(r):null;}catch(e){}} return mem; },
+    write(db){ db._t=Date.now(); if(has){try{localStorage.setItem(DB_KEY,JSON.stringify(db));return;}catch(e){}} mem=db; }
+  };
+})();
+
+/* 공용 시드 — 사내용/사외용 두 파일에서 byte-identical 이어야 함 */
+const _H1='f3a1c97b22e04d18a55c6b9d0e7412fa9b3c8d5e6f7a8b9c0d1e2f3a4b5c6d7e';
+const _H2='1a2b3c4d5e6f70819293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f9';
+const _VH2='9e8d7c6b5a40312f1e0d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f';
+function seed(){
+  return {v:2,_t:0,seq:0,
+    vendors:[
+     {bp:'BP1001',name:'대한정밀(주)',ndaExpire:'2026-12-31',approval:true},
+     {bp:'BP1002',name:'서진테크',ndaExpire:'2026-05-31',approval:true},
+     {bp:'BP1003',name:'한빛산업',ndaExpire:'2027-03-31',approval:false},
+     {bp:'BP1004',name:'유성금속',ndaExpire:'2026-11-30',approval:true}],
+    pos:[{po:'PO-26-0501',item:'A-1234 하우징 가공',bp:'BP1001'}],
+    reqs:[
+     {id:'REQ-001',bp:'BP1001',vendor:'대한정밀(주)',name:'A-1234 하우징 가공도면 Rev.C',purpose:'수입검사 시 치수 품질 검증을 위한 도면 확인',code:'PURPOSE_QA',conf:0.91,roles:['QA_품질검사원:READ'],right:'협력사 귀속 (열람만 허용)',comp:'무상 (계약단가 포함)',give:'2026-06-05',due:'2026-09-30',status:'IN_USE',readAt:'2026-06-05T09:12:44Z',submittedAt:'2026-06-05T09:30:10Z',submittedFile:'A1234_housing_revC.pdf',submittedHash:_H1,channelHash:_H1,receivedHash:_H1,integrity:'PASS',approvedAt:'2026-06-05T11:00:00Z',disposedAt:null,vaultId:null,revoked:false,cert:null},
+     {id:'REQ-002',bp:'BP1001',vendor:'대한정밀(주)',name:'B-5678 브래킷 공정조건서',purpose:'양산 이관 검토를 위한 공정조건 확인',code:'PURPOSE_MFG',conf:0.85,roles:[],right:'협력사 귀속 (열람만 허용)',comp:'무상 (계약단가 포함)',give:'2026-04-01',due:'2026-06-01',status:'DISPOSED',readAt:'2026-04-01T10:01:02Z',submittedAt:'2026-04-01T10:22:31Z',submittedFile:'B5678_process.xlsx',submittedHash:_H2,channelHash:_H2,receivedHash:_H2,integrity:'PASS',approvedAt:'2026-04-02T09:00:00Z',disposedAt:'2026-06-01T00:05:11Z',vaultId:'VLT-001',revoked:false,cert:{vaultId:'VLT-001',disposedAt:'2026-06-01T00:05:11Z',hash:_VH2,tsa:'RFC3161-TSA-20260601000511'}},
+     {id:'REQ-003',bp:'BP1001',vendor:'대한정밀(주)',name:'C-9012 표면처리 사양서',purpose:'신규 개발품 시제 제작을 위한 사양 검토',code:'PURPOSE_DEV',conf:0.88,roles:['RND_개발설계:READ','RND_개발설계:WRITE'],right:'협력사 귀속 (열람만 허용)',comp:'무상 (계약단가 포함)',give:'2026-06-11',due:'2026-12-31',status:'ISSUED',readAt:null,submittedAt:null,submittedFile:null,submittedHash:null,channelHash:null,receivedHash:null,integrity:null,approvedAt:null,disposedAt:null,vaultId:null,revoked:false,cert:null}
+    ],
+    vault:[{vaultId:'VLT-001',reqId:'REQ-002',name:'B-5678 브래킷 공정조건서',vendor:'대한정밀(주)',disposedAt:'2026-06-01T00:05:11Z',origHash:_H2,hash:_VH2,tsa:'RFC3161-TSA-20260601000511'}],
+    audit:[], sessions:[]
+  };
+}
+function DB(){ let db=Store.read(); if(!db){db=seed();Store.write(db);} return db; }
+function save(db){ Store.write(db); }
+function resetDB(){ if(confirm('데모 데이터를 초기화하시겠습니까? (사내·사외 공용 DB 전체 삭제)')){Store.write(seed());render();toast('데모 데이터 초기화 완료','ok');} }
+
+/* ───────── [3] 감사로그 : 직렬화 큐 + seq/prev 동기 채번(락) ───────── */
+let _auditQ=Promise.resolve();
+function audit(event,target,actor){
+  _auditQ=_auditQ.then(()=>_audit(event,target,actor));
+  return _auditQ;
+}
+async function _audit(event,target,actor){
+  const db=DB();
+  const seqNow=++db.seq;                                   // 진입 시점 동기 채번(락)
+  const prev=db.audit.length?db.audit[db.audit.length-1].hash:'GENESIS';
+  const ts=new Date().toISOString();
+  const hash=await sha256(prev+'|'+seqNow+'|'+event+'|'+target+'|'+ts); // 고정값으로만 해시
+  const fresh=DB();                                        // 비동기 후 최신본에 append
+  fresh.seq=Math.max(fresh.seq,seqNow);
+  fresh.audit.push({seq:seqNow,ts,event,target,actor,prev,hash});
+  save(fresh);
+}
+
+/* ───────── [4] NLP 파서 : 중복 키워드 가중 제거(distinct), 신뢰도 상한 고정 ───────── */
+const PURPOSE_RULES=[
+ {code:'PURPOSE_QA', kw:['품질','검사','검증','수입검사','측정','치수'], roles:['QA_품질검사원:READ']},
+ {code:'PURPOSE_MFG',kw:['생산','제조','공정','양산','가공','조립'],     roles:['MFG_생산기술:READ']},
+ {code:'PURPOSE_DEV',kw:['개발','설계','개선','시제','연구','신규'],     roles:['RND_개발설계:READ','RND_개발설계:WRITE']},
+ {code:'PURPOSE_PUR',kw:['견적','원가','구매','발주','단가','소싱'],     roles:['PUR_구매담당:READ']}
+];
+function nlpParse(text){
+  if(!text||!text.trim())return null;
+  let best={code:'UNCLASSIFIED',ratio:0,roles:[]};
+  PURPOSE_RULES.forEach(r=>{
+    const distinct=new Set(r.kw.filter(k=>text.includes(k))).size; // 중복 입력 무효화
+    const ratio=distinct/r.kw.length;                              // 0..1 정규화
+    if(ratio>best.ratio)best={code:r.code,ratio,roles:r.roles};
+  });
+  const conf = best.code==='UNCLASSIFIED' ? 0.20
+             : Math.min(0.98, Math.round((0.45+0.53*best.ratio)*100)/100); // 상한 0.98 고정
+  const hist=DB().reqs.filter(q=>q.code===best.code&&q.status!=='BLOCKED').length;
+  return {code:best.code,conf,roles:best.roles,hist};
+}
+
+/* ───────── S120 사전검증 게이트 (Hard Block) ───────── */
+function gateCheck(bp,due){
+  const TODAY=new Date().toISOString().slice(0,10);
+  const v=DB().vendors.find(x=>x.bp===bp);
+  const checks=[
+    {name:'내부 전자결재 승인 이력',ok:v.approval,detail:v.approval?'승인 완료':'승인 이력 없음'},
+    {name:'비밀유지계약(NDA) 유효성',ok:v.ndaExpire>=TODAY,detail:'만료일 '+v.ndaExpire},
+    {name:'반환·폐기일 기재(법정 필수)',ok:!!due,detail:due||'미기재'}
+  ];
+  return {pass:checks.every(c=>c.ok),checks};
+}
+
+/* ───────── 요구서 생성 (S110→S130) ───────── */
+async function createReq(){
+  const btn=el('btnCreate');btn.disabled=true;
+  try{
+    const bp=el('f-vendor').value,name=el('f-name').value.trim(),purpose=el('f-purpose').value.trim(),
+          due=el('f-due').value,give=el('f-give').value,po=el('f-po').value,
+          right=el('f-right').value,comp=el('f-comp').value;
+    const box=el('gateResult');
+    if(!name||!purpose){box.innerHTML=gateHTML(false,[{name:'필수기재(자료명·사용목적)',ok:false,detail:'누락'}]);toast('필수기재 누락 — 트랜잭션 차단','no');return;}
+    const g=gateCheck(bp,due);box.innerHTML=gateHTML(g.pass,g.checks);
+    const db=DB(),v=db.vendors.find(x=>x.bp===bp);
+    const id='REQ-'+String(db.reqs.length+1).padStart(3,'0');
+    if(!g.pass){
+      db.reqs.push({id,bp,vendor:v.name,name,purpose,due,give,po,right,comp,code:'-',roles:[],status:'BLOCKED'});
+      save(db);await audit('S120 사전검증 실패 → 트랜잭션 차단(Hard Block)',name,'SYSTEM');
+      toast('사전검증 실패 — Hard Block','no');render();return;
+    }
+    const n=nlpParse(purpose);
+    db.reqs.push({id,bp,vendor:v.name,name,purpose,due,give,po,right,comp,
+      code:n.code,conf:n.conf,roles:n.roles,status:'ISSUED',
+      readAt:null,submittedAt:null,submittedFile:null,submittedHash:null,channelHash:null,
+      receivedHash:null,integrity:null,approvedAt:null,disposedAt:null,vaultId:null,revoked:false});
+    save(db);
+    await audit('S110 요구서 등록 + S130 정책생성('+n.code+') + 전자 교부',name,'구매담당');
+    ['f-name','f-purpose'].forEach(i=>el(i).value='');el('nlpPreview').innerHTML='<div class="empty">사용 목적을 입력하면 분석 결과가 표시됨</div>';
+    toast(id+' 교부 완료 — 사외 포털로 전달','ok');render();
+  } finally{ btn.disabled=false; }
+}
+function gateHTML(pass,checks){
+  return `<div class="gate ${pass?'ok':'no'}"><div class="t">${pass?'사전검증 통과 — 트랜잭션 허용 (S140_Allow)':'사전검증 실패 — 트랜잭션 원천 차단 (S140_Block)'}</div>
+  ${checks.map(c=>`<div>${c.ok?'[PASS]':'[FAIL]'} ${c.name} — ${c.detail}</div>`).join('')}</div>`;
+}
+
+/* ───────── [2][6] 검수·인가 : 무결성 교차검증 + 명시적 인가 게이트 ───────── */
+async function reviewVerify(id){
+  const db=DB(),r=db.reqs.find(q=>q.id===id);if(!r||r.status!=='SUBMITTED')return;
+  const tamper=el('tamper').checked;
+  // 수신 해시 재산출(시뮬레이션): 정상이면 협력사 제출 해시와 동일, 변조 주입 시 불일치
+  r.receivedHash = tamper ? await sha256('TAMPERED|'+r.id+'|'+Date.now()) : r.channelHash;
+  r.integrity = (r.receivedHash===r.submittedHash) ? 'PASS' : 'FAIL';
+  if(r.integrity==='PASS'){ r.status='UNDER_REVIEW'; }
+  save(db);
+  await audit('무결성 교차검증 '+r.integrity+' (제출해시↔수신해시)',r.name,'검수담당');
+  toast(r.integrity==='PASS'?'무결성 검증 통과 — 인가 대기':'무결성 불일치 — 자료 차단', r.integrity==='PASS'?'ok':'no');
+  render();
+}
+async function approveReq(id){
+  const db=DB(),r=db.reqs.find(q=>q.id===id);if(!r||r.status!=='UNDER_REVIEW')return;
+  r.status='IN_USE';r.approvedAt=new Date().toISOString();save(db);
+  await audit('목적성 검수·인가 완료 → 사용 확정(IN_USE), ACL 적용('+r.roles.join(', ')+')',r.name,'검수책임자');
+  toast(r.id+' 사용 인가 완료','ok');render();
+}
+
+/* ───────── S140 접근 시뮬레이션 + 세션 생성 ───────── */
+async function simAccess(){
+  const fid=el('a-file').value,db=DB(),r=db.reqs.find(q=>q.id===fid);
+  if(!r){toast('사용 중 자료 없음','w');return;}
+  const role=el('a-role').value,chan=el('a-chan').value,act=el('a-act').value.split(' ')[0];
+  let decision='ALLOW',layer='APP',reason='ACL 매칭';
+  if(chan==='api'){decision='BLOCK';layer='리버스 프록시';reason='유효 세션 토큰 부재 — 패킷 필터링 차단';}
+  else if(chan==='fs'){decision='BLOCK';layer='커널 I/O 드라이버';reason='허용 플래그 미보유 프로세스의 파일 I/O 인터셉트';}
+  else{
+    const perms=r.roles.filter(x=>x.startsWith(role)).map(x=>x.split(':')[1]);
+    if(perms.length===0){decision='BLOCK';layer='정책엔진';reason='역할-허용 매핑 부재(Deny 기본값)';}
+    else if(!perms.includes(act)){decision='BLOCK';layer='정책엔진';reason='Deny-overrides — 허용('+perms.join('/')+') 외 행위('+act+') 차단';}
+  }
+  aclLog(decision,`${r.name} · ${role} · ${act} · 경로=${chan.toUpperCase()}`,`${layer}: ${reason}`);
+  el('aclResult').innerHTML=`<div class="gate ${decision==='ALLOW'?'ok':'no'}"><div class="t">${decision==='ALLOW'?'접근 허용':'접근 차단'} — ${layer}</div><div>${reason}</div></div>`;
+  if(decision==='ALLOW'&&chan==='web'){
+    db.sessions.push({sid:'S'+Date.now().toString().slice(-6),reqId:r.id,reqName:r.name,bp:r.bp,role,act,startedAt:new Date().toISOString(),state:'ACTIVE'});
+    save(db);
+  }
+  await audit('S140 접근 '+decision+' ('+layer+') — '+role+'/'+act,r.name,role);
+  render();
+}
+function aclLog(kind,head,tail){
+  const ts=new Date().toLocaleTimeString('ko-KR',{hour12:false});
+  const cls=kind==='BLOCK'?'blk':kind==='KILL'?'kil':'alw';
+  el('aclLog').innerHTML+=`<br><span class="ts">[${ts}]</span> <span class="${cls}">${kind}</span> ${head} <span class="sys">→ ${tail}</span>`;
+  el('aclLog').scrollTop=el('aclLog').scrollHeight;
+}
+
+/* ───────── S150 2단계 폐기 ───────── */
+async function runDispose(){
+  const id=el('d-file').value,db=DB(),r=db.reqs.find(q=>q.id===id),box=el('dispResult');
+  if(!r){box.innerHTML='<div class="note">폐기 가능한 자료 없음</div>';return;}
+  const steps=[];
+  r.roles=[];steps.push('① ACL 즉시 초기화 — 역할 권한 전체 회수');
+  const origHash=r.submittedHash||await sha256(r.id+'|'+r.name);
+  steps.push('② 삭제 전 원본 무결성 해시 보존: '+origHash.slice(0,24)+'…');
+  steps.push('③ DoD 5220.22-M 다중 덮어쓰기 물리 삭제 (3-pass 시뮬레이션)');
+  const meta=`${r.id}|${r.name}|${r.bp}|orig:${origHash}|disposedAt:${new Date().toISOString()}`;
+  const dispHash=await sha256(meta);
+  steps.push('④ 폐기 메타데이터 SHA-256 산출: '+dispHash.slice(0,24)+'…');
+  const vaultId='VLT-'+String(db.vault.length+1).padStart(3,'0');
+  const tsa='RFC3161-TSA-'+new Date().toISOString().replace(/[-:T]/g,'').slice(0,14);
+  db.vault.push({vaultId,reqId:r.id,name:r.name,vendor:r.vendor,disposedAt:new Date().toISOString(),origHash,hash:dispHash,tsa});
+  r.status='DISPOSED';r.disposedAt=new Date().toISOString();r.vaultId=vaultId;
+  r.cert={vaultId,disposedAt:r.disposedAt,hash:dispHash,tsa};  // 사외 포털 폐기증명서 발급
+  // 잔존 활성 세션 종료
+  db.sessions.forEach(s=>{if(s.reqId===r.id&&s.state==='ACTIVE'){s.state='TERMINATED';}});
+  save(db);steps.push('⑤ Vault 격리 보존('+vaultId+') + 협력사 폐기증명서 발급');
+  await audit('S150 2단계 폐기 완료 — Vault '+vaultId,r.name,'SYSTEM');
+  box.innerHTML=`<div class="gate ok"><div class="t">폐기 절차 정상 종료</div>${steps.map(s=>`<div>${s}</div>`).join('')}</div>`;
+  toast(r.id+' 폐기 완료 — 증명서 발급','ok');render();
+}
+
+/* ───────── ERP 연동 (청구항 7) ───────── */
+async function firePO(){
+  const item=el('e-item').value.trim(),bp=el('e-vendor').value,db=DB();
+  const po='PO-26-'+String(600+db.pos.length).padStart(4,'0');
+  db.pos.push({po,item,bp});save(db);
+  await audit('ERP PO 이벤트 수신 → 요구서 초안 자동 생성 대기',po+' '+item,'ERP');
+  el('poResult').innerHTML=`<div class="gate ok"><div class="t">${po} 수신</div><div>요구서 관리 화면에서 해당 PO 선택 시 품목·협력사가 자동 반영됨</div></div>`;
+  toast(po+' 이벤트 수신','ok');render();
+}
+async function fireNDA(){
+  const bp=el('e-nda').value,db=DB(),v=db.vendors.find(x=>x.bp===bp);
+  v.ndaExpire='2020-01-01'; // 만료 처리
+  let revoked=0,killed=0;
+  db.reqs.forEach(r=>{if(r.bp===bp&&['ISSUED','READ','SUBMITTED','UNDER_REVIEW','IN_USE'].includes(r.status)){r.roles=[];r.revoked=true;revoked++;}});
+  // [7] 활성 세션 실시간 강제종료 스트리밍
+  const targets=db.sessions.filter(s=>s.bp===bp&&s.state==='ACTIVE');
+  save(db);
+  el('ndaResult').innerHTML=`<div class="gate no"><div class="t">${v.name} NDA 만료 처리</div><div>자료 권한 ${revoked}건 일괄 회수. 활성 세션 강제종료 진행 중…</div></div>`;
+  for(const s of targets){
+    await new Promise(res=>setTimeout(res,450));
+    const fdb=DB();const ss=fdb.sessions.find(x=>x.sid===s.sid);if(ss){ss.state='TERMINATED';save(fdb);}
+    aclLog('KILL',`세션 ${s.sid} · ${s.reqName} · ${s.role}`,`NDA 만료 → S140 실시간 강제종료(Hard Block)`);
+    killed++;render();
+  }
+  await audit('법무 NDA 만료 → 권한 회수('+revoked+') + 활성세션 강제종료('+killed+')',v.name,'LEGAL');
+  el('ndaResult').innerHTML=`<div class="gate no"><div class="t">${v.name} NDA 만료 처리 완료</div><div>자료 권한 ${revoked}건 회수 · 활성 세션 ${killed}건 실시간 강제종료(접근통제 로그 확인)</div></div>`;
+  toast('NDA 만료 — 세션 '+killed+'건 강제종료','no');render();
+}
+
+/* ───────── 감사로그 검증 / 리포트 ───────── */
+async function verifyChain(){
+  const A=DB().audit;let ok=true,at=-1;
+  for(let i=0;i<A.length;i++){
+    const a=A[i],expPrev=i===0?'GENESIS':A[i-1].hash;
+    const re=await sha256(expPrev+'|'+a.seq+'|'+a.event+'|'+a.target+'|'+a.ts);
+    if(a.prev!==expPrev||a.hash!==re){ok=false;at=a.seq;break;}
+  }
+  const r=el('chainResult');
+  r.textContent=A.length===0?'로그 없음':(ok?'무결성 검증 통과 — 위변조 흔적 없음':'무결성 위반 감지 (Seq '+at+')');
+  r.style.color=ok?'var(--allow)':'var(--block)';
+  toast(A.length===0?'로그 없음':(ok?'체인 무결성 통과':'무결성 위반'),A.length&&ok?'ok':'w');
+}
+function exportReport(){
+  const db=DB();
+  const rep={system:'TPMS PoC v2.0',patent:'10-2026-0081369',generatedAt:new Date().toISOString(),
+    requests:db.reqs,vault:db.vault,sessions:db.sessions,auditTrail:db.audit};
+  const blob=new Blob([JSON.stringify(rep,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='TPMS_compliance_report.json';a.click();
+  toast('컴플라이언스 리포트 출력','ok');
+}
+
+/* ───────── 렌더링 ───────── */
+function el(id){return document.getElementById(id);}
+function toast(msg,kind){const t=document.createElement('div');t.className='toast '+(kind||'');t.textContent=msg;el('toast').appendChild(t);setTimeout(()=>t.remove(),3200);}
+const ST={BLOCKED:['차단(Hard Block)','b-block'],ISSUED:['교부완료(열람대기)','b-issued'],READ:['열람확인','b-read'],SUBMITTED:['제출(검수대기)','b-sub'],UNDER_REVIEW:['무결성검증완료(인가대기)','b-rev'],IN_USE:['사용 중','b-use'],DISPOSED:['폐기완료','b-disp']};
+function intgBadge(r){
+  if(r.integrity==='PASS')return '<span class="badge b-use">교차검증 OK</span>';
+  if(r.integrity==='FAIL')return '<span class="badge b-block">불일치 차단</span>';
+  if(r.status==='SUBMITTED')return '<span class="badge b-sub">검증 대기</span>';
+  return '<span style="color:var(--soft)">-</span>';
+}
+function render(){
+  const db=DB();
+  el('syncTxt').textContent=Store.mode;el('syncDot').classList.toggle('mem',!Store.has);
+  el('k-total').textContent=db.reqs.length;
+  el('k-block').textContent=db.reqs.filter(r=>r.status==='BLOCKED').length;
+  el('k-use').textContent=db.reqs.filter(r=>['ISSUED','READ','SUBMITTED','UNDER_REVIEW','IN_USE'].includes(r.status)).length;
+  el('k-disp').textContent=db.vault.length;
+  // 대시보드
+  TPMSGrid.render('reqGrid', {
+    rows: db.reqs.map(r => {
+      const [statusText, statusClass] = ST[r.status];
+      return {...r, statusText, statusClass};
+    }),
+    columns: [
+      {name:'id', header:'No', width:110},
+      {name:'vendor', header:'협력사', minWidth:130},
+      {name:'name', header:'기술자료명', minWidth:220},
+      {name:'code', header:'목적코드', width:110, formatter:v=>`<span class="tag">${TPMSGrid.html(v)}</span>`},
+      {name:'integrity', header:'무결성', minWidth:130, formatter:(v,row)=>intgBadge(row)},
+      {name:'due', header:'폐기 예정일', width:120},
+      {name:'statusText', header:'상태', minWidth:180, formatter:(v,row)=>`<span class="badge ${row.statusClass}">${TPMSGrid.html(v)}</span>${row.revoked?' <span class="badge b-block">권한회수</span>':''}`},
+    ],
+    pageOptions: {useClient: true, perPage: 10},
+    emptyMessage: '등록된 요구서 없음 — [요구서 관리]에서 작성',
+  });
+  // 마스터
+  const TODAY=new Date().toISOString().slice(0,10);
+  TPMSGrid.render('vendorGrid', {
+    rows: db.vendors.map(v => ({...v, ndaOk: v.ndaExpire >= TODAY, approvalText: v.approval ? '승인' : '미승인'})),
+    columns: [
+      {name:'bp', header:'BP', width:90},
+      {name:'name', header:'협력사', minWidth:140},
+      {name:'ndaExpire', header:'NDA 만료', minWidth:130, formatter:(v,row)=>`<span style="color:${row.ndaOk?'var(--allow)':'var(--block)'};font-weight:700">${TPMSGrid.html(v)}${row.ndaOk?'':' (만료)'}</span>`},
+      {name:'approvalText', header:'전자결재', width:100, formatter:(v,row)=>row.approval?TPMSGrid.html(v):'<span style="color:var(--block);font-weight:700">미승인</span>'},
+    ],
+    emptyMessage: '검증 데이터 없음',
+  });
+  // 셀렉트
+  ['f-vendor','e-vendor','e-nda'].forEach(id=>el(id).innerHTML=db.vendors.map(v=>`<option value="${v.bp}">${v.bp} ${v.name}</option>`).join(''));
+  el('f-po').innerHTML='<option value="">선택 안 함 (수동 작성)</option>'+db.pos.map(p=>`<option value="${p.po}">${p.po} · ${p.item}</option>`).join('');
+  // 검수 대기 목록
+  const pend=db.reqs.filter(r=>['SUBMITTED','UNDER_REVIEW'].includes(r.status));
+  const pillEl=document.querySelector('nav button[data-t="review"] .pill');
+  if(pillEl)pillEl.style.display=pend.filter(r=>r.status==='SUBMITTED').length?'inline-block':'none',pillEl.textContent=pend.filter(r=>r.status==='SUBMITTED').length;
+  el('reviewList').innerHTML=pend.length?pend.map(r=>`
+    <div class="card" style="margin-bottom:10px">
+     <div class="flex"><b>${r.id} · ${r.name}</b><span class="badge ${ST[r.status][1]}">${ST[r.status][0]}</span>
+       <span class="tag right">${r.code}</span></div>
+     <div style="font-size:12px;color:var(--muted);margin:6px 0">협력사: ${r.vendor} · 제출파일: ${r.submittedFile||'-'} · 제출시각: ${r.submittedAt?r.submittedAt.replace('T',' ').slice(0,19):'-'}</div>
+     <div class="mono">제출 해시: ${r.submittedHash||'-'}</div>
+     ${r.receivedHash?`<div class="mono">수신 해시: ${r.receivedHash}</div>`:''}
+     ${r.integrity?`<div class="gate ${r.integrity==='PASS'?'ok':'no'}" style="margin-top:8px"><div class="t">무결성 교차검증: ${r.integrity}</div><div>${r.integrity==='PASS'?'제출↔수신 해시 일치 — 목적성 인가 가능':'해시 불일치 — 전송 구간 변조 의심, 사용 인가 불가'}</div></div>`:''}
+     <div class="flex" style="margin-top:10px">
+       ${r.status==='SUBMITTED'?`<button class="btn btn-s btn-sm" onclick="reviewVerify('${r.id}')">무결성 교차검증 실행</button>`:''}
+       ${r.status==='UNDER_REVIEW'?`<button class="btn btn-ok btn-sm" onclick="approveReq('${r.id}')">목적성 검수·사용 인가</button>`:''}
+     </div></div>`).join(''):'<div class="empty">검수 대기 자료 없음 — 협력사 제출 시 표시됨</div>';
+  // 접근통제 셀렉트 + 세션
+  const usable=db.reqs.filter(r=>r.status==='IN_USE'&&!r.revoked);
+  el('a-file').innerHTML=usable.length?usable.map(r=>`<option value="${r.id}">${r.id} ${r.name}</option>`).join(''):'<option value="">사용 중 자료 없음</option>';
+  el('d-file').innerHTML=usable.length?usable.map(r=>`<option value="${r.id}">${r.id} ${r.name} (폐기일 ${r.due})</option>`).join(''):'<option value="">대상 없음</option>';
+  const act=db.sessions;
+  el('sessList').innerHTML=act.length?act.slice().reverse().map(s=>`<div class="sess ${s.state==='TERMINATED'?'term':''}"><span>${s.sid} · ${s.reqName} · ${s.role}/${s.act}</span><span>${s.state==='ACTIVE'?'ACTIVE':'TERMINATED'}</span></div>`).join(''):'<div class="empty">활성 세션 없음 — 웹 경로로 접근 허용 시 세션 생성됨</div>';
+  // Vault
+  el('vaultList').innerHTML=db.vault.length?db.vault.map(v=>`
+    <div class="gate v" style="margin-bottom:8px"><div class="t" style="color:var(--vault)">${v.vaultId} · ${v.name}</div>
+    <div>협력사: ${v.vendor} · 폐기시각: ${v.disposedAt.replace('T',' ').slice(0,19)}</div>
+    <div class="mono">폐기 증적 SHA-256: ${v.hash}</div>
+    <div class="mono">TSA: ${v.tsa}</div></div>`).join(''):'<div class="empty">폐기 증적 없음</div>';
+  // 감사로그
+  TPMSGrid.render('auditGrid', {
+    rows: db.audit.map(a => ({
+      ...a,
+      tsText: `${a.ts.replace('T',' ').slice(0,19)}Z`,
+      chainText: `${a.prev.slice(0,8)}→${a.hash.slice(0,8)}`,
+    })),
+    columns: [
+      {name:'seq', header:'Seq', width:70, align:'center'},
+      {name:'tsText', header:'타임스탬프 (TSA)', minWidth:160, formatter:v=>`<span class="mono">${TPMSGrid.html(v)}</span>`},
+      {name:'event', header:'이벤트', minWidth:300},
+      {name:'target', header:'대상', minWidth:160},
+      {name:'actor', header:'행위자', minWidth:120},
+      {name:'chainText', header:'체인 해시 (prev→curr)', minWidth:150, formatter:v=>`<span class="mono">${TPMSGrid.html(v)}</span>`},
+    ],
+    pageOptions: {useClient: true, perPage: 10},
+    emptyMessage: '기록 없음',
+  });
+}
+
+/* ───────── 입력 이벤트 ───────── */
+document.addEventListener('input',e=>{
+  if(e.target.id!=='f-purpose')return;
+  const n=nlpParse(e.target.value);
+  el('nlpPreview').innerHTML=!n?'<div class="empty">사용 목적을 입력하면 분석 결과가 표시됨</div>':`
+   <div><span class="tag">목적코드</span><b>${n.code}</b></div>
+   <div style="margin-top:8px"><span class="tag">분류 신뢰도</span>${Math.round(n.conf*100)}% ${n.conf<0.5?'<span style="color:var(--warn);font-weight:700">— 임계값 미만: 관리자 재확인 인터럽트 발동</span>':''}
+   <div class="conf-bar"><i style="width:${Math.round(n.conf*100)}%"></i></div></div>
+   <div style="margin-top:8px"><span class="tag">ACL (역할-허용 매핑)</span>${n.roles.length?n.roles.map(r=>`<span class="badge b-issued" style="margin-right:4px">${r}</span>`).join(''):'<span class="badge b-block">매핑 없음 — Deny 기본값</span>'}</div>
+   <div style="margin-top:8px"><span class="tag">이력 기반 추천</span>동일 목적코드 과거 승인 ${n.hist}건 참조</div>`;
+});
+document.addEventListener('change',e=>{
+  if(e.target.id!=='f-po')return;
+  const p=DB().pos.find(x=>x.po===e.target.value);
+  if(p){el('f-name').value=p.item+' 관련 기술자료';el('f-vendor').value=p.bp;}
+});
+
+/* ───────── 탭 ───────── */
+const TABS=[['dash','대시보드'],['req','요구서 관리'],['review','검수·인가'],['acl','접근통제 (S140)'],['disp','폐기·Vault (S150)'],['audit','감사로그 (WORM)'],['erp','ERP 연동']];
+el('nav').innerHTML=TABS.map(([k,t],i)=>`<button class="${i===0?'on':''}" data-t="${k}">${t}${k==='review'?'<span class="pill" style="display:none">0</span>':''}</button>`).join('');
+el('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+b.dataset.t));
+  setTimeout(render,0);
+});
+
+/* ───────── 크로스탭/포털 실시간 동기화 ([5]) ───────── */
+let _lastT=0;
+function syncCheck(){const db=Store.read();if(db&&db._t!==_lastT){_lastT=db._t;render();}}
+window.addEventListener('storage',e=>{if(e.key===DB_KEY)syncCheck();});
+setInterval(syncCheck,1500); // file:// 등 이벤트 미동작 환경 폴백
+
+/* ───────── 초기화 ───────── */
+el('f-give').value=new Date().toISOString().slice(0,10);
+(async()=>{const db=DB();_lastT=db._t;
+  if(db.audit.length===0)await audit('시스템 기동 — 정책엔진/커널드라이버/프록시 활성','TPMS','SYSTEM');
+  render();})();
+/* =====================[v2.0][2026-06-13][Claude][상업 출시 수준 재구성 END]===================== */
+</script>
+</body>
+</html>

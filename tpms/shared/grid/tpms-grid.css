@@ -1,0 +1,33 @@
+.tui-grid-container {
+  font-family: 'Pretendard','Malgun Gothic','맑은 고딕',sans-serif;
+}
+
+.tpms-grid-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tpms-grid {
+  min-height: 178px;
+}
+
+.tpms-grid .tui-grid-cell {
+  font-size: 12.5px;
+}
+
+.tpms-grid .tui-grid-cell-header {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.tpms-grid-fallback {
+  overflow-x: auto;
+}
+
+.tpms-grid-empty {
+  color: var(--soft);
+  text-align: center;
+  padding: 24px 0;
+  font-size: 12px;
+}
