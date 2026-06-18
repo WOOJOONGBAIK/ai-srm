@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid } from '../../components/grid.js';
 
 export default function init(container) {
   renderProcessTracker(container, 'pr');
@@ -80,31 +81,10 @@ export default function init(container) {
         <span>품목 목록</span>
         <button class="pg-btn primary" id="btn-add-item" style="font-size:12px;padding:5px 12px">+ 품목 추가</button>
       </div>
-      <div class="data-table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>#</th><th>품목코드</th><th>품목명</th><th>규격/사양</th>
-              <th>단위</th><th>수량</th><th style="text-align:right">단가</th>
-              <th style="text-align:right">금액</th><th>비고</th><th>삭제</th>
-            </tr>
-          </thead>
-          <tbody id="item-tbody">
-            <tr id="item-empty">
-              <td colspan="10" style="text-align:center;padding:32px;color:var(--text-sub)">
-                품목 추가 버튼을 클릭하여 품목을 입력하세요.
-              </td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr style="background:var(--bg-gray)">
-              <td colspan="7" style="text-align:right;font-weight:700;padding:10px 14px">합 계</td>
-              <td style="text-align:right;font-weight:800;color:var(--primary-color);padding:10px 14px" id="total-amt">0원</td>
-              <td colspan="2"></td>
-            </tr>
-          </tfoot>
-        </table>
+      <div class="aisrm-grid-wrap">
+        <div id="pr-item-grid" class="aisrm-grid"></div>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;font-size:13px;font-weight:900;color:var(--primary-color)">합계 <span id="total-amt" style="margin-left:6px">0원</span></div>
     </div>
 
     <!-- 첨부파일 -->
@@ -140,6 +120,7 @@ export default function init(container) {
 
   let items = [];
   let itemSeq = 1;
+  let itemGrid = null;
 
   function recalc() {
     const total = items.reduce((s, r) => s + (r.qty * r.price), 0);
@@ -148,39 +129,47 @@ export default function init(container) {
   }
 
   function renderItems() {
-    const tbody = root.querySelector('#item-tbody');
-    if (!items.length) {
-      tbody.innerHTML = `<tr id="item-empty"><td colspan="10" style="text-align:center;padding:32px;color:var(--text-sub)">품목 추가 버튼을 클릭하여 품목을 입력하세요.</td></tr>`;
-      recalc(); return;
-    }
-    tbody.innerHTML = items.map((item, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td><input class="form-input" style="width:100px" value="${item.code}" data-field="code" data-idx="${i}"></td>
-        <td><input class="form-input" style="width:140px" value="${item.name}" data-field="name" data-idx="${i}" placeholder="품목명"></td>
-        <td><input class="form-input" style="width:120px" value="${item.spec}" data-field="spec" data-idx="${i}" placeholder="규격"></td>
-        <td><select class="form-select" style="width:70px" data-field="unit" data-idx="${i}">
-          ${['EA','SET','KG','M','L','BOX'].map(u => `<option${item.unit===u?' selected':''}>${u}</option>`).join('')}
-        </select></td>
-        <td><input class="form-input" type="number" style="width:70px" value="${item.qty}" data-field="qty" data-idx="${i}" min="1"></td>
-        <td><input class="form-input" type="number" style="width:100px;text-align:right" value="${item.price}" data-field="price" data-idx="${i}"></td>
-        <td style="text-align:right;font-weight:600">${(item.qty*item.price).toLocaleString('ko-KR')}</td>
-        <td><input class="form-input" style="width:100px" value="${item.note}" data-field="note" data-idx="${i}" placeholder="비고"></td>
-        <td><button class="tbl-btn danger" data-del="${i}">삭제</button></td>
-      </tr>`).join('');
-
-    tbody.querySelectorAll('input,select').forEach(el => {
-      el.addEventListener('change', () => {
-        const idx = +el.dataset.idx, field = el.dataset.field;
-        items[idx][field] = field === 'qty' || field === 'price' ? +el.value : el.value;
-        renderItems();
+    const data = items.map((item, i) => ({
+      ...item,
+      idx: i,
+      no: i + 1,
+      amount: item.qty * item.price
+    }));
+    if (!itemGrid) {
+      itemGrid = createAISRMGrid(root.querySelector('#pr-item-grid'), {
+        columns: [
+          { name: 'no', header: '#', width: 60, align: 'center' },
+          { name: 'code', header: '품목코드', width: 120, editor: 'text' },
+          { name: 'name', header: '품목명', minWidth: 150, editor: 'text' },
+          { name: 'spec', header: '규격/사양', minWidth: 130, editor: 'text' },
+          { name: 'unit', header: '단위', width: 80, editor: 'text' },
+          { name: 'qty', header: '수량', width: 80, align: 'right', editor: 'text' },
+          { name: 'price', header: '단가', width: 110, align: 'right', editor: 'text', formatter: 'number' },
+          { name: 'amount', header: '금액', width: 120, align: 'right', formatter: 'number' },
+          { name: 'note', header: '비고', minWidth: 110, editor: 'text' },
+          { name: '__actions', header: '삭제', width: 80, formatter: ({ row }) => actionButtons([{ label: '삭제', danger: true, dataset: { del: row.idx } }]) }
+        ],
+        data,
+        bodyHeight: 260,
+        onEditingFinish: ({ rowKey, columnName, value, grid }) => {
+          const row = grid.getRow(rowKey);
+          if (!row || row.idx === undefined) return;
+          items[row.idx][columnName] = ['qty', 'price'].includes(columnName) ? Number(value) || 0 : value;
+          renderItems();
+        }
       });
-    });
-    tbody.querySelectorAll('[data-del]').forEach(btn => {
-      btn.addEventListener('click', () => { items.splice(+btn.dataset.del, 1); renderItems(); });
-    });
+      return recalc();
+    }
+    itemGrid.setData(data);
     recalc();
   }
+
+  root.querySelector('#pr-item-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-del]');
+    if (!btn) return;
+    items.splice(+btn.dataset.del, 1);
+    renderItems();
+  });
 
   root.querySelector('#btn-add-item').addEventListener('click', () => {
     items.push({ code: `ITM-${String(itemSeq++).padStart(3,'0')}`, name:'', spec:'', unit:'EA', qty:1, price:0, note:'' });

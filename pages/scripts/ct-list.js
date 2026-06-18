@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid, statusBadge } from '../../components/grid.js';
 
 const MOCK = [
   { ctNo:'CT-2026-0124', title:'베어링·씰류 단가계약',       vendor:'ABC베어링',    type:'단가계약', amt:120000000, start:'2026-01-01', end:'2026-12-31', status:'active',  dday:249 },
@@ -30,6 +31,7 @@ export default function init(container) {
   });
 
   const root = container.querySelector('#page-ct-list');
+  let grid = null;
   root.innerHTML = `
     <div class="stat-cards">
       <div class="stat-card primary"><div class="stat-card-label">전체 계약</div><div class="stat-card-value">${MOCK.length}건</div></div>
@@ -43,33 +45,38 @@ export default function init(container) {
       <input type="text" class="filter-keyword" id="f-kw" placeholder="계약번호·명칭·협력사 검색">
       <button class="pg-btn primary" id="btn-search">검색</button>
     </div>
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead><tr><th>계약번호</th><th>계약명</th><th>협력사</th><th>유형</th><th style="text-align:right">계약금액</th><th>계약기간</th><th>잔여일</th><th>상태</th><th>관리</th></tr></thead>
-        <tbody id="ct-tbody"></tbody>
-      </table>
+    <div class="aisrm-grid-wrap">
+      <div id="ct-grid" class="aisrm-grid"></div>
     </div>`;
 
   function render(data) {
-    root.querySelector('#ct-tbody').innerHTML = data.map(r => {
+    const gridData = data.map(r => {
       const s = ST[r.status];
-      const ddayColor = r.dday <= 30 ? '#dc2626' : r.dday <= 90 ? '#c2410c' : 'var(--text-sub)';
-      return `<tr>
-        <td style="font-weight:600;color:var(--primary-color)">${r.ctNo}</td>
-        <td>${r.title}</td>
-        <td>${r.vendor}</td>
-        <td><span class="badge badge-draft">${r.type}</span></td>
-        <td style="text-align:right;font-weight:600">${fmt(r.amt)}</td>
-        <td style="font-size:12px">${r.start} ~ ${r.end}</td>
-        <td style="font-weight:700;color:${ddayColor}">${r.dday}일</td>
-        <td><span class="badge ${s.cls}">${s.label}</span></td>
-        <td class="td-actions">
-          <button class="tbl-btn primary">상세</button>
-          ${r.status==='pending'?'<button class="tbl-btn warn" style="color:#c2410c;border-color:#fde68a">서명</button>':''}
-          ${r.status==='expiring'?'<button class="tbl-btn" style="color:#16a34a">갱신</button>':''}
-        </td>
-      </tr>`;
-    }).join('');
+      return { ...r, amtText: fmt(r.amt), period: `${r.start} ~ ${r.end}`, ddayText: `${r.dday}일`, statusLabel: s.label };
+    });
+    if (!grid) {
+      grid = createAISRMGrid(root.querySelector('#ct-grid'), {
+        columns: [
+          { name: 'ctNo', header: '계약번호', width: 140, formatter: 'link' },
+          { name: 'title', header: '계약명', minWidth: 230 },
+          { name: 'vendor', header: '협력사', width: 140 },
+          { name: 'type', header: '유형', width: 110, formatter: ({ value }) => statusBadge(value, 'gray') },
+          { name: 'amtText', header: '계약금액', width: 120, align: 'right' },
+          { name: 'period', header: '계약기간', width: 200 },
+          { name: 'ddayText', header: '잔여일', width: 90 },
+          { name: 'statusLabel', header: '상태', width: 100, formatter: ({ row }) => statusBadge(row.statusLabel, row.status === 'active' ? 'green' : row.status === 'pending' ? 'amber' : 'red') },
+          { name: '__actions', header: '관리', width: 140, formatter: ({ row }) => actionButtons([
+            { label: '상세', primary: true, dataset: { action: 'detail', ct: row.ctNo } },
+            ...(row.status === 'pending' ? [{ label: '서명', dataset: { action: 'sign', ct: row.ctNo } }] : []),
+            ...(row.status === 'expiring' ? [{ label: '갱신', dataset: { action: 'renew', ct: row.ctNo } }] : [])
+          ]) }
+        ],
+        data: gridData,
+        bodyHeight: 360
+      });
+      return;
+    }
+    grid.setData(gridData);
   }
 
   root.querySelector('#btn-search').addEventListener('click', () => {

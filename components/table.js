@@ -1,10 +1,13 @@
 // 공통 테이블 컴포넌트
+import { actionButtons, createAISRMGrid } from './grid.js';
+
 export class DataTable {
   constructor(container, config) {
     this.container = container;
     this.config = config;
     this.data = [];
     this.filteredData = [];
+    this.grid = null;
   }
 
   setData(data) {
@@ -29,6 +32,64 @@ export class DataTable {
   }
 
   render() {
+    /* [2026-06-17] 수정 시작 - 작성자: AI Agent
+       사유: 프로젝트 표준 그리드를 TOAST UI Grid 기반 AISRMGrid로 통일
+    --------------------------------------------------------------------------
+    // [AS-IS] 기존 코드 (주석 처리)
+    // const { columns, actions } = this.config;
+    //
+    // const tableHTML = `
+    //   <table style="width: 100%; border-collapse: collapse;">
+    //     ...
+    //   </table>
+    // `;
+    //
+    // this.container.innerHTML = tableHTML;
+
+    // [TO-BE] 신규 코드 */
+    if (!this.grid) {
+      this.grid = createAISRMGrid(this.container, {
+        columns: this.config.columns.map(col => ({
+          name: col.field,
+          header: col.header,
+          minWidth: col.minWidth ?? 120,
+          formatter: col.formatter
+            ? ({ row }) => col.formatter(row[col.field], row)
+            : undefined
+        })).concat(this.config.actions ? [{
+          name: '__actions',
+          header: '관리',
+          width: 120,
+          align: 'center',
+          formatter: ({ row }) => actionButtons(this.config.actions.map(action => ({
+            label: action.label,
+            primary: true,
+            dataset: {
+              action: action.handler,
+              id: row.id
+            }
+          })))
+        }] : []),
+        data: this.filteredData,
+        bodyHeight: this.config.bodyHeight ?? 360
+      });
+
+      this.grid.container.addEventListener('click', event => {
+        const btn = event.target.closest('[data-action]');
+        if (!btn) return;
+        const handler = window[btn.dataset.action];
+        if (typeof handler === 'function') handler(btn.dataset.id);
+      });
+      return;
+    }
+
+    this.grid.setData(this.filteredData);
+    /* --------------------------------------------------------------------------
+       [2026-06-17] 수정 종료 */
+    return;
+
+    /*
+    // [AS-IS] 기존 코드 상세 보존
     const { columns, actions } = this.config;
 
     const tableHTML = `
@@ -61,6 +122,7 @@ export class DataTable {
     `;
 
     this.container.innerHTML = tableHTML;
+    */
   }
 
   formatCell(item, column) {

@@ -1,4 +1,5 @@
 import { renderPageHeader } from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid, statusBadge } from '../../components/grid.js';
 
 /* ── 코드 맵 ── */
 const KTOKK_MAP = {
@@ -50,11 +51,13 @@ let _filtered  = [..._db];
 let _editMode  = false;   // false = 조회(XK03), true = 변경(XK02)
 let _editLifnr = null;
 let _deletePending = null;
+let _grid = null;
 
 /* ── 유틸 ── */
 const $ = id => document.getElementById(id);
 
 export default function init(container) {
+  _grid = null;
   renderPageHeader(container, {
     title: '벤더 마스터 조회',
     subtitle: 'SAP XK03/XK02/MK06 — 벤더 마스터 데이터를 조회·변경·삭제 관리합니다.',
@@ -107,25 +110,21 @@ function buildShell() {
       </button>
     </div>
 
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th style="width:36px;"><input type="checkbox" id="chk-all"></th>
-            <th>벤더번호<br><span style="font-family:monospace;font-size:10px;opacity:.5">LIFNR</span></th>
-            <th>회사명<br><span style="font-family:monospace;font-size:10px;opacity:.5">NAME1</span></th>
-            <th>검색어<br><span style="font-family:monospace;font-size:10px;opacity:.5">SORTL</span></th>
-            <th>국가<br><span style="font-family:monospace;font-size:10px;opacity:.5">LAND1</span></th>
-            <th>계정그룹<br><span style="font-family:monospace;font-size:10px;opacity:.5">KTOKK</span></th>
-            <th>발주통화<br><span style="font-family:monospace;font-size:10px;opacity:.5">WAERS</span></th>
-            <th>상태</th>
-            <th>등록일</th>
-            <th style="width:160px;">액션</th>
-          </tr>
-        </thead>
-        <tbody id="vnd-tbody"></tbody>
-      </table>
-    </div>`;
+    <!-- [2026-06-17] 수정 시작 - 작성자: AI Agent
+         사유: AISRM 표준 TOAST UI Grid 적용
+    --------------------------------------------------------------------------
+    // [AS-IS] 기존 코드 (주석 처리)
+    // <div class="data-table-wrap">
+    //   <table class="data-table">...</table>
+    // </div>
+
+    // [TO-BE] 신규 코드 -->
+    <div class="aisrm-grid-wrap">
+      <div id="vnd-grid" class="aisrm-grid"></div>
+    </div>
+    <!-- --------------------------------------------------------------------------
+       [2026-06-17] 수정 종료 -->
+    `;
 }
 
 /* ── 통계 카드 ── */
@@ -143,46 +142,65 @@ function renderStats() {
 
 /* ── 테이블 렌더 ── */
 function renderTable() {
-  const tbody = $('vnd-tbody');
   $('vnd-count').textContent = _filtered.length;
-  if (_filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-sub);">조회된 벤더가 없습니다.</td></tr>`;
+  /* [2026-06-17] 수정 시작 - 작성자: AI Agent
+     사유: 직접 HTML table 렌더링을 AISRM 표준 Grid 렌더링으로 전환
+  --------------------------------------------------------------------------
+  // [AS-IS] 기존 코드 (주석 처리)
+  // tbody.innerHTML = _filtered.map(v => `...`).join('');
+  // tbody.querySelectorAll('.row-chk').forEach(chk => ...)
+
+  // [TO-BE] 신규 코드 */
+  const gridData = _filtered.map(v => {
+    const st = getStatus(v);
+    const { label } = STATUS_MAP[st];
+    const tone = st === 'active' ? 'green' : st === 'blocked' ? 'amber' : 'red';
+    return {
+      ...v,
+      landText: LAND_MAP[v.land1] ?? v.land1,
+      statusLabel: label,
+      statusTone: tone
+    };
+  });
+
+  if (!_grid) {
+    _grid = createAISRMGrid($('vnd-grid'), {
+      rowHeaders: ['checkbox'],
+      bodyHeight: 430,
+      columns: [
+        { name: 'lifnr', header: '벤더번호', width: 110, formatter: 'link' },
+        { name: 'name1', header: '회사명', minWidth: 190 },
+        { name: 'sortl', header: '검색어', width: 120 },
+        { name: 'landText', header: '국가', width: 110 },
+        { name: 'ktokk', header: '계정그룹', width: 110 },
+        { name: 'waers', header: '발주통화', width: 90 },
+        { name: 'statusLabel', header: '상태', width: 100, formatter: ({ row }) => statusBadge(row.statusLabel, row.statusTone) },
+        { name: 'createdAt', header: '등록일', width: 110 },
+        {
+          name: '__actions',
+          header: '액션',
+          width: 210,
+          formatter: ({ row }) => actionButtons([
+            { label: 'XK03 조회', primary: true, dataset: { action: 'view', lifnr: row.lifnr } },
+            { label: 'XK02 변경', dataset: { action: 'edit', lifnr: row.lifnr } },
+            { label: '삭제', danger: true, disabled: row.lifsd, dataset: { action: 'delete', lifnr: row.lifnr } }
+          ])
+        }
+      ],
+      data: gridData,
+      onCheck: updateBulkBtn
+    });
     return;
   }
-  tbody.innerHTML = _filtered.map(v => {
-    const st = getStatus(v);
-    const { label, cls } = STATUS_MAP[st];
-    return `
-      <tr data-lifnr="${v.lifnr}">
-        <td><input type="checkbox" class="row-chk" data-lifnr="${v.lifnr}"></td>
-        <td style="font-family:monospace;font-weight:700;color:var(--primary-color)">${v.lifnr}</td>
-        <td style="font-weight:600">${v.name1}</td>
-        <td style="font-family:monospace;font-size:12px">${v.sortl}</td>
-        <td>${LAND_MAP[v.land1] ?? v.land1}</td>
-        <td><span style="font-family:monospace;font-size:11px">${v.ktokk}</span></td>
-        <td style="font-family:monospace">${v.waers}</td>
-        <td><span class="badge ${cls}">${label}</span></td>
-        <td style="font-size:12px;color:var(--text-sub)">${v.createdAt}</td>
-        <td class="td-actions">
-          <button class="tbl-btn primary btn-view" data-lifnr="${v.lifnr}">XK03 조회</button>
-          <button class="tbl-btn btn-edit" data-lifnr="${v.lifnr}">XK02 변경</button>
-          <button class="tbl-btn danger btn-del" data-lifnr="${v.lifnr}" ${v.lifsd ? 'disabled title="이미 삭제 대상입니다"' : ''}>삭제</button>
-        </td>
-      </tr>`;
-  }).join('');
 
-  /* 행 선택 체크박스 */
-  tbody.querySelectorAll('.row-chk').forEach(chk => {
-    chk.addEventListener('change', updateBulkBtn);
-  });
-  $('chk-all').addEventListener('change', e => {
-    tbody.querySelectorAll('.row-chk').forEach(c => { c.checked = e.target.checked; });
-    updateBulkBtn();
-  });
+  _grid.setData(gridData);
+  updateBulkBtn();
+  /* --------------------------------------------------------------------------
+     [2026-06-17] 수정 종료 */
 }
 
 function updateBulkBtn() {
-  const checked = document.querySelectorAll('.row-chk:checked').length;
+  const checked = _grid?.getCheckedRows().length ?? 0;
   $('btn-bulk-delete').style.display = checked > 0 ? '' : 'none';
   $('btn-bulk-delete').textContent = `선택 ${checked}건 삭제 플래그`;
 }
@@ -342,7 +360,7 @@ function confirmDelete() {
   renderTable();
 }
 function bulkDelete() {
-  const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.dataset.lifnr);
+  const checked = (_grid?.getCheckedRows() ?? []).map(row => row.lifnr);
   if (!checked.length) return;
   const names = checked.map(l => _db.find(r => r.lifnr === l)?.name1 ?? l).join(', ');
   if (!confirm(`${checked.length}건에 삭제 플래그를 설정하겠습니까?\n\n${names}`)) return;
@@ -371,13 +389,13 @@ function attachEvents(container) {
   });
 
   /* 테이블 버튼 (이벤트 위임) */
-  $('vnd-tbody').addEventListener('click', e => {
+  $('vnd-grid').addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
     const lifnr = btn.dataset.lifnr;
-    if (btn.classList.contains('btn-view'))  openModal(lifnr, false);
-    if (btn.classList.contains('btn-edit'))  openModal(lifnr, true);
-    if (btn.classList.contains('btn-del'))   openDeleteConfirm(lifnr);
+    if (btn.dataset.action === 'view') openModal(lifnr, false);
+    if (btn.dataset.action === 'edit') openModal(lifnr, true);
+    if (btn.dataset.action === 'delete') openDeleteConfirm(lifnr);
   });
 
   /* 모달 탭 전환 */

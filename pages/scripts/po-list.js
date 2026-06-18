@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid, statusBadge } from '../../components/grid.js';
 
 const MOCK = [
   { poNo:'PO-2026-0201', title:'금형 설계 외주 용역', vendor:'(주)정밀금형', qty:1,  unit:'식',  amt:32000000, issued:'2026-04-27', due:'2026-05-27', ack:'확인완료', status:'progress' },
@@ -31,6 +32,7 @@ export default function init(container) {
   });
 
   const root = container.querySelector('#page-po-list');
+  let grid = null;
   root.innerHTML = `
     <div class="stat-cards">
       <div class="stat-card primary"><div class="stat-card-label">전체 발주</div><div class="stat-card-value">${MOCK.length}건</div></div>
@@ -44,37 +46,42 @@ export default function init(container) {
       <input type="text" class="filter-keyword" id="f-kw" placeholder="발주번호·품목명·협력사 검색">
       <button class="pg-btn primary" id="btn-search">검색</button>
     </div>
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead><tr><th>발주번호</th><th>품목/용역명</th><th>협력사</th><th style="text-align:right">수량</th><th style="text-align:right">발주금액</th><th>발주일</th><th>납기일</th><th>ACK</th><th>상태</th><th>관리</th></tr></thead>
-        <tbody id="po-tbody"></tbody>
-      </table>
+    <div class="aisrm-grid-wrap">
+      <div id="po-grid" class="aisrm-grid"></div>
     </div>`;
 
   function render(data) {
     const today = new Date('2026-04-27');
-    root.querySelector('#po-tbody').innerHTML = data.map(r => {
+    const gridData = data.map(r => {
       const s = ST[r.status];
       const due = new Date(r.due);
       const dday = Math.ceil((due - today) / 86400000);
-      const ddayColor = dday < 0 ? '#dc2626' : dday <= 7 ? '#c2410c' : 'var(--text-sub)';
       const ddayLabel = dday < 0 ? `D+${Math.abs(dday)}` : `D-${dday}`;
-      return `<tr>
-        <td style="font-weight:600;color:var(--primary-color)">${r.poNo}</td>
-        <td>${r.title}</td>
-        <td>${r.vendor}</td>
-        <td style="text-align:right">${r.qty.toLocaleString()} ${r.unit}</td>
-        <td style="text-align:right;font-weight:600">${fmt(r.amt)}</td>
-        <td style="font-size:12px">${r.issued}</td>
-        <td style="font-size:12px">${r.due} <span style="font-weight:700;color:${ddayColor}">${ddayLabel}</span></td>
-        <td><span class="badge ${r.ack==='확인완료'?'badge-approved':'badge-urgent'}">${r.ack}</span></td>
-        <td><span class="badge ${s.cls}">${s.label}</span></td>
-        <td class="td-actions">
-          <button class="tbl-btn primary">상세</button>
-          ${r.status==='delivered'?'<button class="tbl-btn" style="color:#16a34a">입고 확인</button>':''}
-        </td>
-      </tr>`;
-    }).join('');
+      return { ...r, qtyText: `${r.qty.toLocaleString()} ${r.unit}`, amtText: fmt(r.amt), dueText: `${r.due} ${ddayLabel}`, statusLabel: s.label };
+    });
+    if (!grid) {
+      grid = createAISRMGrid(root.querySelector('#po-grid'), {
+        columns: [
+          { name: 'poNo', header: '발주번호', width: 140, formatter: 'link' },
+          { name: 'title', header: '품목/용역명', minWidth: 210 },
+          { name: 'vendor', header: '협력사', width: 140 },
+          { name: 'qtyText', header: '수량', width: 100, align: 'right' },
+          { name: 'amtText', header: '발주금액', width: 120, align: 'right' },
+          { name: 'issued', header: '발주일', width: 110 },
+          { name: 'dueText', header: '납기일', width: 130 },
+          { name: 'ack', header: 'ACK', width: 100, formatter: ({ value }) => statusBadge(value, value === '확인완료' ? 'green' : 'red') },
+          { name: 'statusLabel', header: '상태', width: 100, formatter: ({ row }) => statusBadge(row.statusLabel, row.status === 'complete' ? 'gray' : row.status === 'pending' ? 'amber' : 'blue') },
+          { name: '__actions', header: '관리', width: 130, formatter: ({ row }) => actionButtons([
+            { label: '상세', primary: true, dataset: { action: 'detail', pono: row.poNo } },
+            ...(row.status === 'delivered' ? [{ label: '입고 확인', dataset: { action: 'receive', pono: row.poNo } }] : [])
+          ]) }
+        ],
+        data: gridData,
+        bodyHeight: 360
+      });
+      return;
+    }
+    grid.setData(gridData);
   }
 
   root.querySelector('#btn-search').addEventListener('click', () => {

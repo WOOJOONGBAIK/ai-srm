@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid, statusBadge } from '../../components/grid.js';
 
 const MOCK = [
   { rfqNo:'RFQ-2026-0089', title:'베어링·씰 류 긴급 수급',     prNo:'PR-2026-0420', vendorCnt:3, recvCnt:3, deadline:'2026-04-22', status:'closed',  created:'2026-04-20' },
@@ -28,6 +29,7 @@ export default function init(container) {
   });
 
   const root = container.querySelector('#page-rfq-list');
+  let grid = null;
   root.innerHTML = `
     <div class="stat-cards">
       <div class="stat-card primary"><div class="stat-card-label">전체 RFQ</div><div class="stat-card-value">${MOCK.length}건</div><div class="stat-card-sub">이번 달</div></div>
@@ -40,41 +42,48 @@ export default function init(container) {
       <input type="text" class="filter-keyword" id="f-kw" placeholder="RFQ번호·제목 검색">
       <button class="pg-btn primary" id="btn-search">검색</button>
     </div>
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr><th>RFQ번호</th><th>RFQ명</th><th>연결 PR</th><th style="text-align:center">발송업체</th><th style="text-align:center">접수건</th><th>마감일</th><th>등록일</th><th>상태</th><th>관리</th></tr>
-        </thead>
-        <tbody id="rfq-tbody"></tbody>
-      </table>
+    <div class="aisrm-grid-wrap">
+      <div id="rfq-grid" class="aisrm-grid"></div>
     </div>`;
 
   function render(data) {
-    root.querySelector('#rfq-tbody').innerHTML = data.map(r => {
+    const gridData = data.map(r => {
       const s = ST[r.status];
       const rate = r.vendorCnt ? Math.round(r.recvCnt / r.vendorCnt * 100) : 0;
-      return `<tr>
-        <td style="font-weight:600;color:var(--primary-color)">${r.rfqNo}</td>
-        <td>${r.title}</td>
-        <td style="color:var(--text-sub)">${r.prNo}</td>
-        <td style="text-align:center">${r.vendorCnt}개사</td>
-        <td style="text-align:center">${r.recvCnt}건 <span style="color:var(--text-sub);font-size:11px">(${rate}%)</span></td>
-        <td>${r.deadline}</td>
-        <td>${r.created}</td>
-        <td><span class="badge ${s.cls}">${s.label}</span></td>
-        <td class="td-actions">
-          <button class="tbl-btn primary" data-id="${r.rfqNo}">상세</button>
-          ${r.status==='eval'||r.recvCnt>0 ? '<button class="tbl-btn" data-compare="1">비교</button>' : ''}
-        </td>
-      </tr>`;
-    }).join('');
-    root.querySelectorAll('[data-compare]').forEach(b => {
-      b.addEventListener('click', () => {
+      return { ...r, recvText: `${r.recvCnt}건 (${rate}%)`, statusLabel: s.label };
+    });
+    if (!grid) {
+      grid = createAISRMGrid(root.querySelector('#rfq-grid'), {
+        columns: [
+          { name: 'rfqNo', header: 'RFQ번호', width: 140, formatter: 'link' },
+          { name: 'title', header: 'RFQ명', minWidth: 220 },
+          { name: 'prNo', header: '연결 PR', width: 140 },
+          { name: 'vendorCnt', header: '발송업체', width: 90, align: 'center', formatter: ({ value }) => `${value}개사` },
+          { name: 'recvText', header: '접수건', width: 110, align: 'center' },
+          { name: 'deadline', header: '마감일', width: 110 },
+          { name: 'created', header: '등록일', width: 110 },
+          { name: 'statusLabel', header: '상태', width: 100, formatter: ({ row }) => statusBadge(row.statusLabel, row.status === 'awarded' ? 'green' : row.status === 'open' ? 'blue' : row.status === 'eval' ? 'amber' : 'gray') },
+          { name: '__actions', header: '관리', width: 140, formatter: ({ row }) => actionButtons([
+            { label: '상세', primary: true, dataset: { action: 'detail', rfq: row.rfqNo } },
+            ...(row.status === 'eval' || row.recvCnt > 0 ? [{ label: '비교', dataset: { action: 'compare', rfq: row.rfqNo } }] : [])
+          ]) }
+        ],
+        data: gridData,
+        bodyHeight: 360
+      });
+      return;
+    }
+    grid.setData(gridData);
+  }
+
+  root.querySelector('#rfq-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'compare') {
         history.pushState({ pageId: 'rfq-compare' }, '', '?page=rfq-compare');
         window.dispatchEvent(new PopStateEvent('popstate', { state: { pageId: 'rfq-compare' } }));
-      });
-    });
-  }
+    }
+  });
 
   root.querySelector('#btn-search').addEventListener('click', () => {
     const st = root.querySelector('#f-status').value;

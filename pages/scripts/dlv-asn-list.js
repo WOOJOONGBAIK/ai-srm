@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid, statusBadge } from '../../components/grid.js';
 
 const MOCK = [
   { asnNo:'ASN-2026-0301', poNo:'PO-2026-0198', vendor:'ABC베어링',    title:'베어링·씰류 자재', qty:500, unit:'EA', etd:'2026-05-08', eta:'2026-05-10', status:'transit',  carrier:'한진택배',   trackNo:'1234567890' },
@@ -28,6 +29,7 @@ export default function init(container) {
   });
 
   const root = container.querySelector('#page-dlv-asn-list');
+  let grid = null;
   root.innerHTML = `
     <div class="stat-cards">
       <div class="stat-card primary"><div class="stat-card-label">전체 ASN</div><div class="stat-card-value">${MOCK.length}건</div></div>
@@ -40,47 +42,56 @@ export default function init(container) {
       <input type="text" class="filter-keyword" id="f-kw" placeholder="ASN번호·PO번호·협력사·품목명 검색">
       <button class="pg-btn primary" id="btn-search">검색</button>
     </div>
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead><tr><th>ASN번호</th><th>연결 PO</th><th>협력사</th><th>품목명</th><th style="text-align:right">수량</th><th>출하일(ETD)</th><th>도착예정(ETA)</th><th>운송사</th><th>운송장번호</th><th>상태</th><th>관리</th></tr></thead>
-        <tbody id="asn-tbody"></tbody>
-      </table>
+    <div class="aisrm-grid-wrap">
+      <div id="asn-grid" class="aisrm-grid"></div>
     </div>`;
 
   function render(data) {
     const today = new Date('2026-04-27');
-    root.querySelector('#asn-tbody').innerHTML = data.map(r => {
+    const gridData = data.map(r => {
       const s = ST[r.status];
       const eta = new Date(r.eta);
       const dday = Math.ceil((eta - today) / 86400000);
       const isLate = dday < 0 && r.status !== 'received';
-      return `<tr${isLate ? ' style="background:rgba(220,38,38,0.04)"' : ''}>
-        <td style="font-weight:600;color:var(--primary-color)">${r.asnNo}</td>
-        <td style="font-size:12px;color:var(--text-sub)">${r.poNo}</td>
-        <td>${r.vendor}</td>
-        <td>${r.title}</td>
-        <td style="text-align:right">${r.qty.toLocaleString()} ${r.unit}</td>
-        <td style="font-size:12px">${r.etd}</td>
-        <td style="font-size:12px">${r.eta}${r.status!=='received'?` <span style="font-weight:700;color:${isLate?'#dc2626':'var(--text-sub)'}">${isLate?`D+${Math.abs(dday)}`:`D-${dday}`}</span>`:''}</td>
-        <td style="font-size:12px">${r.carrier}</td>
-        <td style="font-size:12px;color:var(--primary-color)">${r.trackNo !== '-' ? `<a href="#" onclick="alert('운송 추적: ${r.trackNo}');return false;">${r.trackNo}</a>` : '-'}</td>
-        <td><span class="badge ${s.cls}">${s.label}</span></td>
-        <td class="td-actions">
-          ${r.status==='arrived'?'<button class="tbl-btn primary recv-btn" data-asn="'+r.asnNo+'">입고 처리</button>':''}
-          ${r.status==='transit'?'<button class="tbl-btn">추적</button>':''}
-          ${r.status==='received'?'<button class="tbl-btn">내역</button>':''}
-        </td>
-      </tr>`;
-    }).join('');
+      return { ...r, qtyText: `${r.qty.toLocaleString()} ${r.unit}`, etaText: `${r.eta}${r.status !== 'received' ? ` ${isLate ? `D+${Math.abs(dday)}` : `D-${dday}`}` : ''}`, statusLabel: s.label };
+    });
+    if (!grid) {
+      grid = createAISRMGrid(root.querySelector('#asn-grid'), {
+        columns: [
+          { name: 'asnNo', header: 'ASN번호', width: 145, formatter: 'link' },
+          { name: 'poNo', header: '연결 PO', width: 140 },
+          { name: 'vendor', header: '협력사', width: 140 },
+          { name: 'title', header: '품목명', minWidth: 190 },
+          { name: 'qtyText', header: '수량', width: 100, align: 'right' },
+          { name: 'etd', header: '출하일(ETD)', width: 120 },
+          { name: 'etaText', header: '도착예정(ETA)', width: 140 },
+          { name: 'carrier', header: '운송사', width: 110 },
+          { name: 'trackNo', header: '운송장번호', width: 140, formatter: 'link' },
+          { name: 'statusLabel', header: '상태', width: 105, formatter: ({ row }) => statusBadge(row.statusLabel, row.status === 'received' ? 'green' : row.status === 'arrived' ? 'amber' : row.status === 'transit' ? 'blue' : 'gray') },
+          { name: '__actions', header: '관리', width: 120, formatter: ({ row }) => actionButtons([
+            ...(row.status === 'arrived' ? [{ label: '입고 처리', primary: true, dataset: { action: 'receive', asn: row.asnNo } }] : []),
+            ...(row.status === 'transit' ? [{ label: '추적', dataset: { action: 'track', asn: row.asnNo } }] : []),
+            ...(row.status === 'received' ? [{ label: '내역', dataset: { action: 'history', asn: row.asnNo } }] : [])
+          ]) }
+        ],
+        data: gridData,
+        bodyHeight: 360
+      });
+      return;
+    }
+    grid.setData(gridData);
+  }
 
-    root.querySelectorAll('.recv-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+  root.querySelector('#asn-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'receive') {
         if (confirm(`${btn.dataset.asn} 입고 처리하시겠습니까?\n입고 처리 후 IQC 검사 단계로 이동합니다.`)) {
           alert('입고 처리 완료. IQC 검사 대기열에 등록되었습니다.');
         }
-      });
-    });
-  }
+    }
+    if (btn.dataset.action === 'track') alert(`운송 추적: ${btn.dataset.asn}`);
+  });
 
   root.querySelector('#btn-search').addEventListener('click', () => {
     const st = root.querySelector('#f-status').value;

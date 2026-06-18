@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid } from '../../components/grid.js';
 
 const VENDOR_POOL = [
   { code:'V-001', name:'(주)정밀금형',  category:'금형',  grade:'A', contact:'010-1234-5678' },
@@ -52,11 +53,8 @@ export default function init(container) {
         <span>견적 품목</span>
         <button class="pg-btn primary" id="btn-add" style="font-size:12px;padding:5px 12px">+ 품목 추가</button>
       </div>
-      <div class="data-table-wrap">
-        <table class="data-table">
-          <thead><tr><th>#</th><th>품목코드</th><th>품목명</th><th>규격</th><th>단위</th><th>수량</th><th>비고</th><th>삭제</th></tr></thead>
-          <tbody id="item-tbody"><tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text-sub)">품목을 추가하세요</td></tr></tbody>
-        </table>
+      <div class="aisrm-grid-wrap">
+        <div id="rfq-item-grid" class="aisrm-grid"></div>
       </div>
     </div>
 
@@ -85,6 +83,7 @@ export default function init(container) {
     </div>`;
 
   let items = [], vendors = [], seq = 1;
+  let itemGrid = null;
 
   root.querySelector('#btn-add').addEventListener('click', () => {
     items.push({ no: seq++, code:'', name:'', spec:'', unit:'EA', qty:1, note:'' });
@@ -92,22 +91,39 @@ export default function init(container) {
   });
 
   function renderItems() {
-    const tbody = root.querySelector('#item-tbody');
-    if (!items.length) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:28px;color:var(--text-sub)">품목을 추가하세요</td></tr>`; return; }
-    tbody.innerHTML = items.map((it, i) => `
-      <tr>
-        <td>${it.no}</td>
-        <td><input class="form-input" style="width:90px" value="${it.code}" placeholder="품목코드" data-f="code" data-i="${i}"></td>
-        <td><input class="form-input" style="width:130px" value="${it.name}" placeholder="품목명" data-f="name" data-i="${i}"></td>
-        <td><input class="form-input" style="width:110px" value="${it.spec}" placeholder="규격" data-f="spec" data-i="${i}"></td>
-        <td><select class="form-select" style="width:65px" data-f="unit" data-i="${i}">${['EA','SET','KG','M','L'].map(u=>`<option${it.unit===u?' selected':''}>${u}</option>`).join('')}</select></td>
-        <td><input class="form-input" type="number" style="width:65px" value="${it.qty}" data-f="qty" data-i="${i}"></td>
-        <td><input class="form-input" style="width:110px" value="${it.note}" placeholder="비고" data-f="note" data-i="${i}"></td>
-        <td><button class="tbl-btn danger" data-del="${i}">삭제</button></td>
-      </tr>`).join('');
-    tbody.querySelectorAll('[data-f]').forEach(el => el.addEventListener('change', () => { items[+el.dataset.i][el.dataset.f] = el.value; }));
-    tbody.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => { items.splice(+btn.dataset.del, 1); renderItems(); }));
+    const data = items.map((it, idx) => ({ ...it, idx }));
+    if (!itemGrid) {
+      itemGrid = createAISRMGrid(root.querySelector('#rfq-item-grid'), {
+        columns: [
+          { name: 'no', header: '#', width: 60, align: 'center' },
+          { name: 'code', header: '품목코드', width: 120, editor: 'text' },
+          { name: 'name', header: '품목명', minWidth: 160, editor: 'text' },
+          { name: 'spec', header: '규격', minWidth: 130, editor: 'text' },
+          { name: 'unit', header: '단위', width: 80, editor: 'text' },
+          { name: 'qty', header: '수량', width: 90, align: 'right', editor: 'text' },
+          { name: 'note', header: '비고', minWidth: 150, editor: 'text' },
+          { name: '__actions', header: '삭제', width: 80, formatter: ({ row }) => actionButtons([{ label: '삭제', danger: true, dataset: { del: row.idx } }]) }
+        ],
+        data,
+        bodyHeight: 240,
+        onEditingFinish: ({ rowKey, columnName, value, grid }) => {
+          const row = grid.getRow(rowKey);
+          if (!row || row.idx === undefined) return;
+          items[row.idx][columnName] = columnName === 'qty' ? Number(value) || 0 : value;
+          renderItems();
+        }
+      });
+      return;
+    }
+    itemGrid.setData(data);
   }
+
+  root.querySelector('#rfq-item-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-del]');
+    if (!btn) return;
+    items.splice(+btn.dataset.del, 1);
+    renderItems();
+  });
 
   function renderVendors() {
     root.querySelector('#vendor-list').innerHTML = vendors.map((v, i) => `

@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { createAISRMGrid } from '../../components/grid.js';
 
 const PR = {
   prNo: 'PR-2026-0420', title: '생산라인 부품 긴급 수급', status: 'approved',
@@ -78,37 +79,10 @@ export default function init(container) {
     <!-- 품목 목록 -->
     <div class="form-section">
       <div class="form-section-title">품목 목록</div>
-      <div class="data-table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>#</th><th>품목코드</th><th>품목명</th><th>규격/사양</th>
-              <th>단위</th><th>수량</th>
-              <th style="text-align:right">단가</th>
-              <th style="text-align:right">금액</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${PR.items.map(r => `
-              <tr>
-                <td>${r.no}</td>
-                <td style="color:var(--primary-color);font-weight:600">${r.code}</td>
-                <td>${r.name}</td>
-                <td style="color:var(--text-sub)">${r.spec}</td>
-                <td>${r.unit}</td>
-                <td style="font-weight:600">${r.qty.toLocaleString()}</td>
-                <td style="text-align:right">${fmt(r.price)}</td>
-                <td style="text-align:right;font-weight:700">${fmt(r.amt)}</td>
-              </tr>`).join('')}
-          </tbody>
-          <tfoot>
-            <tr style="background:var(--bg-gray)">
-              <td colspan="7" style="text-align:right;font-weight:700;padding:12px 14px">합 계</td>
-              <td style="text-align:right;font-weight:800;font-size:15px;color:var(--primary-color);padding:12px 14px">${fmt(totalAmt)}</td>
-            </tr>
-          </tfoot>
-        </table>
+      <div class="aisrm-grid-wrap">
+        <div id="pr-detail-item-grid" class="aisrm-grid"></div>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;font-size:13px;font-weight:900;color:var(--primary-color)">합계 ${fmt(totalAmt)}</div>
     </div>
 
     <!-- 결재 이력 -->
@@ -154,6 +128,21 @@ export default function init(container) {
           </div>`).join('')}
       </div>
     </div>`;
+
+  createAISRMGrid(root.querySelector('#pr-detail-item-grid'), {
+    columns: [
+      { name: 'no', header: '#', width: 60, align: 'center' },
+      { name: 'code', header: '품목코드', width: 120, formatter: 'link' },
+      { name: 'name', header: '품목명', minWidth: 170 },
+      { name: 'spec', header: '규격/사양', minWidth: 150 },
+      { name: 'unit', header: '단위', width: 80 },
+      { name: 'qty', header: '수량', width: 90, align: 'right', formatter: 'number' },
+      { name: 'priceText', header: '단가', width: 120, align: 'right' },
+      { name: 'amtText', header: '금액', width: 120, align: 'right' }
+    ],
+    data: PR.items.map(item => ({ ...item, priceText: fmt(item.price), amtText: fmt(item.amt) })),
+    bodyHeight: 260
+  });
 }
 
 export function cleanup() {}

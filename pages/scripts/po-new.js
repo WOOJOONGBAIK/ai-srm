@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid } from '../../components/grid.js';
 
 const LINKED_ITEMS = [
   { no:1, code:'M-4521', name:'금형 설계 (메인)', spec:'CAD/CAM 설계', unit:'식', qty:1, unitPrice:12000000, total:12000000 },
@@ -50,19 +51,10 @@ export default function init(container) {
         <span>발주 품목</span>
         <button class="pg-btn" id="btn-add-item" style="font-size:12px;padding:5px 12px">+ 품목 추가</button>
       </div>
-      <div class="data-table-wrap">
-        <table class="data-table">
-          <thead><tr><th>#</th><th>품목코드</th><th>품목명</th><th>규격</th><th>단위</th><th style="text-align:right">수량</th><th style="text-align:right">단가</th><th style="text-align:right">금액</th><th>삭제</th></tr></thead>
-          <tbody id="item-tbody"></tbody>
-          <tfoot>
-            <tr style="background:var(--bg-gray);font-weight:700">
-              <td colspan="7" style="text-align:right;padding:10px 16px">합계</td>
-              <td style="text-align:right;padding:10px 16px;color:var(--primary-color)" id="total-amt"></td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
+      <div class="aisrm-grid-wrap">
+        <div id="po-item-grid" class="aisrm-grid"></div>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;font-size:13px;font-weight:900;color:var(--primary-color)">합계 <span id="total-amt" style="margin-left:6px"></span></div>
     </div>
 
     <div class="form-section">
@@ -83,6 +75,7 @@ export default function init(container) {
 
   let items = LINKED_ITEMS.map(i => ({ ...i }));
   let seq = items.length + 1;
+  let itemGrid = null;
 
   function calcTotal() {
     const total = items.reduce((s, r) => s + r.total, 0);
@@ -90,34 +83,42 @@ export default function init(container) {
   }
 
   function renderItems() {
-    const tbody = root.querySelector('#item-tbody');
-    tbody.innerHTML = items.map((it, i) => `
-      <tr>
-        <td>${it.no}</td>
-        <td><input class="form-input" style="width:85px" value="${it.code}" data-f="code" data-i="${i}"></td>
-        <td><input class="form-input" style="width:130px" value="${it.name}" data-f="name" data-i="${i}"></td>
-        <td><input class="form-input" style="width:100px" value="${it.spec}" data-f="spec" data-i="${i}"></td>
-        <td><select class="form-select" style="width:60px" data-f="unit" data-i="${i}">${['EA','SET','식','KG','M','회','L'].map(u=>`<option${it.unit===u?' selected':''}>${u}</option>`).join('')}</select></td>
-        <td><input class="form-input" type="number" style="width:65px;text-align:right" value="${it.qty}" data-f="qty" data-i="${i}"></td>
-        <td><input class="form-input" type="number" style="width:100px;text-align:right" value="${it.unitPrice}" data-f="unitPrice" data-i="${i}"></td>
-        <td style="text-align:right;font-weight:600;padding-right:12px">${fmt(it.total)}</td>
-        <td><button class="tbl-btn danger" data-del="${i}">삭제</button></td>
-      </tr>`).join('');
-
-    tbody.querySelectorAll('[data-f]').forEach(el => el.addEventListener('change', () => {
-      const idx = +el.dataset.i;
-      items[idx][el.dataset.f] = el.type === 'number' ? +el.value : el.value;
-      if (el.dataset.f === 'qty' || el.dataset.f === 'unitPrice') {
-        items[idx].total = items[idx].qty * items[idx].unitPrice;
-      }
-      renderItems();
-    }));
-    tbody.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => {
-      items.splice(+btn.dataset.del, 1);
-      renderItems();
-    }));
+    const data = items.map((it, idx) => ({ ...it, idx }));
+    if (!itemGrid) {
+      itemGrid = createAISRMGrid(root.querySelector('#po-item-grid'), {
+        columns: [
+          { name: 'no', header: '#', width: 60, align: 'center' },
+          { name: 'code', header: '품목코드', width: 110, editor: 'text' },
+          { name: 'name', header: '품목명', minWidth: 150, editor: 'text' },
+          { name: 'spec', header: '규격', minWidth: 120, editor: 'text' },
+          { name: 'unit', header: '단위', width: 80, editor: 'text' },
+          { name: 'qty', header: '수량', width: 80, align: 'right', editor: 'text' },
+          { name: 'unitPrice', header: '단가', width: 120, align: 'right', editor: 'text', formatter: 'number' },
+          { name: 'total', header: '금액', width: 130, align: 'right', formatter: 'number' },
+          { name: '__actions', header: '삭제', width: 80, formatter: ({ row }) => actionButtons([{ label: '삭제', danger: true, dataset: { del: row.idx } }]) }
+        ],
+        data,
+        bodyHeight: 260,
+        onEditingFinish: ({ rowKey, columnName, value, grid }) => {
+          const row = grid.getRow(rowKey);
+          if (!row || row.idx === undefined) return;
+          items[row.idx][columnName] = ['qty', 'unitPrice'].includes(columnName) ? Number(value) || 0 : value;
+          items[row.idx].total = items[row.idx].qty * items[row.idx].unitPrice;
+          renderItems();
+        }
+      });
+      return calcTotal();
+    }
+    itemGrid.setData(data);
     calcTotal();
   }
+
+  root.querySelector('#po-item-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-del]');
+    if (!btn) return;
+    items.splice(+btn.dataset.del, 1);
+    renderItems();
+  });
 
   root.querySelector('#btn-add-item').addEventListener('click', () => {
     items.push({ no: seq++, code:'', name:'', spec:'', unit:'EA', qty:1, unitPrice:0, total:0 });

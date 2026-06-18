@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid } from '../../components/grid.js';
 
 const RFQ  = { rfqNo: 'RFQ-2026-0086', title: '금형 설계 외주 용역', deadline: '2026-04-25', prNo: 'PR-2026-0418' };
 const ITEMS = ['금형 설계 (메인)', '금형 제작 감리', '시험성형 1회', '납기 보증'];
@@ -38,63 +39,8 @@ export default function init(container) {
     <!-- 종합 비교표 -->
     <div class="form-section">
       <div class="form-section-title">업체별 견적 비교</div>
-      <div class="data-table-wrap" style="overflow-x:auto">
-        <table class="data-table" style="min-width:700px">
-          <thead>
-            <tr>
-              <th>항목</th>
-              ${VENDORS.map((v,i) => `<th style="text-align:center;min-width:130px">${v.name}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="font-weight:600;color:var(--text-sub)">종합 점수</td>
-              ${VENDORS.map(v => {
-                const best = v.score === Math.max(...VENDORS.map(x=>x.score));
-                return `<td style="text-align:center">
-                  <div style="font-size:18px;font-weight:800;color:${best?'var(--primary-color)':'var(--text-main)'}">${v.score}점</div>
-                  ${best?'<div style="font-size:10px;color:var(--primary-color)">★ 최고점</div>':''}
-                </td>`;
-              }).join('')}
-            </tr>
-            <tr>
-              <td style="font-weight:600;color:var(--text-sub)">총 견적 금액</td>
-              ${VENDORS.map(v => {
-                const best = v.total === Math.min(...VENDORS.map(x=>x.total));
-                return `<td style="text-align:center;font-weight:700;color:${best?'#16a34a':'var(--text-main)'}">${fmt(v.total)}${best?'<br><span style="font-size:10px">★ 최저가</span>':''}</td>`;
-              }).join('')}
-            </tr>
-            ${ITEMS.map((item, i) => `
-              <tr>
-                <td style="color:var(--text-sub);padding-left:20px">∟ ${item}</td>
-                ${VENDORS.map(v => `<td style="text-align:center;font-size:13px">${fmt(v.items[i])}</td>`).join('')}
-              </tr>`).join('')}
-            <tr>
-              <td style="font-weight:600;color:var(--text-sub)">납기 (일)</td>
-              ${VENDORS.map(v => {
-                const best = v.leadtime === Math.min(...VENDORS.map(x=>x.leadtime));
-                return `<td style="text-align:center;font-weight:600;color:${best?'#16a34a':'var(--text-main)'}">${v.leadtime}일</td>`;
-              }).join('')}
-            </tr>
-            <tr>
-              <td style="font-weight:600;color:var(--text-sub)">품질 인증</td>
-              ${VENDORS.map(v => `<td style="text-align:center">${v.qual}</td>`).join('')}
-            </tr>
-            <tr>
-              <td style="font-weight:600;color:var(--text-sub)">특이사항</td>
-              ${VENDORS.map(v => `<td style="text-align:center;font-size:12px;color:var(--text-sub)">${v.remark}</td>`).join('')}
-            </tr>
-            <tr style="background:var(--bg-gray)">
-              <td style="font-weight:700">업체 선정</td>
-              ${VENDORS.map((v,i) => `
-                <td style="text-align:center">
-                  <button class="tbl-btn${selectedVendor===i?' primary':''}" data-vendor="${i}" id="btn-select-${i}">
-                    ${selectedVendor===i?'✓ 선정됨':'선정'}
-                  </button>
-                </td>`).join('')}
-            </tr>
-          </tbody>
-        </table>
+      <div class="aisrm-grid-wrap">
+        <div id="rfq-compare-grid" class="aisrm-grid"></div>
       </div>
     </div>
 
@@ -112,30 +58,53 @@ export default function init(container) {
         </div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-        <button class="pg-btn" onclick="root.querySelector('#select-section').style.display='none'; selectedVendor=null;">취소</button>
-        <button class="pg-btn primary" onclick="submitSelect()">낙찰 결정 완료</button>
+        <button class="pg-btn" id="select-cancel">취소</button>
+        <button class="pg-btn primary" id="select-submit">낙찰 결정 완료</button>
       </div>
     </div>`;
 
-  root.querySelectorAll('[data-vendor]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selectedVendor = +btn.dataset.vendor;
-      root.querySelector('#selected-vendor-name').value = VENDORS[selectedVendor].name;
-      root.querySelector('#select-section').style.display = 'block';
-      root.querySelectorAll('[data-vendor]').forEach((b, i) => {
-        b.className = `tbl-btn${i === selectedVendor ? ' primary' : ''}`;
-        b.textContent = i === selectedVendor ? '✓ 선정됨' : '선정';
-      });
-      root.querySelector('#select-section').scrollIntoView({ behavior: 'smooth' });
-    });
+  createAISRMGrid(root.querySelector('#rfq-compare-grid'), {
+    columns: [
+      { name: 'name', header: '업체명', minWidth: 150, formatter: 'link' },
+      { name: 'score', header: '종합 점수', width: 100, align: 'right', formatter: ({ value }) => `${value}점` },
+      { name: 'totalText', header: '총 견적 금액', width: 120, align: 'right' },
+      ...ITEMS.map((item, i) => ({ name: `item${i}`, header: item, width: 130, align: 'right' })),
+      { name: 'leadtimeText', header: '납기', width: 80, align: 'right' },
+      { name: 'qual', header: '품질 인증', width: 100 },
+      { name: 'remark', header: '특이사항', minWidth: 180 },
+      { name: '__actions', header: '업체 선정', width: 110, formatter: ({ row }) => actionButtons([{ label: selectedVendor === row.vendorIndex ? '선정됨' : '선정', primary: selectedVendor === row.vendorIndex, dataset: { vendor: row.vendorIndex } }]) }
+    ],
+    data: VENDORS.map((v, vendorIndex) => ({
+      ...v,
+      vendorIndex,
+      totalText: fmt(v.total),
+      leadtimeText: `${v.leadtime}일`,
+      ...Object.fromEntries(v.items.map((amount, i) => [`item${i}`, fmt(amount)]))
+    })),
+    bodyHeight: 360
   });
 
-  window.submitSelect = () => {
+  root.querySelector('#rfq-compare-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-vendor]');
+    if (!btn) return;
+    selectedVendor = +btn.dataset.vendor;
+    root.querySelector('#selected-vendor-name').value = VENDORS[selectedVendor].name;
+    root.querySelector('#select-section').style.display = 'block';
+    root.querySelector('#select-section').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  root.querySelector('#select-cancel').addEventListener('click', () => {
+    selectedVendor = null;
+    root.querySelector('#select-section').style.display = 'none';
+  });
+
+  root.querySelector('#select-submit').addEventListener('click', () => {
     const reason = root.querySelector('#select-reason').value;
+    if (selectedVendor === null) { alert('업체를 먼저 선택하세요.'); return; }
     if (!reason) { alert('선정 사유를 입력하세요.'); return; }
     alert(`${VENDORS[selectedVendor].name} 낙찰 결정 완료. 계약 단계로 이동합니다.`);
     history.pushState({ pageId: 'ct-new' }, '', '?page=ct-new');
     window.dispatchEvent(new PopStateEvent('popstate', { state: { pageId: 'ct-new' } }));
-  };
+  });
 }
-export function cleanup() { delete window.submitSelect; }
+export function cleanup() {}

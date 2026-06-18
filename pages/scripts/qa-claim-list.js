@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid, statusBadge } from '../../components/grid.js';
 
 const MOCK = [
   { claimNo:'CLM-2026-0045', iqcNo:'IQC-2026-0175', vendor:'(주)정밀금형', item:'시제품 금형', type:'치수 불량', qty:2, amt:9000000, issued:'2026-04-03', status:'processing', response:'반품 후 재제작 협의중' },
@@ -32,6 +33,7 @@ export default function init(container) {
   });
 
   const root = container.querySelector('#page-qa-claim-list');
+  let grid = null;
   const totalAmt = MOCK.reduce((s,r)=>s+r.amt, 0);
   const resolvedAmt = MOCK.filter(r=>['resolved','closed'].includes(r.status)).reduce((s,r)=>s+r.amt, 0);
 
@@ -47,11 +49,8 @@ export default function init(container) {
       <input type="text" class="filter-keyword" id="f-kw" placeholder="클레임번호·협력사·품목명·유형 검색">
       <button class="pg-btn primary" id="btn-search">검색</button>
     </div>
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead><tr><th>클레임번호</th><th>IQC번호</th><th>협력사</th><th>품목명</th><th>불량 유형</th><th style="text-align:right">클레임 수량</th><th style="text-align:right">청구 금액</th><th>접수일</th><th>상태</th><th>처리 내용</th><th>관리</th></tr></thead>
-        <tbody id="claim-tbody"></tbody>
-      </table>
+    <div class="aisrm-grid-wrap">
+      <div id="claim-grid" class="aisrm-grid"></div>
     </div>
 
     <!-- 협력사별 클레임 현황 -->
@@ -101,26 +100,34 @@ export default function init(container) {
     </div>`;
 
   function render(data) {
-    root.querySelector('#claim-tbody').innerHTML = data.map(r => {
+    const gridData = data.map(r => {
       const s = ST[r.status];
-      const tc = TYPE_CLS[r.type] || 'badge-draft';
-      return `<tr>
-        <td style="font-weight:600;color:var(--primary-color)">${r.claimNo}</td>
-        <td style="font-size:12px;color:var(--text-sub)">${r.iqcNo}</td>
-        <td>${r.vendor}</td>
-        <td>${r.item}</td>
-        <td><span class="badge ${tc}">${r.type}</span></td>
-        <td style="text-align:right">${r.qty}</td>
-        <td style="text-align:right;font-weight:600">${fmt(r.amt)}</td>
-        <td style="font-size:12px">${r.issued}</td>
-        <td><span class="badge ${s.cls}">${s.label}</span></td>
-        <td style="font-size:12px;color:var(--text-sub);max-width:160px">${r.response}</td>
-        <td class="td-actions">
-          <button class="tbl-btn primary">상세</button>
-          ${['pending','processing'].includes(r.status)?'<button class="tbl-btn">처리</button>':''}
-        </td>
-      </tr>`;
-    }).join('');
+      return { ...r, amtText: fmt(r.amt), statusLabel: s.label };
+    });
+    if (!grid) {
+      grid = createAISRMGrid(root.querySelector('#claim-grid'), {
+        columns: [
+          { name: 'claimNo', header: '클레임번호', width: 145, formatter: 'link' },
+          { name: 'iqcNo', header: 'IQC번호', width: 140 },
+          { name: 'vendor', header: '협력사', width: 140 },
+          { name: 'item', header: '품목명', minWidth: 170 },
+          { name: 'type', header: '불량 유형', width: 130, formatter: ({ value }) => statusBadge(value, value.includes('불량') || value.includes('미달') ? 'red' : 'amber') },
+          { name: 'qty', header: '클레임 수량', width: 100, align: 'right', formatter: 'number' },
+          { name: 'amtText', header: '청구 금액', width: 120, align: 'right' },
+          { name: 'issued', header: '접수일', width: 110 },
+          { name: 'statusLabel', header: '상태', width: 95, formatter: ({ row }) => statusBadge(row.statusLabel, ['resolved','closed'].includes(row.status) ? 'green' : row.status === 'processing' ? 'blue' : 'amber') },
+          { name: 'response', header: '처리 내용', minWidth: 180 },
+          { name: '__actions', header: '관리', width: 120, formatter: ({ row }) => actionButtons([
+            { label: '상세', primary: true, dataset: { action: 'detail', claim: row.claimNo } },
+            ...(['pending','processing'].includes(row.status) ? [{ label: '처리', dataset: { action: 'process', claim: row.claimNo } }] : [])
+          ]) }
+        ],
+        data: gridData,
+        bodyHeight: 360
+      });
+      return;
+    }
+    grid.setData(gridData);
   }
 
   root.querySelector('#btn-search').addEventListener('click', () => {

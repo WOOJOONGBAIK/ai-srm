@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { createAISRMGrid, statusBadge } from '../../components/grid.js';
 
 const DELAY_DATA = [
   { vendor:'(주)정밀금형',  total:12, ontime:10, delay:2, avgDelay:3.5, rate:83, causes:['자재 수급 지연','생산 일정 변경'], grade:'B' },
@@ -74,32 +75,8 @@ export default function init(container) {
     <!-- 협력사별 분석 -->
     <div class="form-section">
       <div class="form-section-title">협력사별 납기 준수율</div>
-      <div class="data-table-wrap">
-        <table class="data-table">
-          <thead><tr><th>협력사</th><th style="text-align:right">전체</th><th style="text-align:right">준수</th><th style="text-align:right">지연</th><th style="text-align:right">평균 지연일</th><th>준수율</th><th>주요 지연 원인</th><th>등급</th></tr></thead>
-          <tbody>
-            ${DELAY_DATA.sort((a,b)=>a.rate-b.rate).map(r => {
-              const barColor = r.rate>=95?'#16a34a':r.rate>=80?'var(--primary-color)':r.rate>=60?'#c2410c':'#dc2626';
-              return `<tr>
-                <td style="font-weight:600">${r.vendor}</td>
-                <td style="text-align:right">${r.total}건</td>
-                <td style="text-align:right;color:#16a34a;font-weight:600">${r.ontime}건</td>
-                <td style="text-align:right;color:${r.delay?'#dc2626':'var(--text-sub)'}${r.delay?';font-weight:700':''}">${r.delay}건</td>
-                <td style="text-align:right;color:${r.avgDelay>3?'#dc2626':'var(--text-sub)'}">${r.avgDelay?r.avgDelay+'일':'-'}</td>
-                <td>
-                  <div style="display:flex;align-items:center;gap:8px">
-                    <div style="flex:1;height:8px;background:var(--bg-gray);border-radius:4px;overflow:hidden">
-                      <div style="height:100%;width:${r.rate}%;background:${barColor};border-radius:4px"></div>
-                    </div>
-                    <span style="font-weight:700;color:${barColor};min-width:40px;text-align:right">${r.rate}%</span>
-                  </div>
-                </td>
-                <td style="font-size:12px;color:var(--text-sub)">${r.causes.length?r.causes.join(', '):'-'}</td>
-                <td><span class="badge ${GRADE_CLS[r.grade]}">${r.grade}등급</span></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
+      <div class="aisrm-grid-wrap">
+        <div id="delay-grid" class="aisrm-grid"></div>
       </div>
     </div>
 
@@ -120,5 +97,22 @@ export default function init(container) {
         </div>
       </div>
     </div>`;
+
+  createAISRMGrid(root.querySelector('#delay-grid'), {
+    columns: [
+      { name: 'vendor', header: '협력사', minWidth: 160, formatter: 'link' },
+      { name: 'total', header: '전체', width: 80, align: 'right', formatter: ({ value }) => `${value}건` },
+      { name: 'ontime', header: '준수', width: 80, align: 'right', formatter: ({ value }) => `${value}건` },
+      { name: 'delay', header: '지연', width: 80, align: 'right', formatter: ({ value }) => `${value}건` },
+      { name: 'avgDelay', header: '평균 지연일', width: 110, align: 'right', formatter: ({ value }) => value ? `${value}일` : '-' },
+      { name: 'rate', header: '준수율', width: 100, align: 'right', formatter: ({ value }) => `${value}%` },
+      { name: 'causesText', header: '주요 지연 원인', minWidth: 240 },
+      { name: 'grade', header: '등급', width: 90, formatter: ({ value }) => statusBadge(`${value}등급`, value === 'A' ? 'green' : value === 'B' ? 'blue' : value === 'C' ? 'amber' : 'red') }
+    ],
+    data: DELAY_DATA
+      .map(r => ({ ...r, causesText: r.causes.length ? r.causes.join(', ') : '-' }))
+      .sort((a, b) => a.rate - b.rate),
+    bodyHeight: 300
+  });
 }
 export function cleanup() {}

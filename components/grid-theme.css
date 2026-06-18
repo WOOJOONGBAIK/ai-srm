@@ -1,0 +1,121 @@
+/*
+============================================================
+History Log
+------------------------------------------------------------
+| 날짜       | 작성자   | 변경 사유                                |
+| 2026-06-17 | AI Agent | [GRID] AISRM 표준 TOAST UI Grid 테마 추가 |
+============================================================
+*/
+
+/* [2026-06-17] 수정 시작 - 작성자: AI Agent
+   사유: AISRM 전체 데이터 그리드의 공통 톤앤매너와 레이아웃 표준화
+--------------------------------------------------------------------------
+// [AS-IS] 기존 화면별 table/data-table CSS 산재
+
+// [TO-BE] 신규 코드 */
+.aisrm-grid {
+  width: 100%;
+  min-height: 260px;
+  border: 1px solid var(--border-color, #d6dde6);
+  background: var(--panel-bg, #fff);
+}
+
+.aisrm-grid-wrap {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.aisrm-grid-loading,
+.aisrm-grid-fallback {
+  padding: 28px;
+  border: 1px dashed var(--border-color, #d6dde6);
+  background: #f7f9fb;
+  color: var(--text-sub, #607080);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.aisrm-grid .tui-grid-container,
+.aisrm-grid .tui-grid-content-area,
+.aisrm-grid .tui-grid-rside-area,
+.aisrm-grid .tui-grid-lside-area {
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, sans-serif;
+}
+
+.aisrm-grid .tui-grid-cell {
+  font-size: 12px;
+}
+
+.aisrm-grid .tui-grid-cell-header {
+  font-weight: 900;
+}
+
+.aisrm-grid .tui-grid-cell-content {
+  line-height: 1.4;
+}
+
+.aisrm-grid .grid-cell-link {
+  color: var(--primary-color, #103b6d);
+  font-weight: 900;
+}
+
+.aisrm-grid .grid-cell-number {
+  display: block;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.aisrm-grid .grid-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aisrm-grid .grid-btn {
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid #c7d6e4;
+  border-radius: 3px;
+  background: #fff;
+  color: #335b7d;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.aisrm-grid .grid-btn.primary {
+  border-color: var(--primary-color, #103b6d);
+  background: var(--primary-color, #103b6d);
+  color: #fff;
+}
+
+.aisrm-grid .grid-btn.danger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.aisrm-grid .grid-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.aisrm-grid .grid-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.aisrm-grid .grid-badge.green { background: #e7f7ee; color: #047857; }
+.aisrm-grid .grid-badge.blue { background: #e8f2ff; color: #1d4ed8; }
+.aisrm-grid .grid-badge.amber { background: #fff4df; color: #b45309; }
+.aisrm-grid .grid-badge.red { background: #feecec; color: #b42318; }
+.aisrm-grid .grid-badge.gray { background: #eef2f6; color: #475569; }
+/* --------------------------------------------------------------------------
+   [2026-06-17] 수정 종료 */

@@ -1,5 +1,6 @@
 import { renderProcessTracker } from '../../components/process-tracker.js';
 import { renderPageHeader }     from '../../components/page-header.js';
+import { actionButtons, createAISRMGrid, statusBadge } from '../../components/grid.js';
 
 const MOCK_DATA = [
   { prNo:'PR-2026-0421', title:'서버 HDD 증설 구매요청',    category:'장비', requester:'김민준', dept:'IT인프라팀', amt:4800000,  date:'2026-04-21', status:'pending',  urgent:true  },
@@ -36,6 +37,7 @@ export default function init(container) {
   });
 
   const root = container.querySelector('#page-pr-list');
+  let grid = null;
 
   const total    = MOCK_DATA.length;
   const pending  = MOCK_DATA.filter(r => r.status === 'pending').length;
@@ -98,63 +100,53 @@ export default function init(container) {
       <button class="pg-btn" id="btn-reset">초기화</button>
     </div>
 
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th><input type="checkbox" id="chk-all"></th>
-            <th>PR번호</th>
-            <th>구매요청명</th>
-            <th>분류</th>
-            <th>요청자</th>
-            <th>부서</th>
-            <th style="text-align:right">예상금액</th>
-            <th>요청일</th>
-            <th>상태</th>
-            <th>관리</th>
-          </tr>
-        </thead>
-        <tbody id="pr-tbody"></tbody>
-      </table>
+    <div class="aisrm-grid-wrap">
+      <div id="pr-grid" class="aisrm-grid"></div>
     </div>
     <div class="pagination" id="pagination"></div>`;
 
   let filtered = [...MOCK_DATA];
 
   function renderTable(data) {
-    const tbody = root.querySelector('#pr-tbody');
-    if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-sub)">검색 결과가 없습니다.</td></tr>`;
+    const gridData = data.map(r => {
+      const s = STATUS_MAP[r.status];
+      const tone = r.status === 'approved' ? 'green' : r.status === 'pending' ? 'amber' : r.status === 'rejected' ? 'red' : 'gray';
+      return { ...r, statusLabel: s.label, statusTone: tone };
+    });
+    if (!grid) {
+      grid = createAISRMGrid(root.querySelector('#pr-grid'), {
+        rowHeaders: ['checkbox'],
+        columns: [
+          { name: 'prNo', header: 'PR번호', width: 140, formatter: 'link' },
+          { name: 'title', header: '구매요청명', minWidth: 220, formatter: ({ row }) => `${row.title}${row.urgent ? ' ' + statusBadge('긴급', 'red') : ''}` },
+          { name: 'category', header: '분류', width: 90, formatter: ({ value }) => statusBadge(value, 'gray') },
+          { name: 'requester', header: '요청자', width: 90 },
+          { name: 'dept', header: '부서', width: 120 },
+          { name: 'amt', header: '예상금액', width: 120, formatter: ({ value }) => `${Number(value).toLocaleString('ko-KR')}원`, align: 'right' },
+          { name: 'date', header: '요청일', width: 110 },
+          { name: 'statusLabel', header: '상태', width: 100, formatter: ({ row }) => statusBadge(row.statusLabel, row.statusTone) },
+          { name: '__actions', header: '관리', width: 150, formatter: ({ row }) => actionButtons([
+            { label: '상세', primary: true, dataset: { action: 'detail', prno: row.prNo } },
+            ...(row.status === 'draft' ? [{ label: '수정', dataset: { action: 'edit', prno: row.prNo } }] : []),
+            ...(row.status === 'approved' ? [{ label: 'RFQ전환', dataset: { action: 'rfq', prno: row.prNo } }] : [])
+          ]) }
+        ],
+        data: gridData,
+        bodyHeight: 420
+      });
       return;
     }
-    tbody.innerHTML = data.map(r => {
-      const s = STATUS_MAP[r.status];
-      const urgentBadge = r.urgent ? `<span class="badge badge-urgent" style="margin-left:4px">긴급</span>` : '';
-      return `<tr data-prno="${r.prNo}">
-        <td><input type="checkbox"></td>
-        <td style="font-weight:600;color:var(--primary-color)">${r.prNo}</td>
-        <td>${r.title}${urgentBadge}</td>
-        <td><span class="badge badge-draft">${r.category}</span></td>
-        <td>${r.requester}</td>
-        <td>${r.dept}</td>
-        <td style="text-align:right;font-weight:600">${fmt(r.amt)}</td>
-        <td>${r.date}</td>
-        <td><span class="badge ${s.cls}">${s.label}</span></td>
-        <td class="td-actions">
-          <button class="tbl-btn primary">상세</button>
-          ${r.status === 'draft' ? '<button class="tbl-btn">수정</button>' : ''}
-          ${r.status === 'approved' ? '<button class="tbl-btn">RFQ전환</button>' : ''}
-        </td>
-      </tr>`;
-    }).join('');
+    grid.setData(gridData);
+  }
 
-    tbody.querySelectorAll('tr[data-prno]').forEach(tr => {
-      tr.querySelector('.tbl-btn.primary').addEventListener('click', () => {
+  root.querySelector('#pr-grid').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'detail') {
         history.pushState({ pageId: 'pr-detail' }, '', '?page=pr-detail');
         window.dispatchEvent(new PopStateEvent('popstate', { state: { pageId: 'pr-detail' } }));
-      });
-    });
-  }
+    }
+  });
 
   function renderPagination(total, page = 1, perPage = 10) {
     const pages = Math.ceil(total / perPage);
@@ -191,10 +183,6 @@ export default function init(container) {
     });
     applyFilter();
   });
-  root.querySelector('#chk-all').addEventListener('change', e => {
-    root.querySelectorAll('tbody input[type=checkbox]').forEach(c => { c.checked = e.target.checked; });
-  });
-
   renderTable(MOCK_DATA);
   renderPagination(MOCK_DATA.length);
 }
